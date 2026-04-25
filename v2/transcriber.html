@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <!--
+    IMPORTANT: Open via HTTP server, NOT file://.
+    Exsurge uses Canvas for text measurement; Web Audio requires a real origin.
+    Run: http-server -a localhost -p 80
+    Then open: http://localhost/v2/transcriber.html
+  -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GABC Transcriber — v2</title>
+
+  <link rel="stylesheet" href="css/output.css" />
+
+  <link rel="stylesheet" href="css/transcriber.css" />
+
+  <!--
+    Global libraries must load as classic scripts before the ES6 module.
+    Order: Tone → tones (audio) → exsurge (rendering) → saveSvgAsPng (export)
+  -->
+  <script src="../js/Tone.min.js"></script>
+  <script src="../js/tones.js"></script>
+  <script src="../exsurge.min.js"></script>
+  <script src="../saveSvgAsPng.js"></script>
+</head>
+
+<body class="h-screen flex flex-col bg-white text-gray-900 overflow-hidden">
+
+  <!-- TOOLBAR -->
+  <header class="flex-none flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-gray-50">
+    <h1 class="text-sm font-semibold text-gray-700 tracking-wide uppercase">
+      GABC Transcriber
+      <span class="ml-2 text-xs font-normal text-gray-400">v2</span>
+    </h1>
+    <div class="flex items-center gap-2">
+      <button id="btnExportPdf"
+        class="px-3 py-1 text-xs font-medium rounded bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition-colors">
+        PDF
+      </button>
+      <button id="btnDownloadPng"
+        class="px-3 py-1 text-xs font-medium rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors">
+        PNG
+      </button>
+      <button id="btnDownloadSvg"
+        class="px-3 py-1 text-xs font-medium rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors">
+        SVG
+      </button>
+    </div>
+  </header>
+
+  <!-- TWO-PANE LAYOUT -->
+  <main class="flex-1 flex overflow-hidden">
+
+    <!-- Editor pane -->
+    <section class="w-2/5 flex flex-col border-r border-gray-200 min-w-0">
+      <div class="flex-none px-3 py-2 border-b border-gray-100 bg-gray-50">
+        <label for="gabcEditor" class="text-xs font-medium text-gray-500 uppercase tracking-wide">
+          Integrated GABC
+        </label>
+      </div>
+      <textarea id="gabcEditor" spellcheck="false" autocorrect="off" autocapitalize="none"
+        class="flex-1 resize-none p-3 font-mono text-sm leading-relaxed text-gray-800 bg-white focus:outline-none focus:ring-1 focus:ring-inset focus:ring-blue-400"
+        placeholder="Paste or type integrated GABC here…"></textarea>
+    </section>
+
+    <!-- Preview pane -->
+    <section class="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div class="flex-none px-3 py-2 border-b border-gray-100 bg-gray-50">
+        <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Preview</span>
+      </div>
+      <div id="chantPreview" class="flex-1 overflow-y-auto p-4">
+        <p id="previewPlaceholder" class="text-sm text-gray-400 italic mt-8 text-center">
+          Enter GABC in the editor to see a preview.
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- STATUS BAR -->
+  <footer class="flex-none px-4 py-1 border-t border-gray-200 bg-gray-50">
+    <p id="statusMessage" class="text-xs text-gray-400"></p>
+  </footer>
+
+  <!-- Hidden PDF export form -->
+  <form id="pdfForm" target="_blank" method="post" action="https://www.sourceandsummit.com/editor/legacy/process.php"
+    class="hidden">
+    <input type="hidden" id="pdfGabc" name="gabc[]" />
+    <input type="hidden" name="width" value="7.5" />
+    <input type="hidden" name="height" value="11" />
+    <input type="hidden" name="croppdf" value="false" />
+    <input type="hidden" name="spacing" value="vichi" />
+    <input type="hidden" name="font" value="GaramondPremierPro" />
+    <input type="hidden" name="fontsize" value="20" />
+    <input type="hidden" name="fmt" value="pdf" />
+  </form>
+
+  <!-- Media controls — shown during playback, fixed at bottom -->
+  <div id="mediaControls" class="hidden">
+    <button id="btnPauseResume" class="mc-btn mc-btn-primary" title="Pause / Resume">⏸</button>
+    <button id="btnBpmMinus"    class="mc-btn mc-btn-default" title="Slower">−</button>
+    <span   id="bpmDisplay">165 BPM</span>
+    <button id="btnBpmPlus"     class="mc-btn mc-btn-default" title="Faster">+</button>
+    <button id="btnMediaStop"   class="mc-btn mc-btn-danger"  title="Stop">■ Stop</button>
+  </div>
+
+  <!-- ES6 module entry point — runs after all globals above are ready -->
+  <script type="module" src="js/transcriber/app.js"></script>
+</body>
+
+</html>

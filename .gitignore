@@ -1,3 +1,6 @@
+.playwright-mcp/
+project_context.md
+/*.png
 .c9revisions
 node_modules
 web-app-jgabc.zip

@@ -18,7 +18,9 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:css": "tailwindcss -i ./v2/src/input.css -o ./v2/css/output.css --minify",
+    "watch:css": "tailwindcss -i ./v2/src/input.css -o ./v2/css/output.css --watch"
   },
   "dependencies": {
     "@prettier/sync": "^0.6.1",
@@ -120,5 +122,8 @@
     "xcode": "^3.0.1",
     "xml-escape": "^1.1.0",
     "xmlbuilder": "^15.1.1"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.19"
   }
 }
