@@ -8,6 +8,13 @@ import {
   getScoreNotes, getTranspose, changePitch, getBpm, setBpm,
 } from '../core/audio.js';
 
+// Language plugins — self-register via side-effect import
+import './languages/sk/index.js';
+
+import { getState, restoreState, serializeState } from './common/state.js';
+import { initEditor, rebuildStanzas, triggerCompile } from './common/editor.js';
+import { parseGabc } from './common/gabc-parser.js';
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 const PDF_SERVICE_URL      = 'https://www.sourceandsummit.com/editor/legacy/process.php';
 const DEFAULT_EXPORT_WIDTH = 7.5 * 96;
@@ -39,6 +46,9 @@ let ctxt  = null;
 let score = null;
 let _toolbar = null;   // currently visible floating toolbar div
 
+let isGabcDirty = false;
+let activeTab   = 'editor';   // 'editor' | 'gabc'
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 function init() {
   try {
@@ -49,6 +59,12 @@ function init() {
     return;
   }
 
+  // Restore Tab 1 state, then initialise the structured editor
+  const savedState = localStorage.getItem('v2_hymn_editor');
+  if (savedState) restoreState(savedState);
+  initEditor(getState(), onCompiledGabc);
+
+  // Restore Tab 2 GABC (raw editor)
   const saved = localStorage.getItem(LOCALSTORAGE_KEY);
   if (saved) {
     gabcEditor.value = saved;
@@ -74,15 +90,66 @@ function init() {
   btnMediaStop?.addEventListener('click', onMediaStop);
 
   setStatus(isAudioAvailable() ? 'Ready.' : 'Ready (audio unavailable).');
+
+  // Tab switching
+  document.getElementById('tabEditorBtn').addEventListener('click', () => switchToTab('editor'));
+  document.getElementById('tabGabcBtn').addEventListener('click',   () => switchToTab('gabc'));
+
+  const savedTab = localStorage.getItem('v2_active_tab');
+  if (savedTab === 'gabc') switchToTab('gabc');
 }
 
 // ─── Rendering ────────────────────────────────────────────────────────────────
 let renderTimer = null;
 
 function onEditorInput() {
+  isGabcDirty = true;
   localStorage.setItem(LOCALSTORAGE_KEY, gabcEditor.value);
   clearTimeout(renderTimer);
   renderTimer = setTimeout(renderFromEditor, RENDER_DEBOUNCE_MS);
+}
+
+// ─── Tab 1 → Tab 2 compiled output ───────────────────────────────────────────
+function onCompiledGabc(gabcStr) {
+  gabcEditor.value = gabcStr;
+  isGabcDirty = false;
+  localStorage.setItem(LOCALSTORAGE_KEY, gabcStr);
+  localStorage.setItem('v2_hymn_editor', serializeState());
+  renderFromEditor();
+}
+
+// ─── Tab switching ────────────────────────────────────────────────────────────
+const _editorTab  = document.getElementById('editorTab');
+const _gabcTab    = document.getElementById('gabcTab');
+const _editorBtn  = document.getElementById('tabEditorBtn');
+const _gabcBtn    = document.getElementById('tabGabcBtn');
+
+function switchToTab(tab) {
+  const toEditor = tab === 'editor';
+
+  // Dirty-flag sync: Tab 2 was manually edited, parse it back into Tab 1
+  if (toEditor && isGabcDirty) {
+    const parsed = parseGabc(gabcEditor.value.trim());
+    const state  = getState();
+    state.clef    = parsed.clef;
+    state.stanzas = parsed.stanzas;
+    state.coda    = parsed.coda;
+    state.strophicInheritance = false;
+    rebuildStanzas(state);
+    isGabcDirty = false;
+  }
+
+  _editorTab.classList.toggle('hidden', !toEditor);
+  _gabcTab.classList.toggle('hidden',    toEditor);
+
+  const [activeBtn, inactiveBtn] = toEditor ? [_editorBtn, _gabcBtn] : [_gabcBtn, _editorBtn];
+  activeBtn.classList.add('tab-btn-active', 'border-blue-600', 'text-blue-600');
+  activeBtn.classList.remove('border-transparent', 'text-gray-500');
+  inactiveBtn.classList.remove('tab-btn-active', 'border-blue-600', 'text-blue-600');
+  inactiveBtn.classList.add('border-transparent', 'text-gray-500');
+
+  activeTab = tab;
+  localStorage.setItem('v2_active_tab', tab);
 }
 
 function renderFromEditor() {

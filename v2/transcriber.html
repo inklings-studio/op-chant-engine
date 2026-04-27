@@ -55,14 +55,72 @@
 
     <!-- Editor pane -->
     <section class="w-2/5 flex flex-col border-r border-gray-200 min-w-0">
-      <div class="flex-none px-3 py-2 border-b border-gray-100 bg-gray-50">
-        <label for="gabcEditor" class="text-xs font-medium text-gray-500 uppercase tracking-wide">
-          Integrated GABC
-        </label>
+
+      <!-- Tab bar -->
+      <div class="flex-none flex border-b border-gray-200 bg-gray-50">
+        <button id="tabEditorBtn"
+          class="tab-btn tab-btn-active px-4 py-2 text-xs font-medium border-b-2 border-blue-600 text-blue-600">
+          Editor
+        </button>
+        <button id="tabGabcBtn"
+          class="tab-btn px-4 py-2 text-xs font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+          GABC
+        </button>
       </div>
-      <textarea id="gabcEditor" spellcheck="false" autocorrect="off" autocapitalize="none"
-        class="flex-1 resize-none p-3 font-mono text-sm leading-relaxed text-gray-800 bg-white focus:outline-none focus:ring-1 focus:ring-inset focus:ring-blue-400"
-        placeholder="Paste or type integrated GABC here…"></textarea>
+
+      <!-- Tab 1: Structured editor -->
+      <div id="editorTab" class="flex-1 flex flex-col overflow-y-auto p-3 min-w-0">
+
+        <!-- Controls row -->
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pb-3 mb-2 border-b border-gray-200 text-xs text-gray-600">
+          <span class="flex items-center gap-1">Language
+            <select id="editorLang" class="border border-gray-300 rounded px-1 py-0.5 text-xs">
+              <!-- options populated by editor.js from language registry -->
+            </select>
+          </span>
+          <span class="flex items-center gap-1">Clef
+            <select id="editorClef" class="border border-gray-300 rounded px-1 py-0.5 text-xs font-mono">
+              <option>c1</option><option>c2</option><option>c3</option>
+              <option selected>c4</option><option>f3</option><option>f4</option>
+            </select>
+          </span>
+          <label class="flex items-center gap-1 cursor-pointer">
+            <input type="checkbox" id="editorStrophic" class="accent-blue-600"> Strophic
+          </label>
+          <label class="flex items-center gap-1 cursor-pointer">
+            <input type="checkbox" id="editorLargeInitial" class="accent-blue-600"> Large Initial
+          </label>
+        </div>
+
+        <!-- Raw text input + Build -->
+        <div id="editorTextInputArea" class="flex gap-2 mb-2">
+          <textarea id="editorRawText" spellcheck="false"
+            class="flex-1 h-24 resize-y border border-gray-300 rounded px-2 py-1.5 text-xs font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-blue-400"
+            placeholder="Paste hymn text here…"></textarea>
+          <button id="editorBuildBtn"
+            class="self-end px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 active:bg-blue-800">
+            Build
+          </button>
+        </div>
+
+        <!-- Edit text toggle — shown after first Build -->
+        <button id="editorEditToggle"
+          class="hidden self-start mb-2 px-2 py-0.5 text-xs text-blue-600 border border-blue-300 rounded hover:bg-blue-50">
+          Edit text
+        </button>
+
+        <!-- Dynamic stanza rows injected here by editor.js -->
+        <div id="editorStanzas"></div>
+
+      </div>
+
+      <!-- Tab 2: Raw GABC — gabcEditor ID preserved exactly for app.js -->
+      <div id="gabcTab" class="hidden flex-1 flex flex-col min-w-0">
+        <textarea id="gabcEditor" spellcheck="false" autocorrect="off" autocapitalize="none"
+          class="flex-1 resize-none p-3 font-mono text-sm leading-relaxed text-gray-800 bg-white focus:outline-none focus:ring-1 focus:ring-inset focus:ring-blue-400"
+          placeholder="Paste or type integrated GABC here…"></textarea>
+      </div>
+
     </section>
 
     <!-- Preview pane -->
