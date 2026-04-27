@@ -59,7 +59,7 @@
       <!-- Tab bar -->
       <div class="flex-none flex border-b border-gray-200 bg-gray-50">
         <button id="tabEditorBtn"
-          class="tab-btn tab-btn-active px-4 py-2 text-xs font-medium border-b-2 border-blue-600 text-blue-600">
+          class="tab-btn tab-btn-active px-4 py-2 text-xs font-medium border-b-2 border-blue-500 text-gray-700">
           Editor
         </button>
         <button id="tabGabcBtn"
@@ -71,25 +71,27 @@
       <!-- Tab 1: Structured editor -->
       <div id="editorTab" class="flex-1 flex flex-col overflow-y-auto p-3 min-w-0">
 
-        <!-- Controls row -->
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pb-3 mb-2 border-b border-gray-200 text-xs text-gray-600">
-          <span class="flex items-center gap-1">Language
-            <select id="editorLang" class="border border-gray-300 rounded px-1 py-0.5 text-xs">
+        <!-- Controls -->
+        <div class="pb-3 mb-3 border-b border-gray-200 flex items-center w-full">
+          <!-- Left grid: label | dropdown -->
+          <div style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center;">
+            <span class="text-xs text-gray-600 text-right">Language</span>
+            <select id="editorLang" class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
               <!-- options populated by editor.js from language registry -->
             </select>
-          </span>
-          <span class="flex items-center gap-1">Clef
-            <select id="editorClef" class="border border-gray-300 rounded px-1 py-0.5 text-xs font-mono">
+            <span class="text-xs text-gray-600 text-right">Clef</span>
+            <select id="editorClef" class="border border-gray-300 rounded px-2 py-1 text-xs font-mono text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
               <option>c1</option><option>c2</option><option>c3</option>
               <option selected>c4</option><option>f3</option><option>f4</option>
             </select>
-          </span>
-          <label class="flex items-center gap-1 cursor-pointer">
-            <input type="checkbox" id="editorStrophic" class="accent-blue-600"> Strophic Copy
-          </label>
-          <label class="flex items-center gap-1 cursor-pointer">
-            <input type="checkbox" id="editorLargeInitial" class="accent-blue-600"> Large Initial
-          </label>
+          </div>
+          <!-- Right grid: label | checkbox — pushed to far right -->
+          <div style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center; margin-left:auto;">
+            <label class="text-xs text-gray-600 cursor-pointer select-none" for="editorStrophic">Strophic Copy</label>
+            <input type="checkbox" id="editorStrophic" class="accent-blue-600">
+            <label class="text-xs text-gray-600 cursor-pointer select-none" for="editorLargeInitial">Large Initial</label>
+            <input type="checkbox" id="editorLargeInitial" class="accent-blue-600">
+          </div>
         </div>
 
         <!-- Raw text input + Build -->
