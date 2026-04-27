@@ -1,4 +1,5 @@
-const BARLINES = new Set([',', ';', ':', '::']);
+const BARLINES      = new Set([',', ';', ':', '::']);
+const DOUBLE_BAR    = '(::)';
 
 /**
  * Tokenizes a melody input string into note/barline tokens.
@@ -14,16 +15,44 @@ export function tokenizeMelody(str) {
  * @param {object} state
  * @param {number} si  - stanza index
  * @param {number} li  - line index
- * @returns {string[]}
+ * @returns {{ notes: string[], wordMap: number[]|null }}
  */
 function resolveNotes(state, si, li) {
   const line = state.stanzas[si]?.lines[li];
-  if (!line) return [];
-  if (line.notes.trim()) return line.parsedNotes;
+  if (!line) return { notes: [], wordMap: null };
+  if (line.notes.trim()) return { notes: line.parsedNotes, wordMap: line.wordMap ?? null };
   if (state.strophicInheritance && si > 0) {
-    return state.stanzas[0]?.lines[li]?.parsedNotes ?? [];
+    const src = state.stanzas[0]?.lines[li];
+    return { notes: src?.parsedNotes ?? [], wordMap: src?.wordMap ?? null };
   }
-  return [];
+  return { notes: [], wordMap: null };
+}
+
+/**
+ * Builds a GABC line string from notes, syllables, and word-map.
+ * Same-word syllables are concatenated with no separator; different words get a space.
+ */
+function buildLine(notes, syllables, wordMap) {
+  let result  = '';
+  let sylIdx  = 0;
+  let prevSep = '';   // separator to prepend before the next token
+
+  for (const token of notes) {
+    if (BARLINES.has(token)) {
+      result  += prevSep + (token === '::' ? DOUBLE_BAR : `(${token})`);
+      prevSep  = ' ';
+    } else {
+      const syl      = sylIdx < syllables.length ? syllables[sylIdx] : '-';
+      const curWord  = wordMap?.[sylIdx]  ?? sylIdx;
+      const nextWord = wordMap?.[sylIdx + 1] ?? sylIdx + 1;
+      const lastSylOfWord = (syl === '-') || (sylIdx >= syllables.length - 1) || (curWord !== nextWord);
+      sylIdx++;
+      result  += prevSep + `${syl}(${token})`;
+      prevSep  = lastSylOfWord ? ' ' : '';
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -41,27 +70,27 @@ export function compileGabc(state) {
     const lineParts = [];
 
     stanza.lines.forEach((line, li) => {
-      const notes     = resolveNotes(state, si, li);
+      const isLastLine = li === stanza.lines.length - 1;
+      const { notes, wordMap } = resolveNotes(state, si, li);
       const syllables = line.syllables ?? [];
-      const lineBuf   = [];
-      let sylIdx      = 0;
+
+      let lineStr = '';
 
       // Emit clef before very first note token
       if (!clefEmitted && notes.length) {
-        lineBuf.push(`(${state.clef})`);
+        lineStr     = `(${state.clef}) `;
         clefEmitted = true;
       }
 
-      for (const token of notes) {
-        if (BARLINES.has(token)) {
-          lineBuf.push(`(${token})`);
-        } else {
-          const syl = sylIdx < syllables.length ? syllables[sylIdx++] : '-';
-          lineBuf.push(`${syl}(${token})`);
-        }
+      lineStr += buildLine(notes, syllables, wordMap);
+      lineStr  = lineStr.trimEnd();
+
+      // Guarantee every stanza's last line ends with (::) regardless of note content
+      if (isLastLine && lineStr && !lineStr.endsWith(DOUBLE_BAR)) {
+        lineStr += ' ' + DOUBLE_BAR;
       }
 
-      if (lineBuf.length) lineParts.push(lineBuf.join(' '));
+      if (lineStr.trim()) lineParts.push(lineStr);
     });
 
     if (lineParts.length) {
@@ -69,27 +98,18 @@ export function compileGabc(state) {
     }
   });
 
-  // Stanza separator: double barline between stanzas
-  let gabc = parts.join('\n(::\n)\n');
-
-  // Coda
+  // Coda block — appended as a peer of stanza blocks.
+  // (::) separators between blocks come from the :: barline token at the end of each block's last line.
   if (state.coda) {
-    const codaNotes = state.coda.parsedNotes ?? [];
-    const codaSyls  = state.coda.syllables  ?? [];
+    const codaNotes   = state.coda.parsedNotes ?? [];
+    const codaSyls    = state.coda.syllables   ?? [];
+    const codaWordMap = state.coda.wordMap     ?? null;
     if (codaNotes.length) {
-      const codaBuf = [];
-      let sylIdx = 0;
-      for (const token of codaNotes) {
-        if (BARLINES.has(token)) {
-          codaBuf.push(`(${token})`);
-        } else {
-          const syl = sylIdx < codaSyls.length ? codaSyls[sylIdx++] : '-';
-          codaBuf.push(`${syl}(${token})`);
-        }
-      }
-      gabc += '\n' + codaBuf.join(' ');
+      parts.push(buildLine(codaNotes, codaSyls, codaWordMap) + ' ' + DOUBLE_BAR);
     }
   }
 
-  return gabc;
+  const initialStyle = state.largeInitial ? 1 : 0;
+  const header = `initial-style: ${initialStyle};\n%%`;
+  return header + '\n' + parts.join('\n');
 }

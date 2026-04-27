@@ -47,7 +47,8 @@ export function createContext() {
  */
 export function renderGabc(ctxt, gabc, container) {
   const mappings = exsurge.Gabc.createMappingsFromSource(ctxt, gabc);
-  const score = new exsurge.ChantScore(ctxt, mappings, true);
+  const largeInitial = !/^\s*initial-style\s*:\s*0\s*;/m.test(gabc);
+  const score = new exsurge.ChantScore(ctxt, mappings, largeInitial);
 
   score.performLayoutAsync(ctxt, function () {
     const width = container.clientWidth;

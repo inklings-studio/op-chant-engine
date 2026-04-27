@@ -2,7 +2,7 @@
 // Nucleus priority: diphthong (ia/ie/iu) > vowel > syllabic consonant (r/l/ŕ/ĺ).
 // Syllable boundary: one-consonant onset (split before last consonant before next nucleus).
 
-const VOWELS = new Set([...'aeiouáéíóúýäôAEIOUÁÉÍÓÚÝÄÔ']);
+const VOWELS = new Set([...'yaeiouáéíóúýäôYAEIOUÁÉÍÓÚÝÄÔ']);
 const SYLLABIC = new Set([...'rlŕĺRLŔĹ']);
 
 const DIPHTHONG_PAIRS = new Set(['ia', 'ie', 'iu', 'Ia', 'Ie', 'Iu', 'IA', 'IE', 'IU']);

@@ -35,6 +35,7 @@ export function initEditor(state, onGabcCompiled) {
   _wireStaticEvents(state);
 
   if (state.stanzas.length > 0 || state.coda) {
+    if (state.rawText) _rawText().value = state.rawText;
     _renderStanzas(state);
     _showStanzas();
   }
@@ -88,6 +89,7 @@ function _wireStaticEvents(state) {
     state.language = _langSel().value;
     const raw = _rawText().value.trim();
     if (raw) {
+      state.rawText = raw;
       parseText(raw, state, getLanguage(state.language));
       _renderStanzas(state);
     }
@@ -113,6 +115,7 @@ function _wireStaticEvents(state) {
   _buildBtn().addEventListener('click', () => {
     const raw = _rawText().value.trim();
     if (!raw) return;
+    state.rawText = raw;
     parseText(raw, state, getLanguage(state.language));
     _renderStanzas(state);
     _showStanzas();
@@ -176,11 +179,12 @@ function _buildLineRow(state, si, li, line) {
   input.placeholder    = 'Melody notes  e.g.  e f g ; h';
 
   const track = document.createElement('div');
-  track.className      = 'flex flex-wrap gap-1 min-h-5 bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5';
+  track.className      = 'editor-alignment-track';
   track.dataset.stanza = si;
   track.dataset.line   = li;
 
   _renderTrack(track, line.syllables ?? [], line.parsedNotes ?? []);
+  _updateInputOverflow(input, line.syllables ?? [], line.parsedNotes ?? []);
 
   input.addEventListener('input', () => {
     const target = si === 'coda' ? state.coda : state.stanzas[si]?.lines[li];
@@ -188,9 +192,19 @@ function _buildLineRow(state, si, li, line) {
     target.notes       = input.value;
     target.parsedNotes = tokenizeMelody(input.value);
     _renderTrack(track, target.syllables, target.parsedNotes);
+    _updateInputOverflow(input, target.syllables, target.parsedNotes);
+    if (document.activeElement === input) _highlightCursorChip(input, track);
     if (si === 0) _applyStrophicPlaceholders(state);
     triggerCompile(state);
   });
+
+  // Cursor-position chip highlight
+  const _onCursorMove = () => _highlightCursorChip(input, track);
+  const _onBlur       = () => _clearCursorHighlight(track);
+  input.addEventListener('focus',     _onCursorMove);
+  input.addEventListener('click',     _onCursorMove);
+  input.addEventListener('keyup',     _onCursorMove);
+  input.addEventListener('blur',      _onBlur);
 
   row.appendChild(input);
   row.appendChild(track);
@@ -205,22 +219,24 @@ function _renderTrack(trackEl, syllables, parsedNotes) {
 
   for (const token of parsedNotes) {
     if (BARLINES.has(token)) {
-      trackEl.appendChild(_chip(token === '::' ? '‖' : '|', 'text-gray-400 px-1'));
+      trackEl.appendChild(_chip(token === '::' ? '‖' : '|', 'track-chip track-chip-barline'));
     } else {
       const syl = syllables[sylIdx++];
-      trackEl.appendChild(syl
-        ? _chip(syl, 'bg-blue-100 text-blue-800 px-1.5 rounded')
-        : _chip('—', 'text-gray-300 px-1'));
+      const chip = syl
+        ? _chip(`${syl}(${token})`, 'track-chip track-chip-matched')
+        : _chip('—', 'track-chip track-chip-empty');
+      chip.dataset.isMatched = syl ? '1' : '0';
+      trackEl.appendChild(chip);
     }
   }
 
   while (sylIdx < syllables.length) {
-    trackEl.appendChild(_chip(syllables[sylIdx++], 'bg-red-100 text-red-700 px-1.5 rounded'));
+    trackEl.appendChild(_chip(syllables[sylIdx++], 'track-chip track-chip-overflow'));
   }
 
   if (!parsedNotes.length && !syllables.length) {
     const hint = document.createElement('span');
-    hint.className   = 'text-gray-300 text-xs italic';
+    hint.className   = 'text-xs italic track-chip track-chip-empty';
     hint.textContent = 'enter notes above';
     trackEl.appendChild(hint);
   }
@@ -228,9 +244,51 @@ function _renderTrack(trackEl, syllables, parsedNotes) {
 
 function _chip(text, cls) {
   const span = document.createElement('span');
-  span.className   = 'text-xs ' + cls;
+  span.className   = cls;
   span.textContent = text;
   return span;
+}
+
+// ─── Cursor-position chip highlight ──────────────────────────────────────────
+
+function _cursorNoteIndex(notes, cursorPos) {
+  // Returns the 0-based index among note-chips (non-barlines) at the cursor position.
+  // Returns -1 if the cursor is over a barline token or past all tokens.
+  const tokenRe = /\S+/g;
+  let noteIdx = -1;
+  let match;
+  while ((match = tokenRe.exec(notes)) !== null) {
+    const isNote = !BARLINES.has(match[0]);
+    if (isNote) noteIdx++;
+    if (cursorPos >= match.index && cursorPos <= match.index + match[0].length) {
+      return isNote ? noteIdx : -1;
+    }
+  }
+  return -1;
+}
+
+function _highlightCursorChip(input, track) {
+  const idx = _cursorNoteIndex(input.value, input.selectionStart);
+  track.querySelectorAll('.track-chip-matched, .track-chip-empty, .track-chip-cursor').forEach((chip, i) => {
+    const active = i === idx;
+    chip.classList.toggle('track-chip-cursor',   active);
+    chip.classList.toggle('track-chip-matched',  !active && chip.dataset.isMatched === '1');
+    chip.classList.toggle('track-chip-empty',    !active && chip.dataset.isMatched === '0');
+  });
+}
+
+function _clearCursorHighlight(track) {
+  track.querySelectorAll('.track-chip-cursor').forEach(chip => {
+    chip.classList.remove('track-chip-cursor');
+    chip.classList.add(chip.dataset.isMatched === '1' ? 'track-chip-matched' : 'track-chip-empty');
+  });
+}
+
+// ─── Overflow detection ───────────────────────────────────────────────────────
+
+function _updateInputOverflow(input, syllables, parsedNotes) {
+  const noteCount = parsedNotes.filter(t => !BARLINES.has(t)).length;
+  input.classList.toggle('editor-melody-input-overflow', noteCount > syllables.length);
 }
 
 // ─── Strophic inheritance ─────────────────────────────────────────────────────

@@ -12,9 +12,13 @@ const TOKEN_RE   = /([^(\s]+)?\(([^)]*)\)/g;
 export function parseGabc(gabc) {
   let clef = 'c4';
 
+  // Strip GABC header block (lines before %%)
+  const headerSep = gabc.indexOf('%%');
+  const body = headerSep !== -1 ? gabc.slice(headerSep + 2) : gabc;
+
   // Split on stanza boundaries (double barline tokens) first.
   // The compiler emits (\n::\n) between stanzas, so we split on that pattern.
-  const stanzaBlocks = gabc.split(/\(::[\s\n]*\)/);
+  const stanzaBlocks = body.split(/\s*\(::\)\s*|\(::\s*\)/);
 
   // Separate the last block as potential coda if it was emitted after the last stanza sep.
   // (Coda is simply treated as the last stanza block for now — no structural distinction on parse.)

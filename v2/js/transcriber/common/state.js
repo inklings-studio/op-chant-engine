@@ -1,8 +1,9 @@
 const _defaultState = () => ({
   language: 'sk',
   clef: 'c4',
-  largeInitial: false,
-  strophicInheritance: false,
+  largeInitial: true,
+  strophicInheritance: true,
+  rawText: '',
   stanzas: [],
   coda: null,
 });

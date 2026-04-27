@@ -129,3 +129,57 @@
   min-width: 60px;
   text-align: center;
 }
+
+/* ── Editor alignment track ──────────────────────────────────────────────── */
+.editor-alignment-track {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-height: 20px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.track-chip {
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  line-height: 1.6;
+}
+
+.track-chip-matched {
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 0 5px;
+  border-radius: 3px;
+}
+
+.track-chip-overflow {
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 0 5px;
+  border-radius: 3px;
+}
+
+.track-chip-empty {
+  color: #d1d5db;
+  padding: 0 3px;
+}
+
+.track-chip-barline {
+  color: #9ca3af;
+  padding: 0 3px;
+}
+
+.track-chip-cursor {
+  background: #bbf7d0;
+  color: #15803d;
+  padding: 0 5px;
+  border-radius: 3px;
+}
+
+.editor-melody-input-overflow {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
