@@ -73,12 +73,16 @@
 
         <!-- Controls -->
         <div class="pb-3 mb-3 border-b border-gray-200 flex items-center w-full">
-          <!-- Left grid: label | dropdown -->
+          <!-- Left grid: label | control -->
           <div style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center;">
             <span class="text-xs text-gray-600 text-right">Language</span>
             <select id="editorLang" class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
               <!-- options populated by editor.js from language registry -->
             </select>
+            <span class="text-xs text-gray-600 text-right">Annotation</span>
+            <input type="text" id="editorAnnotation" spellcheck="false"
+              class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+              placeholder="e.g. Ant." style="width:90px;" />
             <span class="text-xs text-gray-600 text-right">Clef</span>
             <select id="editorClef" class="border border-gray-300 rounded px-2 py-1 text-xs font-mono text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
               <option>c1</option><option>c2</option><option>c3</option>
@@ -91,6 +95,8 @@
             <input type="checkbox" id="editorStrophic" class="accent-blue-600">
             <label class="text-xs text-gray-600 cursor-pointer select-none" for="editorLargeInitial">Large Initial</label>
             <input type="checkbox" id="editorLargeInitial" class="accent-blue-600">
+            <label class="text-xs text-gray-600 cursor-pointer select-none" for="editorStanzaNumbers">Stanza Numbers</label>
+            <input type="checkbox" id="editorStanzaNumbers" class="accent-blue-600">
           </div>
         </div>
 

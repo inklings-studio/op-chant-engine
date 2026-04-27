@@ -8,15 +8,17 @@ let _state          = null;
 let _onGabcCompiled = null;
 
 // ─── DOM refs (all static — exist in transcriber.html) ───────────────────────
-const _langSel      = () => document.getElementById('editorLang');
-const _clefSel      = () => document.getElementById('editorClef');
-const _strophicChk  = () => document.getElementById('editorStrophic');
-const _largeInitChk = () => document.getElementById('editorLargeInitial');
-const _rawText      = () => document.getElementById('editorRawText');
-const _buildBtn     = () => document.getElementById('editorBuildBtn');
-const _editToggle   = () => document.getElementById('editorEditToggle');
-const _textArea     = () => document.getElementById('editorTextInputArea');
-const _stanzasEl    = () => document.getElementById('editorStanzas');
+const _langSel        = () => document.getElementById('editorLang');
+const _clefSel        = () => document.getElementById('editorClef');
+const _strophicChk    = () => document.getElementById('editorStrophic');
+const _largeInitChk   = () => document.getElementById('editorLargeInitial');
+const _stanzaNumChk   = () => document.getElementById('editorStanzaNumbers');
+const _annotationInput= () => document.getElementById('editorAnnotation');
+const _rawText        = () => document.getElementById('editorRawText');
+const _buildBtn       = () => document.getElementById('editorBuildBtn');
+const _editToggle     = () => document.getElementById('editorEditToggle');
+const _textArea       = () => document.getElementById('editorTextInputArea');
+const _stanzasEl      = () => document.getElementById('editorStanzas');
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
@@ -77,10 +79,12 @@ function _populateLangSelect(state) {
 }
 
 function _syncControlsToState(state) {
-  _langSel().value          = state.language;
-  _clefSel().value          = state.clef;
-  _strophicChk().checked    = state.strophicInheritance;
-  _largeInitChk().checked   = state.largeInitial;
+  _langSel().value            = state.language;
+  _clefSel().value            = state.clef;
+  _strophicChk().checked      = state.strophicInheritance;
+  _largeInitChk().checked     = state.largeInitial;
+  _stanzaNumChk().checked     = state.stanzaNumbers;
+  _annotationInput().value    = state.annotation ?? '';
 }
 
 function _wireStaticEvents(state) {
@@ -110,6 +114,16 @@ function _wireStaticEvents(state) {
 
   _largeInitChk().addEventListener('change', () => {
     state.largeInitial = _largeInitChk().checked;
+    triggerCompile(state);
+  });
+
+  _stanzaNumChk().addEventListener('change', () => {
+    state.stanzaNumbers = _stanzaNumChk().checked;
+    triggerCompile(state);
+  });
+
+  _annotationInput().addEventListener('input', () => {
+    state.annotation = _annotationInput().value;
     triggerCompile(state);
   });
 

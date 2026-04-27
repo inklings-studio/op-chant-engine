@@ -3,6 +3,8 @@ const _defaultState = () => ({
   clef: 'c4',
   largeInitial: true,
   strophicInheritance: true,
+  stanzaNumbers: false,
+  annotation: '',
   stanzas: [],
   coda: null,
 });

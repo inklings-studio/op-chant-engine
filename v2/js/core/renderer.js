@@ -50,6 +50,13 @@ export function renderGabc(ctxt, gabc, container) {
   const largeInitial = !/^\s*initial-style\s*:\s*0\s*;/m.test(gabc);
   const score = new exsurge.ChantScore(ctxt, mappings, largeInitial);
 
+  if (largeInitial) {
+    const annotationMatch = gabc.match(/^annotation:\s*(.+?)\s*;/m);
+    if (annotationMatch) {
+      score.annotation = new exsurge.Annotations(ctxt, '%' + annotationMatch[1] + '%');
+    }
+  }
+
   score.performLayoutAsync(ctxt, function () {
     const width = container.clientWidth;
     score.layoutChantLines(ctxt, width, function () {

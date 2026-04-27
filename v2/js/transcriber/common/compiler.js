@@ -54,26 +54,36 @@ export function compileGabc(state) {
   const parts = [];
   let clefEmitted = false;
 
+  // Stanza 1 gets a number when stanzaNumbers is on AND largeInitial is off
+  // (large initial already visually identifies the first stanza).
+  const numberFromStanza = state.stanzaNumbers
+    ? (state.largeInitial ? 1 : 0)
+    : Infinity;
+
   state.stanzas.forEach((stanza, si) => {
     const lineParts = [];
 
     stanza.lines.forEach((line, li) => {
-      const isLastLine = li === stanza.lines.length - 1;
+      const isFirstLine = li === 0;
+      const isLastLine  = li === stanza.lines.length - 1;
       const { notes, wordMap } = resolveNotes(state, si, li);
       const syllables = line.syllables ?? [];
 
       let lineStr = '';
 
-      // Emit clef before very first note token
       if (!clefEmitted && notes.length) {
         lineStr     = `(${state.clef}) `;
         clefEmitted = true;
       }
 
+      // Prepend stanza number on the first line of qualifying stanzas
+      if (isFirstLine && si >= numberFromStanza) {
+        lineStr += `^${si + 1}.^() `;
+      }
+
       lineStr += buildLine(notes, syllables, wordMap);
       lineStr  = lineStr.trimEnd();
 
-      // Guarantee every stanza's last line ends with (::) regardless of note content
       if (isLastLine && lineStr && !lineStr.endsWith(DOUBLE_BAR)) {
         lineStr += ' ' + DOUBLE_BAR;
       }
@@ -86,8 +96,6 @@ export function compileGabc(state) {
     }
   });
 
-  // Coda block — appended as a peer of stanza blocks.
-  // (::) separators between blocks come from the :: barline token at the end of each block's last line.
   if (state.coda) {
     const codaNotes   = state.coda.parsedNotes ?? [];
     const codaSyls    = state.coda.syllables   ?? [];
@@ -98,6 +106,10 @@ export function compileGabc(state) {
   }
 
   const initialStyle = state.largeInitial ? 1 : 0;
-  const header = `initial-style: ${initialStyle};\n%%`;
-  return header + '\n' + parts.join('\n');
+  let header = `initial-style: ${initialStyle};\n`;
+  if (state.annotation?.trim()) {
+    header += `annotation: ${state.annotation.trim()};\n`;
+  }
+  header += '%%';
+  return header + '\n' + parts.join('\n\n');
 }
