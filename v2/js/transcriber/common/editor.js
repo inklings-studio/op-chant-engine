@@ -101,7 +101,10 @@ function _wireStaticEvents(state) {
 
   _strophicChk().addEventListener('change', () => {
     state.strophicInheritance = _strophicChk().checked;
-    _applyStrophicPlaceholders(state);
+    if (state.strophicInheritance) {
+      state.stanzas[0]?.lines.forEach((_, li) => _propagateStrophicLine(state, li));
+    }
+    _applyStrophicStyling(state);
     triggerCompile(state);
   });
 
@@ -160,7 +163,7 @@ function _renderStanzas(state) {
     container.appendChild(codaEl);
   }
 
-  _applyStrophicPlaceholders(state);
+  _applyStrophicStyling(state);
 }
 
 function _buildLineRow(state, si, li, line) {
@@ -191,7 +194,7 @@ function _buildLineRow(state, si, li, line) {
     _renderTrack(track, target.syllables, target.parsedNotes);
     _updateInputOverflow(input, target.syllables, target.parsedNotes);
     if (document.activeElement === input) _highlightCursorChip(input, track);
-    if (si === 0) _applyStrophicPlaceholders(state);
+    if (si === 0 && state.strophicInheritance) _propagateStrophicLine(state, li);
     triggerCompile(state);
   });
 
@@ -288,16 +291,29 @@ function _updateInputOverflow(input, syllables, parsedNotes) {
   input.classList.toggle('editor-melody-input-overflow', noteCount > syllables.length);
 }
 
-// ─── Strophic inheritance ─────────────────────────────────────────────────────
+// ─── Strophic copy ────────────────────────────────────────────────────────────
 
-function _applyStrophicPlaceholders(state) {
-  const inputs = document.querySelectorAll('.editor-melody-input[data-stanza]');
-  inputs.forEach(input => {
+function _applyStrophicStyling(state) {
+  document.querySelectorAll('.editor-melody-input[data-stanza]').forEach(input => {
     const si = input.dataset.stanza;
     if (si === 'coda' || Number(si) === 0) return;
-    const li = Number(input.dataset.line);
-    input.placeholder = state.strophicInheritance
-      ? (state.stanzas[0]?.lines[li]?.notes || 'Melody notes  e.g.  e f g ; h')
-      : 'Melody notes  e.g.  e f g ; h';
+    input.classList.toggle('editor-melody-input-strophic', state.strophicInheritance);
+  });
+}
+
+function _propagateStrophicLine(state, li) {
+  const src = state.stanzas[0]?.lines[li];
+  if (!src) return;
+  document.querySelectorAll(`.editor-melody-input[data-line="${li}"]`).forEach(input => {
+    const si = Number(input.dataset.stanza);
+    if (isNaN(si) || si === 0) return;
+    const target = state.stanzas[si]?.lines[li];
+    if (!target) return;
+    target.notes = src.notes;
+    target.parsedNotes = src.parsedNotes;
+    input.value = src.notes;
+    const track = input.nextElementSibling;
+    _renderTrack(track, target.syllables, target.parsedNotes);
+    _updateInputOverflow(input, target.syllables, target.parsedNotes);
   });
 }

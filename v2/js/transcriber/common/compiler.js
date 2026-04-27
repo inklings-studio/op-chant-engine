@@ -10,22 +10,10 @@ export function tokenizeMelody(str) {
   return str.trim().split(/\s+/).filter(Boolean);
 }
 
-/**
- * Resolves the effective note tokens for a line, applying strophic inheritance.
- * @param {object} state
- * @param {number} si  - stanza index
- * @param {number} li  - line index
- * @returns {{ notes: string[], wordMap: number[]|null }}
- */
 function resolveNotes(state, si, li) {
   const line = state.stanzas[si]?.lines[li];
   if (!line) return { notes: [], wordMap: null };
-  if (line.notes.trim()) return { notes: line.parsedNotes, wordMap: line.wordMap ?? null };
-  if (state.strophicInheritance && si > 0) {
-    const src = state.stanzas[0]?.lines[li];
-    return { notes: src?.parsedNotes ?? [], wordMap: src?.wordMap ?? null };
-  }
-  return { notes: [], wordMap: null };
+  return { notes: line.parsedNotes, wordMap: line.wordMap ?? null };
 }
 
 /**

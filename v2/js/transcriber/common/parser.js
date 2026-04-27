@@ -50,9 +50,7 @@ export function parseText(rawText, state, plugin) {
       const isLastLine = li === linesToProcess.length - 1;
       const barline = isLastLine ? '::' : (li % 2 === 0 ? ',' : ':');
       const recto = syllables.map(() => 'f').join(' ') + ' ' + barline;
-      // Strophic stanzas (si > 0) always clear to empty so the compiler inherits from stanza 0
-      const isStrophicStanza = state.strophicInheritance && si > 0;
-      const notes = isStrophicStanza ? '' : (preserved || recto);
+      const notes = preserved || recto;
       return {
         syllables,
         wordMap,
@@ -63,6 +61,16 @@ export function parseText(rawText, state, plugin) {
 
     if (lines.length > 0) {
       newStanzas.push({ lines });
+    }
+  }
+
+  // Strophic copy: overwrite stanzas 1+ notes with stanza 0 notes.
+  if (state.strophicInheritance && newStanzas.length > 1) {
+    for (let si = 1; si < newStanzas.length; si++) {
+      newStanzas[si].lines.forEach((line, li) => {
+        const src = newStanzas[0].lines[li];
+        if (src) { line.notes = src.notes; line.parsedNotes = src.parsedNotes; }
+      });
     }
   }
 
