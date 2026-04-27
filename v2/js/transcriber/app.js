@@ -11,7 +11,7 @@ import {
 // Language plugins — self-register via side-effect import
 import './languages/sk/index.js';
 
-import { getState, restoreState, serializeState } from './common/state.js';
+import { getState } from './common/state.js';
 import { initEditor, rebuildStanzas, triggerCompile } from './common/editor.js';
 import { parseGabc } from './common/gabc-parser.js';
 
@@ -19,7 +19,6 @@ import { parseGabc } from './common/gabc-parser.js';
 const PDF_SERVICE_URL      = 'https://www.sourceandsummit.com/editor/legacy/process.php';
 const DEFAULT_EXPORT_WIDTH = 7.5 * 96;
 const DEFAULT_DPI          = 300;
-const LOCALSTORAGE_KEY     = 'v2_gabc_editor';
 const RENDER_DEBOUNCE_MS   = 300;
 
 // ─── DOM refs ────────────────────────────────────────────────────────────────
@@ -59,17 +58,7 @@ function init() {
     return;
   }
 
-  // Restore Tab 1 state, then initialise the structured editor
-  const savedState = localStorage.getItem('v2_hymn_editor');
-  if (savedState) restoreState(savedState);
   initEditor(getState(), onCompiledGabc);
-
-  // Restore Tab 2 GABC (raw editor)
-  const saved = localStorage.getItem(LOCALSTORAGE_KEY);
-  if (saved) {
-    gabcEditor.value = saved;
-    renderFromEditor();
-  }
 
   gabcEditor.addEventListener('input', onEditorInput);
   gabcEditor.addEventListener('keydown', onEditorKeydown);
@@ -95,8 +84,6 @@ function init() {
   document.getElementById('tabEditorBtn').addEventListener('click', () => switchToTab('editor'));
   document.getElementById('tabGabcBtn').addEventListener('click',   () => switchToTab('gabc'));
 
-  const savedTab = localStorage.getItem('v2_active_tab');
-  if (savedTab === 'gabc') switchToTab('gabc');
 }
 
 // ─── Rendering ────────────────────────────────────────────────────────────────
@@ -104,7 +91,6 @@ let renderTimer = null;
 
 function onEditorInput() {
   isGabcDirty = true;
-  localStorage.setItem(LOCALSTORAGE_KEY, gabcEditor.value);
   clearTimeout(renderTimer);
   renderTimer = setTimeout(renderFromEditor, RENDER_DEBOUNCE_MS);
 }
@@ -113,8 +99,6 @@ function onEditorInput() {
 function onCompiledGabc(gabcStr) {
   gabcEditor.value = gabcStr;
   isGabcDirty = false;
-  localStorage.setItem(LOCALSTORAGE_KEY, gabcStr);
-  localStorage.setItem('v2_hymn_editor', serializeState());
   renderFromEditor();
 }
 
@@ -149,7 +133,6 @@ function switchToTab(tab) {
   inactiveBtn.classList.add('border-transparent', 'text-gray-500');
 
   activeTab = tab;
-  localStorage.setItem('v2_active_tab', tab);
 }
 
 function renderFromEditor() {

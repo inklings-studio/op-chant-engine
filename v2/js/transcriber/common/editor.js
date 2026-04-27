@@ -35,7 +35,6 @@ export function initEditor(state, onGabcCompiled) {
   _wireStaticEvents(state);
 
   if (state.stanzas.length > 0 || state.coda) {
-    if (state.rawText) _rawText().value = state.rawText;
     _renderStanzas(state);
     _showStanzas();
   }
@@ -89,7 +88,6 @@ function _wireStaticEvents(state) {
     state.language = _langSel().value;
     const raw = _rawText().value.trim();
     if (raw) {
-      state.rawText = raw;
       parseText(raw, state, getLanguage(state.language));
       _renderStanzas(state);
     }
@@ -115,7 +113,6 @@ function _wireStaticEvents(state) {
   _buildBtn().addEventListener('click', () => {
     const raw = _rawText().value.trim();
     if (!raw) return;
-    state.rawText = raw;
     parseText(raw, state, getLanguage(state.language));
     _renderStanzas(state);
     _showStanzas();
