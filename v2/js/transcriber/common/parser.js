@@ -45,7 +45,7 @@ export function parseText(rawText, state, plugin) {
     const lines = linesToProcess.map((lineText, li) => {
       const tokens = plugin.syllabifyPhrase(lineText);
       const syllables = tokens.map(t => t.syl);
-      const wordMap   = tokens.map(t => t.wordIdx);
+      const wordMap = tokens.map(t => t.wordIdx);
       const preserved = existingNotes[si]?.[li] ?? '';
       const isLastLine = li === linesToProcess.length - 1;
       const barline = isLastLine ? '::' : (li % 2 === 0 ? ',' : ':');
@@ -79,10 +79,10 @@ export function parseText(rawText, state, plugin) {
   if (codaLine) {
     const tokens = plugin.syllabifyPhrase(codaLine);
     const existingCodaNotes = state.coda?.notes ?? '';
-    const codaNotes = existingCodaNotes || 'cdc bc..';
+    const codaNotes = existingCodaNotes || 'fgf ef..';
     state.coda = {
       syllables: tokens.map(t => t.syl),
-      wordMap:   tokens.map(t => t.wordIdx),
+      wordMap: tokens.map(t => t.wordIdx),
       notes: codaNotes,
       parsedNotes: tokenizeLine(codaNotes),
     };
