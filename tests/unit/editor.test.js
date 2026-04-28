@@ -32,7 +32,7 @@ function setup(stateOverrides = {}) {
     stanzas: [],
     ...stateOverrides,
   };
-  initEditor(state, () => {});
+  initEditor(state, () => { });
   return { state };
 }
 
@@ -48,7 +48,7 @@ function fire(el, type) {
   el.dispatchEvent(new document.defaultView[type === 'keyup' ? 'KeyboardEvent' : type === 'blur' ? 'FocusEvent' : 'Event'](type, { bubbles: true }));
 }
 
-// ── §5 Editor alignment track ─────────────────────────────────────────────────
+// ── Editor alignment track ─────────────────────────────────────────────────
 
 test('editor track: 2 matched + 1 overflow when notes < syllables', () => {
   setup({ stanzas: [mkStanza([['Kris', 'te', 'Rex'], ['f', 'g']])] });
@@ -97,7 +97,7 @@ test('editor track: cursor highlight cleared on blur', () => {
   assert.equal(document.querySelectorAll('.track-chip-cursor').length, 0);
 });
 
-// ── §6 Strophic copy ──────────────────────────────────────────────────────────
+// ── Strophic copy ──────────────────────────────────────────────────────────
 
 test('editor strophic: stanza 0 edit propagates to stanza 1+ when strophic ON', () => {
   setup({
