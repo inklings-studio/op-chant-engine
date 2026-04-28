@@ -78,7 +78,7 @@ export function compileGabc(state) {
 
       // Prepend stanza number on the first line of qualifying stanzas
       if (isFirstLine && si >= numberFromStanza) {
-        lineStr += `^${si + 1}.^() `;
+        lineStr += `${si + 1}.() `;
       }
 
       lineStr += buildLine(notes, syllables, wordMap);

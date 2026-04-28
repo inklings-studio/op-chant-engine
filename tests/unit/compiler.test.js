@@ -101,6 +101,20 @@ test('compileGabc: largeInitial false → initial-style: 0', () => {
   assert.ok(compileGabc(state).includes('initial-style: 0;'));
 });
 
+test('compileGabc: stanza numbers use plain N.() without carets', () => {
+  const state = makeState({
+    stanzaNumbers: true,
+    largeInitial: false,
+    stanzas: [
+      { lines: [line(['Kris', 'te'], ['f', 'g'])] },
+      { lines: [line(['Pa', 'ne'], ['f', 'g'])] },
+    ],
+  });
+  const out = body(compileGabc(state));
+  assert.ok(out.includes('2.()'), 'stanza 2 gets plain number prefix');
+  assert.ok(!out.includes('^'), 'no caret characters in output');
+});
+
 test('compileGabc: coda appended after stanzas', () => {
   const state = makeState({
     stanzas: [{ lines: [line(['Kris'], ['f'])] }],
