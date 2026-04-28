@@ -1,19 +1,48 @@
 // Slovak syllabification — cursor-advance FSM.
 // Nucleus priority: diphthong (ia/ie/iu) > vowel > syllabic consonant (r/l/ŕ/ĺ).
-// Syllable boundary: one-consonant onset (split before last consonant before next nucleus).
+// Syllable boundary: first consonant unit = coda of previous syllable, rest = onset of next.
 
 const VOWELS = new Set([...'yaeiouáéíóúýäôYAEIOUÁÉÍÓÚÝÄÔ']);
 const SYLLABIC = new Set([...'rlŕĺRLŔĹ']);
 
 const DIPHTHONG_PAIRS = new Set(['ia', 'ie', 'iu', 'ou', 'Ia', 'Ie', 'Iu', 'Ou', 'IA', 'IE', 'IU', 'OU']);
+// Slovak digraphs: each pair is a single indivisible consonant unit.
+const DIGRAPHS = new Set(['ch','Ch','CH','cH','dz','Dz','DZ','dZ','dž','Dž','DŽ','dŽ']);
 
 function isDiphthongStart(word, i) {
   return i + 1 < word.length && DIPHTHONG_PAIRS.has(word[i] + word[i + 1]);
 }
 
+function isDigraphStart(str, i) {
+  return i + 1 < str.length && DIGRAPHS.has(str[i] + str[i + 1]);
+}
+
+// Returns array of character-lengths for each consonant unit in a between-nuclei cluster.
+// Digraphs count as one unit of length 2; all other characters count as length 1.
+function consonantUnits(str) {
+  const units = [];
+  let j = 0;
+  while (j < str.length) {
+    if (isDigraphStart(str, j)) { units.push(2); j += 2; }
+    else                        { units.push(1); j++;   }
+  }
+  return units;
+}
+
 function isVowel(ch) { return VOWELS.has(ch); }
 function isSyllabic(ch) { return SYLLABIC.has(ch); }
-function isConsonant(ch) { return ch && !isVowel(ch); }
+
+// Per-word exception dictionary for morphological boundaries and loanwords.
+const DICTIONARY = new Map();
+
+/**
+ * Register a syllabification exception. Lookup is case-insensitive.
+ * @param {string} word
+ * @param {string[]} syllables
+ */
+export function addException(word, syllables) {
+  DICTIONARY.set(word.toLowerCase(), syllables);
+}
 
 /**
  * Syllabify a single word (no spaces, no punctuation).
@@ -22,6 +51,9 @@ function isConsonant(ch) { return ch && !isVowel(ch); }
  */
 export function syllabifyWord(word) {
   if (!word) return [];
+
+  const entry = DICTIONARY.get(word.toLowerCase());
+  if (entry) return entry;
 
   // Collect nucleus positions and their lengths.
   const nuclei = [];
@@ -50,21 +82,23 @@ export function syllabifyWord(word) {
   if (nuclei.length === 1) return [word];
 
   // Determine split points between consecutive nuclei.
-  // One-consonant onset: split just before the last consonant cluster member
-  // immediately preceding the next nucleus.
+  // Rule: first consonant unit = coda, remaining units = onset of next syllable.
+  // Digraphs are treated as a single indivisible unit.
   const splits = [];
   for (let n = 1; n < nuclei.length; n++) {
     const prevEnd = nuclei[n - 1].pos + nuclei[n - 1].len;
     const nextStart = nuclei[n].pos;
-    const between = word.slice(prevEnd, nextStart); // consonant cluster between nuclei
+    const between = word.slice(prevEnd, nextStart);
 
     if (between.length === 0) {
       splits.push(nextStart);
-    } else if (between.length === 1) {
-      splits.push(prevEnd); // single consonant goes to next syllable
     } else {
-      // Two or more consonants: give one onset consonant to the next syllable.
-      splits.push(prevEnd + between.length - 1);
+      const units = consonantUnits(between);
+      if (units.length === 1) {
+        splits.push(prevEnd);              // sole unit goes entirely to next syllable as onset
+      } else {
+        splits.push(prevEnd + units[0]);   // first unit = coda, rest = onset
+      }
     }
   }
 

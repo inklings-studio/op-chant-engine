@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { syllabifyWord, syllabifyPhrase } from '../../v2/js/transcriber/languages/sk/syllabifier.js';
+import { syllabifyWord, syllabifyPhrase, addException } from '../../v2/js/transcriber/languages/sk/syllabifier.js';
 import { codaPattern } from '../../v2/js/transcriber/languages/sk/index.js';
 
 test('syllabifyWord: Kriste', () => assert.deepEqual(syllabifyWord('Kriste'), ['Kris', 'te']));
@@ -31,17 +31,25 @@ test('syllabifyPhrase: k Bohu', () => assert.deepEqual(syls('k Bohu'), ['k Bo', 
 test('syllabifyPhrase: z neba', () => assert.deepEqual(syls('z neba'), ['z ne', 'ba']));
 test('syllabifyPhrase: o tebe (vowel word, stands alone)', () => assert.deepEqual(syls('o tebe'), ['o', 'te', 'be']));
 
-test('syllabifyWord: machať', () => assert.deepEqual(syllabifyWord('machať'), ['mac', 'hať']));
-test('syllabifyWord: medza', () => assert.deepEqual(syllabifyWord('medza'), ['med', 'za']));
+test('syllabifyWord: machať (ch digraph fixed)', () => assert.deepEqual(syllabifyWord('machať'), ['ma', 'chať']));
+test('syllabifyWord: medza (dz digraph fixed)', () => assert.deepEqual(syllabifyWord('medza'), ['me', 'dza']));
+test('syllabifyWord: ucho (ch digraph between vowels)', () => assert.deepEqual(syllabifyWord('ucho'), ['u', 'cho']));
 test('syllabifyWord: stĺpy', () => assert.deepEqual(syllabifyWord('stĺpy'), ['stĺ', 'py']));
 test('syllabifyWord: štvrť', () => assert.deepEqual(syllabifyWord('štvrť'), ['štvrť']));
 test('syllabifyWord: piatok', () => assert.deepEqual(syllabifyWord('piatok'), ['pia', 'tok']));
+test('syllabifyWord: sestra (str cluster fixed)', () => assert.deepEqual(syllabifyWord('sestra'), ['ses', 'tra']));
 test('syllabifyWord: demokracia', () => assert.deepEqual(syllabifyWord('demokracia'), ['de', 'mok', 'ra', 'cia']));
 test('syllabifyWord: vypracovať', () => assert.deepEqual(syllabifyWord('vypracovať'), ['vyp', 'ra', 'co', 'vať']));
 test('syllabifyWord: rozum', () => assert.deepEqual(syllabifyWord('rozum'), ['ro', 'zum']));
-test('syllabifyWord: mestský', () => assert.deepEqual(syllabifyWord('mestský'), ['mests', 'ký']));
-test('syllabifyWord: zmŕtvychvstanie', () => assert.deepEqual(syllabifyWord('zmŕtvychvstanie'), ['zmŕt', 'vychvs', 'ta', 'nie']));
+test('syllabifyWord: mestský (4-consonant cluster fixed)', () => assert.deepEqual(syllabifyWord('mestský'), ['mes', 'tský']));
+test('syllabifyWord: zmŕtvychvstanie (ch digraph + cluster fixed)', () => assert.deepEqual(syllabifyWord('zmŕtvychvstanie'), ['zmŕt', 'vych', 'vsta', 'nie']));
 test('syllabifyWord: najneobhospodarovávateľnejšieho', () => assert.deepEqual(syllabifyWord('najneobhospodarovávateľnejšieho'), ['naj', 'ne', 'ob', 'hos', 'po', 'da', 'ro', 'vá', 'va', 'teľ', 'nej', 'šie', 'ho']));
+
+test('addException: overrides algorithm, case-insensitive lookup', () => {
+  addException('rozum', ['roz', 'um']);
+  assert.deepEqual(syllabifyWord('rozum'), ['roz', 'um']);
+  assert.deepEqual(syllabifyWord('Rozum'), ['roz', 'um']);
+});
 
 test('codaPattern: Amen', () => assert.equal(codaPattern.test('Amen'), true));
 test('codaPattern: amen', () => assert.equal(codaPattern.test('amen'), true));

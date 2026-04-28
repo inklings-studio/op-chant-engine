@@ -102,7 +102,7 @@ test('export: PDF form targets correct endpoint and carries GABC field', async (
   expect(action).toContain('sourceandsummit.com');
 
   // Click PDF — onExportPdf fills #pdfGabc then submits (intercepted)
-  await page.click('#btnExportPdf').catch(() => {}); // ignore abort error
+  await page.click('#btnExportPdf').catch(() => { }); // ignore abort error
 
   const fieldValue = await page.inputValue('#pdfGabc');
   expect(fieldValue).toContain('%%');
