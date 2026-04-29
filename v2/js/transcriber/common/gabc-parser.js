@@ -51,6 +51,12 @@ export function parseGabc(gabc) {
           continue;
         }
 
+        // Skip stanza-number tokens emitted by the compiler (e.g. "2.()")
+        // — empty note with a digit-dot syllable is never real content.
+        if (noteText === '' && /^\d+\.$/.test(sylText)) {
+          continue;
+        }
+
         if (sylText && sylText !== '-') {
           syllables.push(sylText);
         }
