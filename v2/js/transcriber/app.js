@@ -45,8 +45,8 @@ let ctxt  = null;
 let score = null;
 let _toolbar = null;   // currently visible floating toolbar div
 
-let isGabcDirty = false;
-let activeTab   = 'editor';   // 'editor' | 'gabc'
+let _lastCompiledGabc = '';
+let activeTab         = 'editor';   // 'editor' | 'gabc'
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 function init() {
@@ -90,15 +90,14 @@ function init() {
 let renderTimer = null;
 
 function onEditorInput() {
-  isGabcDirty = true;
   clearTimeout(renderTimer);
   renderTimer = setTimeout(renderFromEditor, RENDER_DEBOUNCE_MS);
 }
 
 // ─── Tab 1 → Tab 2 compiled output ───────────────────────────────────────────
 function onCompiledGabc(gabcStr) {
-  gabcEditor.value = gabcStr;
-  isGabcDirty = false;
+  gabcEditor.value  = gabcStr;
+  _lastCompiledGabc = gabcStr;
   renderFromEditor();
 }
 
@@ -111,8 +110,10 @@ const _gabcBtn    = document.getElementById('tabGabcBtn');
 function switchToTab(tab) {
   const toEditor = tab === 'editor';
 
-  // Dirty-flag sync: Tab 2 was manually edited, parse it back into Tab 1
-  if (toEditor && isGabcDirty) {
+  // Dirty-flag sync: Tab 2 was manually edited, parse it back into Tab 1.
+  // Compare against the last programmatically compiled value so spurious
+  // browser events (autocorrect, autofill) don't clobber the editor state.
+  if (toEditor && gabcEditor.value !== _lastCompiledGabc) {
     const parsed = parseGabc(gabcEditor.value.trim());
     const state  = getState();
     state.clef    = parsed.clef;
@@ -120,7 +121,7 @@ function switchToTab(tab) {
     state.coda    = parsed.coda;
     state.strophicInheritance = false;
     rebuildStanzas(state);
-    isGabcDirty = false;
+    _lastCompiledGabc = gabcEditor.value;
   }
 
   _editorTab.classList.toggle('hidden', !toEditor);

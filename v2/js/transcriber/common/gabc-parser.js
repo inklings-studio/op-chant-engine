@@ -34,9 +34,14 @@ export function parseGabc(gabc) {
     const lines = rawLines.map(rawLine => {
       const syllables = [];
       const noteParts = [];
+      const wordMap   = [];
       TOKEN_RE.lastIndex = 0;
 
       let match;
+      let wordIdx          = 0;
+      let prevSylEnd       = -1;
+      let barlineSinceLast = false;
+
       while ((match = TOKEN_RE.exec(rawLine)) !== null) {
         const sylText  = match[1] ?? '';
         const noteText = match[2] ?? '';
@@ -48,6 +53,7 @@ export function parseGabc(gabc) {
 
         if (BARLINE_RE.test(noteText) || noteText === '::') {
           noteParts.push(noteText === '::' ? '::' : noteText);
+          barlineSinceLast = true;
           continue;
         }
 
@@ -57,6 +63,15 @@ export function parseGabc(gabc) {
           continue;
         }
 
+        // Word boundary: gap since the last syllable token, or a barline between.
+        // Adjacent tokens (match.index === prevSylEnd) stay in the same word.
+        if (prevSylEnd !== -1 && (barlineSinceLast || match.index > prevSylEnd)) {
+          wordIdx++;
+        }
+        barlineSinceLast = false;
+        prevSylEnd = match.index + match[0].length;
+
+        wordMap.push(wordIdx);
         if (sylText && sylText !== '-') {
           syllables.push(sylText);
         }
@@ -67,6 +82,7 @@ export function parseGabc(gabc) {
         syllables,
         notes: noteParts.join(' '),
         parsedNotes: noteParts,
+        wordMap,
       };
     }).filter(l => l.syllables.length || l.parsedNotes.length);
 
