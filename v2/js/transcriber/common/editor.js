@@ -171,6 +171,7 @@ function _wireStaticEvents(state) {
 function _showStanzas() {
   _textArea().classList.add('hidden');
   _editToggle().classList.remove('hidden');
+  _editToggle().textContent = 'Edit text';
 }
 
 // Swap between Build (empty state) and Re-Build + Fit Text (has content).
