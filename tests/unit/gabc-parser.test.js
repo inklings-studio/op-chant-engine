@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseGabc } from '../../v2/js/transcriber/common/gabc-parser.js';
+import { parseGabc, reconstructText } from '../../v2/js/transcriber/common/gabc-parser.js';
 import { compileGabc } from '../../v2/js/transcriber/common/compiler.js';
 
 test('parseGabc: clef extracted', () => {
@@ -69,6 +69,36 @@ test('parseGabc: space-separated syllables reconstructed as different words', ()
   assert.equal(line.wordMap[1], line.wordMap[2], 'Pa and ne share a word index');
 });
 
+test('parseGabc: full gregoriobase header stripped, clef and body parsed', () => {
+  const gabc = [
+    'name: Kyrie eleison;',
+    'gabc-copyright: CC0;',
+    'score-copyright: CC0;',
+    'mode: 1;',
+    '%%',
+    '(c4) Ký(fg)ri(g)e(h) e(g)lé(f)i(e)son.(d) (::)',
+  ].join('\n');
+  const result = parseGabc(gabc);
+  assert.equal(result.clef, 'c4');
+  assert.deepEqual(result.stanzas[0].lines[0].syllables, ['Ký', 'ri', 'e', 'e', 'lé', 'i', 'son.']);
+  assert.deepEqual(result.stanzas[0].lines[0].parsedNotes, ['fg', 'g', 'h', 'g', 'f', 'e', 'd', '::']);
+});
+
+test('parseGabc: two-line single-stanza antiphon yields one stanza with two lines', () => {
+  // All syllables must have note parens directly adjacent — bare text is ignored by the parser.
+  const gabc = [
+    '%%',
+    '(c4) Sal(fg)ve(e) Re(f)gi(g)na,(h) (,)',
+    'Ma(h)ter(g) mi(f)se(e)ri(d)cor(e)di(f)ae.(g) (::)',
+  ].join('\n');
+  const result = parseGabc(gabc);
+  assert.equal(result.stanzas.length, 1);
+  assert.equal(result.stanzas[0].lines.length, 2);
+  assert.deepEqual(result.stanzas[0].lines[0].syllables, ['Sal', 've', 'Re', 'gi', 'na,']);
+  assert.ok(result.stanzas[0].lines[0].parsedNotes.includes(','), 'comma barline in line 0');
+  assert.deepEqual(result.stanzas[0].lines[1].syllables, ['Ma', 'ter', 'mi', 'se', 'ri', 'cor', 'di', 'ae.']);
+});
+
 test('parseGabc: round-trip preserves word grouping so compile re-joins same-word syllables', () => {
   // Build a state with two syllables in the same word: wordMap [0, 0]
   // Compile → parse → compile again. The second compile should still join them.
@@ -102,4 +132,70 @@ test('parseGabc: round-trip preserves word grouping so compile re-joins same-wor
 
   // Same-word syllables must still be joined without a space
   assert.ok(gabc2.includes('Kris(f)te(g)'), `expected joined syllables in: ${gabc2}`);
+});
+
+// ── reconstructText ────────────────────────────────────────────────────────
+
+test('reconstructText: same-word syllables joined without separator', () => {
+  // wordMap [0,0,0] → all three syllables form one word
+  const stanzas = [{ lines: [{ syllables: ['Ký', 'ri', 'e'], wordMap: [0, 0, 0] }] }];
+  assert.equal(reconstructText(stanzas), 'Kýrie');
+});
+
+test('reconstructText: different-word syllables separated by space', () => {
+  // wordMap [0,0,0,1,1,1,1] → "Kýrie eléison."
+  const stanzas = [{ lines: [{
+    syllables: ['Ký', 'ri', 'e', 'e', 'lé', 'i', 'son.'],
+    wordMap:   [0,    0,   0,   1,   1,   1,   1],
+  }] }];
+  assert.equal(reconstructText(stanzas), 'Kýrie eléison.');
+});
+
+test('reconstructText: multi-line stanza joined with \\n', () => {
+  const stanzas = [{ lines: [
+    { syllables: ['Sal', 've'],       wordMap: [0, 1] },
+    { syllables: ['Ma', 'ter'],       wordMap: [0, 0] },
+  ] }];
+  assert.equal(reconstructText(stanzas), 'Sal ve\nMater');
+});
+
+test('reconstructText: multi-stanza joined with \\n\\n', () => {
+  const stanzas = [
+    { lines: [{ syllables: ['Rex'],  wordMap: [0] }] },
+    { lines: [{ syllables: ['Pa', 'ne'], wordMap: [0, 0] }] },
+  ];
+  assert.equal(reconstructText(stanzas), 'Rex\n\nPane');
+});
+
+test('reconstructText: coda appended to last stanza', () => {
+  const stanzas = [{ lines: [{ syllables: ['Rex'], wordMap: [0] }] }];
+  const coda = { syllables: ['A', 'men'], wordMap: [0, 0] };
+  assert.equal(reconstructText(stanzas, coda), 'Rex\nAmen');
+});
+
+test('reconstructText: empty stanzas return empty string', () => {
+  assert.equal(reconstructText([]), '');
+  assert.equal(reconstructText([], null), '');
+});
+
+test('reconstructText: round-trip parseGabc → reconstructText produces readable text', () => {
+  const gabc = 'name: Kyrie;\n%%\n(c4) Ký(fg)ri(g)e(h) e(g)lé(f)i(e)son.(d) (::)';
+  const { stanzas, coda } = parseGabc(gabc);
+  assert.equal(reconstructText(stanzas, coda), 'Kýrie eléison.');
+});
+
+test('reconstructText: two-line GABC produces \\n-separated lines', () => {
+  const gabc = '%%\n(c4) Sal(fg)ve(e) Re(f)gi(g)na,(h) (,)\nMa(h)ter(g) mi(f)se(e)ri(d)cor(e)di(f)ae.(g) (::)';
+  const { stanzas, coda } = parseGabc(gabc);
+  assert.equal(reconstructText(stanzas, coda), 'Salve Regina,\nMater misericordiae.');
+});
+
+test('reconstructText: only updates when different (idempotent on same input)', () => {
+  // Simulates the guard in switchToTab: reconstruct twice from the same stanzas,
+  // result must be identical so the textarea is not unnecessarily overwritten.
+  const gabc = '%%\n(c4) Rex(f) pa(g)ter(h) (::)';
+  const { stanzas, coda } = parseGabc(gabc);
+  const first  = reconstructText(stanzas, coda);
+  const second = reconstructText(stanzas, coda);
+  assert.equal(first, second);
 });

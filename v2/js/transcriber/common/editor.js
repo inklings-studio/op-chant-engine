@@ -16,6 +16,8 @@ const _stanzaNumChk   = () => document.getElementById('editorStanzaNumbers');
 const _annotationInput= () => document.getElementById('editorAnnotation');
 const _rawText        = () => document.getElementById('editorRawText');
 const _buildBtn       = () => document.getElementById('editorBuildBtn');
+const _rebuildBtn     = () => document.getElementById('editorRebuildBtn');
+const _fitTextBtn     = () => document.getElementById('editorFitTextBtn');
 const _editToggle     = () => document.getElementById('editorEditToggle');
 const _textArea       = () => document.getElementById('editorTextInputArea');
 const _stanzasEl      = () => document.getElementById('editorStanzas');
@@ -36,6 +38,8 @@ export function initEditor(state, onGabcCompiled) {
   _syncControlsToState(state);
   _wireStaticEvents(state);
 
+  _syncBuildButtons(state);
+
   if (state.stanzas.length > 0 || state.coda) {
     _renderStanzas(state);
     _showStanzas();
@@ -51,6 +55,7 @@ export function rebuildStanzas(state) {
   _syncControlsToState(state);
   _renderStanzas(state);
   _showStanzas();
+  _syncBuildButtons(state);
 }
 
 /**
@@ -133,6 +138,27 @@ function _wireStaticEvents(state) {
     parseText(raw, state, getLanguage(state.language));
     _renderStanzas(state);
     _showStanzas();
+    _syncBuildButtons(state);
+    triggerCompile(state);
+  });
+
+  _rebuildBtn().addEventListener('click', () => {
+    const raw = _rawText().value.trim();
+    if (!raw) return;
+    state.stanzas = [];
+    state.coda    = null;
+    parseText(raw, state, getLanguage(state.language));
+    _renderStanzas(state);
+    _showStanzas();
+    triggerCompile(state);
+  });
+
+  _fitTextBtn().addEventListener('click', () => {
+    const raw = _rawText().value.trim();
+    if (!raw) return;
+    parseText(raw, state, getLanguage(state.language));
+    _renderStanzas(state);
+    _showStanzas();
     triggerCompile(state);
   });
 
@@ -145,6 +171,14 @@ function _wireStaticEvents(state) {
 function _showStanzas() {
   _textArea().classList.add('hidden');
   _editToggle().classList.remove('hidden');
+}
+
+// Swap between Build (empty state) and Re-Build + Fit Text (has content).
+function _syncBuildButtons(state) {
+  const hasContent = state.stanzas.length > 0 || !!state.coda;
+  _buildBtn().classList.toggle('hidden', hasContent);
+  _rebuildBtn().classList.toggle('hidden', !hasContent);
+  _fitTextBtn().classList.toggle('hidden', !hasContent);
 }
 
 // ─── Dynamic stanza rows ──────────────────────────────────────────────────────

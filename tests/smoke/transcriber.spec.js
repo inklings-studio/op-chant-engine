@@ -159,3 +159,61 @@ test('controls: Edit text toggle shows and hides textarea', async ({ page }) => 
   await page.click('#editorEditToggle');
   await expect(page.locator('#editorTextInputArea')).toBeHidden();
 });
+
+// ── §10 GABC import workflow ──────────────────────────────────────────────────
+const IMPORT_GABC = [
+  'name: O lux;',
+  '%%',
+  '(c4) O(f) lux(g) be(h)á(g)ta,(f) (,)',
+  'Trí(g)ni(h)tas.(g) (::)',
+].join('\n');
+
+async function importGabc(page, gabc = IMPORT_GABC) {
+  await page.click('#tabGabcBtn');
+  await page.fill('#gabcEditor', gabc);
+  await page.click('#tabEditorBtn');
+  await page.waitForSelector('.editor-melody-input');
+}
+
+test('GABC import: raw text textarea populated with reconstructed syllables', async ({ page }) => {
+  await page.goto(URL);
+  await importGabc(page);
+  // 'Edit text' reveals the textarea — it should contain the reconstructed Latin text
+  await page.click('#editorEditToggle');
+  const val = await page.inputValue('#editorRawText');
+  expect(val).toContain('O lux');
+  expect(val).toContain('Trínitas.');
+});
+
+test('GABC import: mid-line barlines preserved in melody inputs', async ({ page }) => {
+  await page.goto(URL);
+  await importGabc(page);
+  const inputs = await page.locator('.editor-melody-input').all();
+  // Line 0 ends with (,) in the GABC — comma barline must be in the notes
+  const line0 = await inputs[0].inputValue();
+  expect(line0).toMatch(/,\s*$/);
+});
+
+test('GABC import: last line melody input ends with ::', async ({ page }) => {
+  await page.goto(URL);
+  await importGabc(page);
+  const inputs = await page.locator('.editor-melody-input').all();
+  const lastLine = await inputs[inputs.length - 1].inputValue();
+  expect(lastLine).toMatch(/::$/);
+});
+
+test('GABC import: Fit Text preserves imported melody, replaces syllables', async ({ page }) => {
+  await page.goto(URL);
+  await importGabc(page);
+  const originalNotes = await page.locator('.editor-melody-input').first().inputValue();
+
+  await page.click('#editorEditToggle');
+  await page.fill('#editorRawText', 'Pane Bože milosrdný\nuslyš naše volanie');
+  await page.click('#editorFitTextBtn');
+
+  const newNotes = await page.locator('.editor-melody-input').first().inputValue();
+  expect(newNotes).toBe(originalNotes);
+  // New syllable chips should reflect Slovak text
+  const chips = await page.locator('.track-chip-matched, .track-chip-overflow').all();
+  expect(chips.length).toBeGreaterThan(0);
+});

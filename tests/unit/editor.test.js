@@ -13,6 +13,8 @@ const SCAFFOLD = `<!DOCTYPE html><html><body>
   <input type="text" id="editorAnnotation">
   <textarea id="editorRawText"></textarea>
   <button id="editorBuildBtn"></button>
+  <button id="editorRebuildBtn"></button>
+  <button id="editorFitTextBtn"></button>
   <button id="editorEditToggle">Edit text</button>
   <div id="editorTextInputArea"></div>
   <div id="editorStanzas"></div>
@@ -147,4 +149,73 @@ test('editor strophic: stanza 1+ remain editable and un-grayed when strophic OFF
   s1.value = 'x y z';
   fire(s1, 'input');
   assert.notEqual(s0.value, 'x y z');
+});
+
+// ── Build / Re-Build / Fit Text button state machine ───────────────────────
+
+test('editor buttons: Build visible, Re-Build and Fit Text hidden on empty state', () => {
+  setup();
+  assert.ok(!document.getElementById('editorBuildBtn').classList.contains('hidden'));
+  assert.ok(document.getElementById('editorRebuildBtn').classList.contains('hidden'));
+  assert.ok(document.getElementById('editorFitTextBtn').classList.contains('hidden'));
+});
+
+test('editor buttons: Build hidden, Re-Build and Fit Text visible when stanzas present', () => {
+  setup({ stanzas: [mkStanza([['Kris', 'te'], ['f', 'g']])] });
+  assert.ok(document.getElementById('editorBuildBtn').classList.contains('hidden'));
+  assert.ok(!document.getElementById('editorRebuildBtn').classList.contains('hidden'));
+  assert.ok(!document.getElementById('editorFitTextBtn').classList.contains('hidden'));
+});
+
+test('editor buttons: Build click transitions to Re-Build + Fit Text mode', () => {
+  setup();
+  document.getElementById('editorRawText').value = 'Kriste Rex\nsláva Bohu';
+  fire(document.getElementById('editorBuildBtn'), 'click');
+  assert.ok(document.getElementById('editorBuildBtn').classList.contains('hidden'));
+  assert.ok(!document.getElementById('editorRebuildBtn').classList.contains('hidden'));
+  assert.ok(!document.getElementById('editorFitTextBtn').classList.contains('hidden'));
+});
+
+// ── Re-Build ───────────────────────────────────────────────────────────────
+
+test('editor Re-Build: resets melody to rectotone defaults', () => {
+  const { state } = setup({
+    stanzas: [mkStanza([['Kris', 'te', 'Rex'], ['c', 'd', 'e', ',']])],
+  });
+  document.getElementById('editorRawText').value = 'Kriste Rex\nsláva Bohu';
+  fire(document.getElementById('editorRebuildBtn'), 'click');
+  assert.ok(state.stanzas[0].lines[0].notes.startsWith('f f f'),
+    'melody reset to rectotone f notes');
+});
+
+test('editor Re-Build: stays in Re-Build + Fit Text mode after reset', () => {
+  setup({ stanzas: [mkStanza([['Kris', 'te'], ['f', 'g']])] });
+  document.getElementById('editorRawText').value = 'Pane Bože\nchvála tebe';
+  fire(document.getElementById('editorRebuildBtn'), 'click');
+  assert.ok(document.getElementById('editorBuildBtn').classList.contains('hidden'));
+  assert.ok(!document.getElementById('editorRebuildBtn').classList.contains('hidden'));
+  assert.ok(!document.getElementById('editorFitTextBtn').classList.contains('hidden'));
+});
+
+// ── Fit Text ───────────────────────────────────────────────────────────────
+
+test('editor Fit Text: preserves existing melody when text changes', () => {
+  const customNotes = 'c d e ;';
+  const { state } = setup({
+    stanzas: [mkStanza([['Kris', 'te', 'Rex'], ['c', 'd', 'e', ';']])],
+  });
+  document.getElementById('editorRawText').value = 'Pane Bože Kriste\nuslyš naše volanie';
+  fire(document.getElementById('editorFitTextBtn'), 'click');
+  assert.equal(state.stanzas[0].lines[0].notes, customNotes);
+});
+
+test('editor Fit Text: new syllable count reflected in track chips', () => {
+  // Single-line stanza with 2 notes. Fit Text with a single line of 5 syllables.
+  // Only line 0 chips should exist, so totals are unambiguous.
+  setup({ stanzas: [mkStanza([['Kris', 'te'], ['f', 'g']])] });
+  document.getElementById('editorRawText').value = 'Pane Bože Rex';
+  fire(document.getElementById('editorFitTextBtn'), 'click');
+  // 'Pane Bože Rex' → ['Pa','ne','Bo','že','Rex'] = 5 syllables, 2 notes → 2 matched + 3 overflow
+  assert.equal(document.querySelectorAll('.track-chip-matched').length, 2);
+  assert.equal(document.querySelectorAll('.track-chip-overflow').length, 3);
 });

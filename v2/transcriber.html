@@ -105,10 +105,22 @@
           <textarea id="editorRawText" spellcheck="false"
             class="flex-1 h-24 resize-y border border-gray-300 rounded px-2 py-1.5 text-xs font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-blue-400"
             placeholder="Paste hymn text here…"></textarea>
-          <button id="editorBuildBtn"
-            class="self-end px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 active:bg-blue-800">
-            Build
-          </button>
+          <div class="self-stretch flex flex-col justify-end gap-1">
+            <button id="editorBuildBtn"
+              class="px-3 py-2.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 active:bg-blue-800">
+              Build
+            </button>
+            <button id="editorRebuildBtn"
+              class="hidden px-3 py-2 bg-gray-500 text-white text-xs font-medium rounded hover:bg-gray-600 active:bg-gray-700"
+              title="Re-parse text and reset melody to rectotone defaults">
+              Re-Build
+            </button>
+            <button id="editorFitTextBtn"
+              class="hidden px-3 py-2 bg-emerald-600 text-white text-xs font-medium rounded hover:bg-emerald-700 active:bg-emerald-800"
+              title="Re-syllabify new text while keeping existing melody">
+              Fit Text
+            </button>
+          </div>
         </div>
 
         <!-- Edit text toggle — shown after first Build -->

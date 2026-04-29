@@ -1,4 +1,49 @@
 const CLEF_RE    = /^[cf]b?[1-4]$/;
+
+/**
+ * Reconstructs plain hymn text from state stanzas and optional coda.
+ * Reverses the syllable/wordMap structure back into space-separated words,
+ * lines separated by \n, stanzas separated by \n\n.
+ *
+ * @param {Array} stanzas
+ * @param {{ syllables: string[], wordMap: number[] }|null} [coda]
+ * @returns {string}
+ */
+export function reconstructText(stanzas, coda = null) {
+  function lineToWords(syllables, wordMap) {
+    if (!syllables?.length) return '';
+    const wm = wordMap ?? syllables.map((_, i) => i);
+    const words = [];
+    let curIdx = -1;
+    let buf = '';
+    wm.forEach((wIdx, sIdx) => {
+      if (wIdx !== curIdx) {
+        if (buf) words.push(buf);
+        buf = syllables[sIdx];
+        curIdx = wIdx;
+      } else {
+        buf += syllables[sIdx];
+      }
+    });
+    if (buf) words.push(buf);
+    return words.join(' ');
+  }
+
+  const parts = stanzas
+    .map(s => s.lines.map(l => lineToWords(l.syllables, l.wordMap)).filter(Boolean).join('\n'))
+    .filter(Boolean);
+
+  if (coda?.syllables?.length) {
+    const codaWord = lineToWords(coda.syllables, coda.wordMap);
+    if (parts.length > 0) {
+      parts[parts.length - 1] += '\n' + codaWord;
+    } else {
+      parts.push(codaWord);
+    }
+  }
+
+  return parts.join('\n\n');
+}
 const BARLINE_RE = /^[:;,]+$/;
 const TOKEN_RE   = /([^(\s]+)?\(([^)]*)\)/g;
 
@@ -87,6 +132,15 @@ export function parseGabc(gabc) {
     }).filter(l => l.syllables.length || l.parsedNotes.length);
 
     if (!lines.length) return;
+
+    // Restore the (::) double barline consumed by the stanza split.
+    // The compiler always appends (::) on compile, but the editor melody inputs
+    // should show it so the user can see and edit the terminating barline.
+    const lastLine = lines[lines.length - 1];
+    if (lastLine && !lastLine.parsedNotes.includes('::')) {
+      lastLine.parsedNotes.push('::');
+      lastLine.notes = lastLine.parsedNotes.join(' ');
+    }
 
     // Heuristic: last stanza block with only 1–2 short lines may be coda.
     // We keep it simple: if it was the last block AND all syllables match

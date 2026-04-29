@@ -13,7 +13,7 @@ import './languages/sk/index.js';
 
 import { getState } from './common/state.js';
 import { initEditor, rebuildStanzas, triggerCompile } from './common/editor.js';
-import { parseGabc } from './common/gabc-parser.js';
+import { parseGabc, reconstructText } from './common/gabc-parser.js';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const PDF_SERVICE_URL      = 'https://www.sourceandsummit.com/editor/legacy/process.php';
@@ -122,6 +122,12 @@ function switchToTab(tab) {
     state.strophicInheritance = false;
     rebuildStanzas(state);
     _lastCompiledGabc = gabcEditor.value;
+
+    const rawTextEl    = document.getElementById('editorRawText');
+    const reconstructed = reconstructText(parsed.stanzas, parsed.coda);
+    if (rawTextEl.value !== reconstructed) {
+      rawTextEl.value = reconstructed;
+    }
   }
 
   _editorTab.classList.toggle('hidden', !toEditor);
