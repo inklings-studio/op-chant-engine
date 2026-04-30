@@ -16,13 +16,9 @@ function withAudioContext(fn) {
 // ─── State ───────────────────────────────────────────────────────────────────
 let _bpm = 165;
 let _isPlaying = false;
-let _isPaused = false;
 let _timers = [];
-let _currentNoteEl = null;  // currently highlighted SVG element
+let _currentNoteEl = null;
 let _currentSyllableEl = null;
-// Pause support: track remaining schedule
-let _pauseTimeMs = 0;
-let _pauseStartTime = 0;
 
 // ─── Public helpers ───────────────────────────────────────────────────────────
 export function isAudioAvailable() {
@@ -84,9 +80,9 @@ function highlightNote(noteEl) {
  * Calculates a sensible default starting pitch if none is set on the score.
  * Centers the chant range around G4 (MIDI 55), matching the legacy behaviour.
  */
-// The updated exsurge.min.js uses a different Pitch.toInt() scale than tones.map.
-// Exsurge: C4=12 (octave1*12+step), tones.map: C4=48 (4*12+0). Offset = 36.
-const EXSURGE_TO_TONES_OFFSET = 36;
+// Exsurge Pitch.toInt() scale differs from tones.map by 36 semitones.
+// Exsurge: C4=12, tones.map: C4=48.
+export const EXSURGE_TO_TONES_OFFSET = 36;
 
 // Exsurge G4 in the new Pitch.toInt() scale = octave1*12+7 = 19
 const EXSURGE_G4 = 19;
@@ -145,7 +141,6 @@ export function playScore(score, startNote = null, callbacks = {}) {
   const slice = allNotes.slice(startIdx);
 
   _isPlaying = true;
-  _isPaused = false;
 
   withAudioContext(() => {
     let elapsed = 0;
@@ -183,34 +178,5 @@ export function stopScore() {
   _timers.forEach(clearTimeout);
   _timers = [];
   _isPlaying = false;
-  _isPaused = false;
   clearHighlight();
-}
-
-// ─── Legacy simple API (still exported for completeness) ──────────────────────
-
-export function stopPlayback() { stopScore(); }
-
-export function playPitch(pitch, octave = 4) {
-  if (!isAudioAvailable()) return;
-  try {
-    withAudioContext(() => {
-      if (typeof pitch === 'number') {
-        window.tones.playFrequency(pitch);
-      } else if (typeof pitch === 'string') {
-        window.tones.play(pitch, octave);
-      } else if (pitch && typeof pitch.staffPosition === 'number') {
-        const sp = pitch.staffPosition;
-        const oct = 4 + Math.floor(sp / 7);
-        const offsets = [0, 2, 4, 5, 7, 9, 11];
-        const semi = offsets[((sp % 7) + 7) % 7];
-        const freq = window.tones.map[oct * 12 + semi];
-        if (freq) window.tones.playFrequency(freq);
-      } else if (pitch && typeof pitch.toInt === 'function') {
-        window.tones.play(pitch);
-      }
-    });
-  } catch (err) {
-    console.error('[audio.js] playPitch failed:', err);
-  }
 }

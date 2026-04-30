@@ -1,8 +1,7 @@
 import { listLanguages, getLanguage } from './language.js';
 import { parseText } from './parser.js';
-import { compileGabc, tokenizeMelody } from './compiler.js';
-
-const BARLINES = new Set([',', ';', ':', '::']);
+import { compileGabc } from './compiler.js';
+import { BARLINES, tokenizeMelody } from './melody.js';
 
 let _state          = null;
 let _onGabcCompiled = null;

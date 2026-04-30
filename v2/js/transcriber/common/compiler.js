@@ -1,14 +1,8 @@
-const BARLINES      = new Set([',', ';', ':', '::']);
-const DOUBLE_BAR    = '(::)';
+import { BARLINES, tokenizeMelody } from './melody.js';
 
-/**
- * Tokenizes a melody input string into note/barline tokens.
- * @param {string} str
- * @returns {string[]}
- */
-export function tokenizeMelody(str) {
-  return str.trim().split(/\s+/).filter(Boolean);
-}
+export { tokenizeMelody } from './melody.js';
+
+const DOUBLE_BAR = '(::)';
 
 function resolveNotes(state, si, li) {
   const line = state.stanzas[si]?.lines[li];

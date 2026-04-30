@@ -2,10 +2,11 @@
 // Runs as an ES6 module. window.exsurge, window.tones, and saveSvgAsPng/saveSvg
 // must already be available via classic <script> tags loaded before this module.
 
-import { createContext, renderGabc, exportSvg } from '../core/renderer.js';
+import { createContext, renderGabc, exportSvg, BASE_FONT_PX, BASE_GLYPH_S, BASE_FONT_PT } from '../core/renderer.js';
 import {
   isAudioAvailable, playScore, stopScore, isPlayingScore,
   getScoreNotes, getTranspose, changePitch, getBpm, setBpm,
+  EXSURGE_TO_TONES_OFFSET,
 } from '../core/audio.js';
 
 // Language plugins — self-register via side-effect import
@@ -20,11 +21,6 @@ const PDF_SERVICE_URL = 'https://www.sourceandsummit.com/editor/legacy/process.p
 const DEFAULT_EXPORT_WIDTH = 7.5 * 96;
 const DEFAULT_DPI = 300;
 const RENDER_DEBOUNCE_MS = 300;
-
-// Baseline Exsurge context values (must match createContext() in renderer.js)
-const BASE_FONT_PX = 19.2 / 0.9;
-const BASE_GLYPH_S = 1 / 16;
-const BASE_FONT_PT = 16;   // pixel baseline converted to points at 96dpi
 
 // Maps sourceandsummit gabc-id → web font family for Exsurge live preview
 const FONT_MAP = {
@@ -343,31 +339,34 @@ function showToolbarForNote(el, anchorOverride) {
   positionToolbar(toolbar, anchorOverride || group || noteEl || el);
 }
 
-function updatePitchDisplay(pitchCenter, note, doLabel) {
-  if (!score || !note?.pitch) return;
-  getTranspose(score); // ensures score.defaultStartPitch is initialized
+// Returns computed pitch data from the current score, or null if unavailable.
+function _getPitchData() {
+  if (!score) return null;
   const notes = getScoreNotes(score);
   const firstPitched = notes.find(n => n.pitch && !n.isDivider);
-  if (!firstPitched || !score.defaultStartPitch) return;
-
-  const startPitchInt = firstPitched.pitch.toInt();
-  const transpose = score.defaultStartPitch.toInt() - startPitchInt;
+  if (!firstPitched || !score.defaultStartPitch) return null;
+  const transpose = score.defaultStartPitch.toInt() - firstPitched.pitch.toInt();
   const allPitched = notes.filter(n => n.pitch && !n.isDivider);
-  const low = Math.min(...allPitched.map(n => n.pitch.toInt()));
-  const high = Math.max(...allPitched.map(n => n.pitch.toInt()));
+  return {
+    firstPitched,
+    transpose,
+    low:  Math.min(...allPitched.map(n => n.pitch.toInt())),
+    high: Math.max(...allPitched.map(n => n.pitch.toInt())),
+  };
+}
 
-  const OFFSET = 36; // Exsurge new scale → tones.map index
-  const thisPitchInt = note.pitch.toInt() + transpose + OFFSET;
-  const lowPitchInt = low + transpose + OFFSET;
-  const highPitchInt = high + transpose + OFFSET;
-  const doPitchInt = score.defaultStartPitch.toInt() - startPitchInt + startPitchInt + transpose + OFFSET;
-
+function updatePitchDisplay(pitchCenter, note, doLabel) {
+  if (!note?.pitch) return;
+  getTranspose(score);
+  const d = _getPitchData();
+  if (!d) return;
+  const { transpose, low, high } = d;
+  const OFF = EXSURGE_TO_TONES_OFFSET;
   pitchCenter.innerHTML =
-    'Pitch: ' + formatPitch(thisPitchInt) +
-    '<br>Range: ' + formatPitch(lowPitchInt) + ' to ' + formatPitch(highPitchInt);
-
+    'Pitch: ' + formatPitch(note.pitch.toInt() + transpose + OFF) +
+    '<br>Range: ' + formatPitch(low + transpose + OFF) + ' to ' + formatPitch(high + transpose + OFF);
   if (doLabel) {
-    doLabel.textContent = 'Do = ' + formatPitchName(doPitchInt);
+    doLabel.textContent = 'Do = ' + formatPitchName(score.defaultStartPitch.toInt() + transpose + OFF);
   }
 }
 
@@ -443,21 +442,15 @@ function _syncPreviewControls() {
 }
 
 function _updateHeaderPitchDisplay() {
-  if (!score || !headerPitchDisplay) return;
-  const notes = getScoreNotes(score);
-  const firstPitched = notes.find(n => n.pitch && !n.isDivider);
-  if (!firstPitched) { headerPitchDisplay.innerHTML = '—'; return; }
+  if (!headerPitchDisplay) return;
   getTranspose(score);
-  if (!score.defaultStartPitch) return;
-  const startPitchInt = firstPitched.pitch.toInt();
-  const transpose = score.defaultStartPitch.toInt() - startPitchInt;
-  const allPitched = notes.filter(n => n.pitch && !n.isDivider);
-  const low  = Math.min(...allPitched.map(n => n.pitch.toInt()));
-  const high = Math.max(...allPitched.map(n => n.pitch.toInt()));
-  const OFFSET = 36;
+  const d = _getPitchData();
+  if (!d) { headerPitchDisplay.innerHTML = '—'; return; }
+  const { firstPitched, transpose, low, high } = d;
+  const OFF = EXSURGE_TO_TONES_OFFSET;
   headerPitchDisplay.innerHTML =
-    'Pitch: ' + formatPitch(firstPitched.pitch.toInt() + transpose + OFFSET) +
-    '&ensp;·&ensp;Range: ' + formatPitch(low + transpose + OFFSET) + ' to ' + formatPitch(high + transpose + OFFSET);
+    'Pitch: ' + formatPitch(firstPitched.pitch.toInt() + transpose + OFF) +
+    '&ensp;·&ensp;Range: ' + formatPitch(low + transpose + OFF) + ' to ' + formatPitch(high + transpose + OFF);
 }
 
 function startPlayback(startNote) {

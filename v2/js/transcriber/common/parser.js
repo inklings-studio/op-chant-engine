@@ -6,6 +6,8 @@
  * @param {object} state        - live state object from state.js (mutated in place)
  * @param {import('./language.js').LanguagePlugin} plugin
  */
+import { tokenizeMelody } from './melody.js';
+
 export function parseText(rawText, state, plugin) {
   // Snapshot existing notes by [stanzaIdx][lineIdx] so they survive a rebuild.
   const existingNotes = state.stanzas.map(s => s.lines.map(l => l.notes));
@@ -55,7 +57,7 @@ export function parseText(rawText, state, plugin) {
         syllables,
         wordMap,
         notes,
-        parsedNotes: tokenizeLine(notes),
+        parsedNotes: tokenizeMelody(notes),
       };
     });
 
@@ -84,14 +86,10 @@ export function parseText(rawText, state, plugin) {
       syllables: tokens.map(t => t.syl),
       wordMap: tokens.map(t => t.wordIdx),
       notes: codaNotes,
-      parsedNotes: tokenizeLine(codaNotes),
+      parsedNotes: tokenizeMelody(codaNotes),
     };
   } else {
     state.coda = null;
   }
 }
 
-/** @param {string} notesStr @returns {string[]} */
-function tokenizeLine(notesStr) {
-  return notesStr.trim().split(/\s+/).filter(Boolean);
-}

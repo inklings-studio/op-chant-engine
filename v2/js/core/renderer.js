@@ -1,6 +1,11 @@
 // Wraps window.exsurge (UMD global loaded via <script> in HTML).
 // Do NOT import this module before exsurge.min.js has executed.
 
+// Baseline Exsurge context values — used here and in app.js for proportional scaling.
+export const BASE_FONT_PX = 19.2 / 0.9;
+export const BASE_GLYPH_S = 1 / 16;
+export const BASE_FONT_PT = 16;
+
 /**
  * @returns {object} A configured ChantContext instance.
  * @throws {Error} If window.exsurge is not available.
@@ -15,8 +20,8 @@ export function createContext() {
 
   const ctxt = new exsurge.ChantContext(exsurge.TextMeasuringStrategy.Canvas);
   ctxt.condenseLineAmount = 1;
-  ctxt.setGlyphScaling(1 / 16);
-  ctxt.setFont("'Crimson Text', serif", 19.2 / 0.9);
+  ctxt.setGlyphScaling(BASE_GLYPH_S);
+  ctxt.setFont("'Crimson Text', serif", BASE_FONT_PX);
   ctxt.spaceBetweenSystems = 0;
   ctxt.textStyles.dropCap.size = 64;
   ctxt.textStyles.annotation.size = 12.8;
