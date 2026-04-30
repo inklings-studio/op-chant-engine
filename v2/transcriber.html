@@ -16,6 +16,12 @@
 
   <link rel="stylesheet" href="css/transcriber.css" />
 
+  <!-- Web-font equivalents for the sourceandsummit font list -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond&family=Sorts+Mill+Goudy&family=Fanwood+Text&family=IM+Fell+Double+Pica&family=IM+Fell+DW+Pica&family=IM+Fell+English&family=IM+Fell+French+Canon&display=swap" rel="stylesheet" />
+  <!-- Note: Times, Palatino, Gill Sans are system fonts; no Google Fonts request needed -->
+
   <!--
     Global libraries must load as classic scripts before the ES6 module.
     Order: Tone → tones (audio) → exsurge (rendering) → saveSvgAsPng (export)
@@ -100,6 +106,43 @@
           </div>
         </div>
 
+        <!-- PDF export settings -->
+        <div class="pb-3 mb-3 border-b border-gray-200 flex items-center gap-3 w-full">
+          <span class="text-xs font-medium text-gray-400 uppercase tracking-wide shrink-0">PDF</span>
+          <div style="display:grid; grid-template-columns:auto auto auto auto auto auto auto auto; gap:4px 8px; align-items:center;">
+            <span class="text-xs text-gray-600">Font</span>
+            <select id="editorFont"
+              class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+              style="width:140px;">
+              <option value="">— default —</option>
+              <option value="Crimson">Crimson</option>
+              <option value="GaramondPremierPro">Garamond Premier Pro</option>
+              <option value="OFLSortsMillGoudy">Sorts Mill Goudy</option>
+              <option value="Fanwood">Fanwood</option>
+              <option value="IMFELLDoublePicaPRO">IM Fell Double Pica</option>
+              <option value="IMFELLDWPicaPRO">IM Fell DW Pica</option>
+              <option value="IMFELLEnglishPRO">IM Fell English</option>
+              <option value="IMFELLFrenchCanonPRO">IM Fell French Canon</option>
+              <option value="times">Times</option>
+              <option value="palatino">Palatino</option>
+              <option value="GillSansMTPro">Gill Sans MT Pro</option>
+              <option value="GillSansMTProLight">Gill Sans MT Pro Light</option>
+            </select>
+            <span class="text-xs text-gray-600">Font size</span>
+            <input type="number" id="editorFontSize" min="8" max="24" step="1"
+              class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+              placeholder="pt" style="width:56px;" />
+            <span class="text-xs text-gray-600">Width</span>
+            <input type="number" id="editorPageWidth" min="4" max="20" step="0.5"
+              class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+              placeholder="in" style="width:56px;" />
+            <span class="text-xs text-gray-600">Height</span>
+            <input type="number" id="editorPageHeight" min="4" max="20" step="0.5"
+              class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+              placeholder="in" style="width:56px;" />
+          </div>
+        </div>
+
         <!-- Raw text input + Build -->
         <div id="editorTextInputArea" class="flex gap-2 mb-2">
           <textarea id="editorRawText" spellcheck="false"
@@ -148,7 +191,7 @@
       <div class="flex-none px-3 py-2 border-b border-gray-100 bg-gray-50">
         <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Preview</span>
       </div>
-      <div id="chantPreview" class="flex-1 overflow-y-auto p-4">
+      <div id="chantPreview" class="flex-1 overflow-auto p-4">
         <p id="previewPlaceholder" class="text-sm text-gray-400 italic mt-8 text-center">
           Enter GABC in the editor to see a preview.
         </p>
@@ -165,14 +208,14 @@
   <!-- Hidden PDF export form -->
   <form id="pdfForm" target="_blank" method="post" action="https://www.sourceandsummit.com/editor/legacy/process.php"
     class="hidden">
-    <input type="hidden" id="pdfGabc" name="gabc[]" />
-    <input type="hidden" name="width" value="7.5" />
-    <input type="hidden" name="height" value="11" />
-    <input type="hidden" name="croppdf" value="false" />
-    <input type="hidden" name="spacing" value="vichi" />
-    <input type="hidden" name="font" value="GaramondPremierPro" />
-    <input type="hidden" name="fontsize" value="20" />
-    <input type="hidden" name="fmt" value="pdf" />
+    <input type="hidden" id="pdfGabc"     name="gabc[]" />
+    <input type="hidden" id="pdfWidth"    name="width"    value="7.5" />
+    <input type="hidden" id="pdfHeight"   name="height"   value="11" />
+    <input type="hidden" id="pdfFontSize" name="fontsize" value="20" />
+    <input type="hidden" name="croppdf"  value="false" />
+    <input type="hidden" name="spacing"  value="vichi" />
+    <input type="hidden" id="pdfFont"   name="font"     value="Crimson" />
+    <input type="hidden" name="fmt"      value="pdf" />
   </form>
 
   <!-- Media controls — shown during playback, fixed at bottom -->

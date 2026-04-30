@@ -45,7 +45,7 @@ export function createContext() {
  * @param {HTMLElement} container - DOM element to receive the SVG.
  * @returns {object} The ChantScore instance.
  */
-export function renderGabc(ctxt, gabc, container) {
+export function renderGabc(ctxt, gabc, container, widthPxOverride) {
   const mappings = exsurge.Gabc.createMappingsFromSource(ctxt, gabc);
   const largeInitial = !/^\s*initial-style\s*:\s*0\s*;/m.test(gabc);
   const score = new exsurge.ChantScore(ctxt, mappings, largeInitial);
@@ -58,7 +58,7 @@ export function renderGabc(ctxt, gabc, container) {
   }
 
   score.performLayoutAsync(ctxt, function () {
-    const width = container.clientWidth;
+    const width = widthPxOverride ?? container.clientWidth;
     score.layoutChantLines(ctxt, width, function () {
       const svg = score.createSvgNode(ctxt);
       container.innerHTML = '';

@@ -19,6 +19,10 @@ const _buildBtn       = () => document.getElementById('editorBuildBtn');
 const _rebuildBtn     = () => document.getElementById('editorRebuildBtn');
 const _fitTextBtn     = () => document.getElementById('editorFitTextBtn');
 const _editToggle     = () => document.getElementById('editorEditToggle');
+const _fontSel        = () => document.getElementById('editorFont');
+const _fontSizeInput  = () => document.getElementById('editorFontSize');
+const _pageWidthInput = () => document.getElementById('editorPageWidth');
+const _pageHeightInput= () => document.getElementById('editorPageHeight');
 const _textArea       = () => document.getElementById('editorTextInputArea');
 const _stanzasEl      = () => document.getElementById('editorStanzas');
 
@@ -90,6 +94,10 @@ function _syncControlsToState(state) {
   _largeInitChk().checked     = state.largeInitial;
   _stanzaNumChk().checked     = state.stanzaNumbers;
   _annotationInput().value    = state.annotation ?? '';
+  _fontSel().value            = state.font         ?? '';
+  _fontSizeInput().value      = state.fontSizePt   ?? '';
+  _pageWidthInput().value     = state.pageWidthIn  ?? '';
+  _pageHeightInput().value    = state.pageHeightIn ?? '';
 }
 
 function _wireStaticEvents(state) {
@@ -165,6 +173,28 @@ function _wireStaticEvents(state) {
   _editToggle().addEventListener('click', () => {
     const hidden = _textArea().classList.toggle('hidden');
     _editToggle().textContent = hidden ? 'Edit text' : 'Hide';
+  });
+
+  _fontSel().addEventListener('change', () => {
+    state.font = _fontSel().value || null;
+    triggerCompile(state);
+  });
+
+  const _parsePosNum = (el) => { const v = parseFloat(el.value); return (v > 0) ? v : null; };
+
+  _fontSizeInput().addEventListener('input', () => {
+    state.fontSizePt = _parsePosNum(_fontSizeInput());
+    triggerCompile(state);
+  });
+
+  _pageWidthInput().addEventListener('input', () => {
+    state.pageWidthIn = _parsePosNum(_pageWidthInput());
+    triggerCompile(state);
+  });
+
+  _pageHeightInput().addEventListener('input', () => {
+    state.pageHeightIn = _parsePosNum(_pageHeightInput());
+    triggerCompile(state);
   });
 }
 

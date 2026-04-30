@@ -110,6 +110,10 @@ export function compileGabc(state) {
   if (state.annotation?.trim()) {
     header += `annotation: ${state.annotation.trim()};\n`;
   }
+  if (state.font)         header += `%font: ${state.font};\n`;
+  if (state.fontSizePt)  header += `%fontsize: ${state.fontSizePt};\n`;
+  if (state.pageWidthIn)  header += `%width: ${state.pageWidthIn};\n`;
+  if (state.pageHeightIn) header += `%height: ${state.pageHeightIn};\n`;
   header += '%%';
   return header + '\n' + parts.join('\n\n');
 }

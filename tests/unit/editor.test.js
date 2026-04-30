@@ -11,6 +11,10 @@ const SCAFFOLD = `<!DOCTYPE html><html><body>
   <input type="checkbox" id="editorLargeInitial">
   <input type="checkbox" id="editorStanzaNumbers">
   <input type="text" id="editorAnnotation">
+  <select id="editorFont"><option value=""></option><option value="Crimson">Crimson</option></select>
+  <input type="number" id="editorFontSize">
+  <input type="number" id="editorPageWidth">
+  <input type="number" id="editorPageHeight">
   <textarea id="editorRawText"></textarea>
   <button id="editorBuildBtn"></button>
   <button id="editorRebuildBtn"></button>

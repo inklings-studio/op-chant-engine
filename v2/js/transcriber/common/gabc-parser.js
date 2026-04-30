@@ -57,9 +57,16 @@ const TOKEN_RE   = /([^(\s]+)?\(([^)]*)\)/g;
 export function parseGabc(gabc) {
   let clef = 'c4';
 
-  // Strip GABC header block (lines before %%)
   const headerSep = gabc.indexOf('%%');
-  const body = headerSep !== -1 ? gabc.slice(headerSep + 2) : gabc;
+  const header    = headerSep !== -1 ? gabc.slice(0, headerSep) : '';
+  const body      = headerSep !== -1 ? gabc.slice(headerSep + 2) : gabc;
+
+  const _hNum = (re) => { const m = header.match(re); return m ? parseFloat(m[1]) : null; };
+  const _hStr = (re) => { const m = header.match(re); return m ? m[1].trim() : null; };
+  const font        = _hStr(/%font\s*:\s*([^;\s]+)\s*;/m);
+  const fontSizePt  = _hNum(/%fontsize\s*:\s*(\d+(?:\.\d+)?)\s*;/m);
+  const pageWidthIn = _hNum(/%width\s*:\s*(\d+(?:\.\d+)?)\s*;/m);
+  const pageHeightIn = _hNum(/%height\s*:\s*(\d+(?:\.\d+)?)\s*;/m);
 
   // Split on stanza boundaries (double barline tokens) first.
   // The compiler emits (\n::\n) between stanzas, so we split on that pattern.
@@ -150,5 +157,5 @@ export function parseGabc(gabc) {
     stanzas.push({ lines });
   });
 
-  return { clef, stanzas, coda };
+  return { clef, stanzas, coda, font, fontSizePt, pageWidthIn, pageHeightIn };
 }

@@ -199,3 +199,66 @@ test('reconstructText: only updates when different (idempotent on same input)', 
   const second = reconstructText(stanzas, coda);
   assert.equal(first, second);
 });
+
+// ── PDF header fields ──────────────────────────────────────────────────────────
+
+test('parseGabc: %fontsize, %width, %height extracted from header', () => {
+  const gabc = [
+    'name: Test;',
+    '%fontsize: 12;',
+    '%width: 10;',
+    '%height: 15;',
+    '%%',
+    '(c4) Kris(f)te(g) (::)',
+  ].join('\n');
+  const result = parseGabc(gabc);
+  assert.equal(result.fontSizePt,   12);
+  assert.equal(result.pageWidthIn,  10);
+  assert.equal(result.pageHeightIn, 15);
+  assert.equal(result.clef, 'c4');
+});
+
+test('parseGabc: missing %fontsize/%width/%height returns null', () => {
+  const result = parseGabc('%%\n(c4) Kris(f)te(g) (::)');
+  assert.equal(result.fontSizePt,   null);
+  assert.equal(result.pageWidthIn,  null);
+  assert.equal(result.pageHeightIn, null);
+});
+
+test('compileGabc: %fontsize, %width, %height emitted when set', () => {
+  const state = {
+    clef: 'c4', largeInitial: false, stanzaNumbers: false, annotation: '',
+    coda: null,
+    fontSizePt: 12, pageWidthIn: 10, pageHeightIn: 15,
+    stanzas: [{ lines: [{ syllables: ['Rex'], wordMap: [0], parsedNotes: ['f'] }] }],
+  };
+  const gabc = compileGabc(state);
+  assert.ok(gabc.includes('%fontsize: 12;'), `expected %fontsize in: ${gabc}`);
+  assert.ok(gabc.includes('%width: 10;'),    `expected %width in: ${gabc}`);
+  assert.ok(gabc.includes('%height: 15;'),   `expected %height in: ${gabc}`);
+});
+
+test('compileGabc: %fontsize/%width/%height omitted when null', () => {
+  const state = {
+    clef: 'c4', largeInitial: false, stanzaNumbers: false, annotation: '',
+    coda: null, fontSizePt: null, pageWidthIn: null, pageHeightIn: null,
+    stanzas: [{ lines: [{ syllables: ['Rex'], wordMap: [0], parsedNotes: ['f'] }] }],
+  };
+  const gabc = compileGabc(state);
+  assert.ok(!gabc.includes('%fontsize'), 'no %fontsize when null');
+  assert.ok(!gabc.includes('%width'),    'no %width when null');
+  assert.ok(!gabc.includes('%height'),   'no %height when null');
+});
+
+test('parseGabc/compileGabc: PDF header round-trip', () => {
+  const state = {
+    clef: 'c4', largeInitial: false, stanzaNumbers: false, annotation: '',
+    coda: null, fontSizePt: 14, pageWidthIn: 8.5, pageHeightIn: 11,
+    stanzas: [{ lines: [{ syllables: ['Rex'], wordMap: [0], parsedNotes: ['f'] }] }],
+  };
+  const gabc   = compileGabc(state);
+  const parsed = parseGabc(gabc);
+  assert.equal(parsed.fontSizePt,   14);
+  assert.equal(parsed.pageWidthIn,  8.5);
+  assert.equal(parsed.pageHeightIn, 11);
+});

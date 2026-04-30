@@ -5,6 +5,10 @@ const _defaultState = () => ({
   strophicInheritance: true,
   stanzaNumbers: false,
   annotation: '',
+  font: null,
+  fontSizePt: null,
+  pageWidthIn: null,
+  pageHeightIn: null,
   stanzas: [],
   coda: null,
 });

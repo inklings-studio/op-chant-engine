@@ -16,37 +16,62 @@ import { initEditor, rebuildStanzas, triggerCompile } from './common/editor.js';
 import { parseGabc, reconstructText } from './common/gabc-parser.js';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-const PDF_SERVICE_URL      = 'https://www.sourceandsummit.com/editor/legacy/process.php';
+const PDF_SERVICE_URL = 'https://www.sourceandsummit.com/editor/legacy/process.php';
 const DEFAULT_EXPORT_WIDTH = 7.5 * 96;
-const DEFAULT_DPI          = 300;
-const RENDER_DEBOUNCE_MS   = 300;
+const DEFAULT_DPI = 300;
+const RENDER_DEBOUNCE_MS = 300;
+
+// Baseline Exsurge context values (must match createContext() in renderer.js)
+const BASE_FONT_PX = 19.2 / 0.9;
+const BASE_GLYPH_S = 1 / 16;
+const BASE_FONT_PT = 16;   // pixel baseline converted to points at 96dpi
+
+// Maps sourceandsummit gabc-id → web font family for Exsurge live preview
+const FONT_MAP = {
+  Crimson: "'Crimson Text', serif",
+  GaramondPremierPro: "'EB Garamond', serif",
+  OFLSortsMillGoudy: "'Sorts Mill Goudy', serif",
+  Fanwood: "'Fanwood Text', serif",
+  IMFELLDoublePicaPRO: "'IM Fell Double Pica', serif",
+  IMFELLDWPicaPRO: "'IM Fell DW Pica', serif",
+  IMFELLEnglishPRO: "'IM Fell English', serif",
+  IMFELLFrenchCanonPRO: "'IM Fell French Canon', serif",
+  times: "'Times New Roman', serif",
+  palatino: "Palatino, 'Palatino Linotype', serif",
+  GillSansMTPro: "'Gill Sans', 'Gill Sans MT', sans-serif",
+  GillSansMTProLight: "'Gill Sans', 'Gill Sans MT', sans-serif",
+};
 
 // ─── DOM refs ────────────────────────────────────────────────────────────────
-const gabcEditor    = document.getElementById('gabcEditor');
-const chantPreview  = document.getElementById('chantPreview');
-const placeholder   = document.getElementById('previewPlaceholder');
-const statusMsg     = document.getElementById('statusMessage');
-const btnPdf        = document.getElementById('btnExportPdf');
-const btnPng        = document.getElementById('btnDownloadPng');
-const btnSvg        = document.getElementById('btnDownloadSvg');
-const pdfForm       = document.getElementById('pdfForm');
-const pdfGabcInput  = document.getElementById('pdfGabc');
+const gabcEditor = document.getElementById('gabcEditor');
+const chantPreview = document.getElementById('chantPreview');
+const placeholder = document.getElementById('previewPlaceholder');
+const statusMsg = document.getElementById('statusMessage');
+const btnPdf = document.getElementById('btnExportPdf');
+const btnPng = document.getElementById('btnDownloadPng');
+const btnSvg = document.getElementById('btnDownloadSvg');
+const pdfForm = document.getElementById('pdfForm');
+const pdfGabcInput = document.getElementById('pdfGabc');
+const pdfWidthInput = document.getElementById('pdfWidth');
+const pdfHeightInput = document.getElementById('pdfHeight');
+const pdfFontSizeInput = document.getElementById('pdfFontSize');
+const pdfFontInput = document.getElementById('pdfFont');
 
 // Media controls
-const mediaControls  = document.getElementById('mediaControls');
+const mediaControls = document.getElementById('mediaControls');
 const btnPauseResume = document.getElementById('btnPauseResume');
-const btnBpmMinus    = document.getElementById('btnBpmMinus');
-const btnBpmPlus     = document.getElementById('btnBpmPlus');
-const bpmDisplay     = document.getElementById('bpmDisplay');
-const btnMediaStop   = document.getElementById('btnMediaStop');
+const btnBpmMinus = document.getElementById('btnBpmMinus');
+const btnBpmPlus = document.getElementById('btnBpmPlus');
+const bpmDisplay = document.getElementById('bpmDisplay');
+const btnMediaStop = document.getElementById('btnMediaStop');
 
 // ─── Module state ─────────────────────────────────────────────────────────────
-let ctxt  = null;
+let ctxt = null;
 let score = null;
 let _toolbar = null;   // currently visible floating toolbar div
 
 let _lastCompiledGabc = '';
-let activeTab         = 'editor';   // 'editor' | 'gabc'
+let activeTab = 'editor';   // 'editor' | 'gabc'
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 function init() {
@@ -82,7 +107,7 @@ function init() {
 
   // Tab switching
   document.getElementById('tabEditorBtn').addEventListener('click', () => switchToTab('editor'));
-  document.getElementById('tabGabcBtn').addEventListener('click',   () => switchToTab('gabc'));
+  document.getElementById('tabGabcBtn').addEventListener('click', () => switchToTab('gabc'));
 
 }
 
@@ -96,16 +121,16 @@ function onEditorInput() {
 
 // ─── Tab 1 → Tab 2 compiled output ───────────────────────────────────────────
 function onCompiledGabc(gabcStr) {
-  gabcEditor.value  = gabcStr;
+  gabcEditor.value = gabcStr;
   _lastCompiledGabc = gabcStr;
   renderFromEditor();
 }
 
 // ─── Tab switching ────────────────────────────────────────────────────────────
-const _editorTab  = document.getElementById('editorTab');
-const _gabcTab    = document.getElementById('gabcTab');
-const _editorBtn  = document.getElementById('tabEditorBtn');
-const _gabcBtn    = document.getElementById('tabGabcBtn');
+const _editorTab = document.getElementById('editorTab');
+const _gabcTab = document.getElementById('gabcTab');
+const _editorBtn = document.getElementById('tabEditorBtn');
+const _gabcBtn = document.getElementById('tabGabcBtn');
 
 function switchToTab(tab) {
   const toEditor = tab === 'editor';
@@ -115,15 +140,19 @@ function switchToTab(tab) {
   // browser events (autocorrect, autofill) don't clobber the editor state.
   if (toEditor && gabcEditor.value !== _lastCompiledGabc) {
     const parsed = parseGabc(gabcEditor.value.trim());
-    const state  = getState();
-    state.clef    = parsed.clef;
+    const state = getState();
+    state.clef = parsed.clef;
     state.stanzas = parsed.stanzas;
-    state.coda    = parsed.coda;
+    state.coda = parsed.coda;
+    state.font = parsed.font;
+    state.fontSizePt = parsed.fontSizePt;
+    state.pageWidthIn = parsed.pageWidthIn;
+    state.pageHeightIn = parsed.pageHeightIn;
     state.strophicInheritance = false;
     rebuildStanzas(state);
     _lastCompiledGabc = gabcEditor.value;
 
-    const rawTextEl    = document.getElementById('editorRawText');
+    const rawTextEl = document.getElementById('editorRawText');
     const reconstructed = reconstructText(parsed.stanzas, parsed.coda);
     if (rawTextEl.value !== reconstructed) {
       rawTextEl.value = reconstructed;
@@ -131,7 +160,7 @@ function switchToTab(tab) {
   }
 
   _editorTab.classList.toggle('hidden', !toEditor);
-  _gabcTab.classList.toggle('hidden',    toEditor);
+  _gabcTab.classList.toggle('hidden', toEditor);
 
   const [activeBtn, inactiveBtn] = toEditor ? [_editorBtn, _gabcBtn] : [_gabcBtn, _editorBtn];
   activeBtn.classList.add('tab-btn-active', 'border-blue-600', 'text-blue-600');
@@ -140,6 +169,22 @@ function switchToTab(tab) {
   inactiveBtn.classList.add('border-transparent', 'text-gray-500');
 
   activeTab = tab;
+}
+
+function _applyContextSettings(gabc) {
+  const sizeM = gabc.match(/%fontsize\s*:\s*(\d+(?:\.\d+)?)\s*;/m);
+  const fontM = gabc.match(/%font\s*:\s*([^;\s]+)\s*;/m);
+  const scale = sizeM ? parseFloat(sizeM[1]) / BASE_FONT_PT : 1;
+  const family = (fontM && FONT_MAP[fontM[1]]) ? FONT_MAP[fontM[1]] : "'Crimson Text', serif";
+  ctxt.setFont(family, BASE_FONT_PX * scale);
+  ctxt.setGlyphScaling(BASE_GLYPH_S * scale);
+  ctxt.textStyles.dropCap.size = 64 * scale;
+  ctxt.textStyles.annotation.size = 12.8 * scale;
+}
+
+function _getRenderWidthPx(gabc) {
+  const m = gabc.match(/%width\s*:\s*(\d+(?:\.\d+)?)\s*;/m);
+  return m ? parseFloat(m[1]) * 96 : undefined;
 }
 
 function renderFromEditor() {
@@ -151,10 +196,11 @@ function renderFromEditor() {
     setStatus('');
     return;
   }
+  _applyContextSettings(gabc);
   if (placeholder) placeholder.style.display = 'none';
   setStatus('Rendering…');
   try {
-    score = renderGabc(ctxt, gabc, chantPreview);
+    score = renderGabc(ctxt, gabc, chantPreview, _getRenderWidthPx(gabc));
     setStatus('');
   } catch (err) {
     setStatus('Render error: ' + err.message, 'error');
@@ -167,7 +213,7 @@ function onEditorKeydown(e) {
   if (e.key === 'Tab') {
     e.preventDefault();
     const start = gabcEditor.selectionStart;
-    const end   = gabcEditor.selectionEnd;
+    const end = gabcEditor.selectionEnd;
     gabcEditor.value =
       gabcEditor.value.slice(0, start) + '  ' + gabcEditor.value.slice(end);
     gabcEditor.selectionStart = gabcEditor.selectionEnd = start + 2;
@@ -192,16 +238,16 @@ function removeToolbar() {
  */
 function resolveClickedNote(el) {
   let noteEl = null;   // the use[source-index] element
-  let note   = null;   // the Note object (has .pitch, .svgNode)
-  let group  = null;   // the parent <g> of the neume (for toolbar positioning)
+  let note = null;   // the Note object (has .pitch, .svgNode)
+  let group = null;   // the parent <g> of the neume (for toolbar positioning)
 
   if (el.tagName.toLowerCase() === 'use' && el.source?.neume) {
     noteEl = el;
-    note   = el.source;
-    group  = el.parentElement;
+    note = el.source;
+    group = el.parentElement;
   } else if (el.tagName.toLowerCase() === 'text') {
     // Find the first pitched use element in the same neume group
-    group  = el.parentElement;
+    group = el.parentElement;
     noteEl = group?.querySelector('use[source-index]') ?? null;
     if (noteEl && noteEl.source?.neume) note = noteEl.source;
   }
@@ -287,14 +333,14 @@ function updatePitchDisplay(pitchCenter, note, doLabel) {
   const startPitchInt = firstPitched.pitch.toInt();
   const transpose = score.defaultStartPitch.toInt() - startPitchInt;
   const allPitched = notes.filter(n => n.pitch && !n.isDivider);
-  const low  = Math.min(...allPitched.map(n => n.pitch.toInt()));
+  const low = Math.min(...allPitched.map(n => n.pitch.toInt()));
   const high = Math.max(...allPitched.map(n => n.pitch.toInt()));
 
   const OFFSET = 36; // Exsurge new scale → tones.map index
-  const thisPitchInt  = note.pitch.toInt() + transpose + OFFSET;
-  const lowPitchInt   = low  + transpose + OFFSET;
-  const highPitchInt  = high + transpose + OFFSET;
-  const doPitchInt    = score.defaultStartPitch.toInt() - startPitchInt + startPitchInt + transpose + OFFSET;
+  const thisPitchInt = note.pitch.toInt() + transpose + OFFSET;
+  const lowPitchInt = low + transpose + OFFSET;
+  const highPitchInt = high + transpose + OFFSET;
+  const doPitchInt = score.defaultStartPitch.toInt() - startPitchInt + startPitchInt + transpose + OFFSET;
 
   pitchCenter.innerHTML =
     'Pitch: ' + formatPitch(thisPitchInt) +
@@ -306,26 +352,26 @@ function updatePitchDisplay(pitchCenter, note, doLabel) {
 }
 
 function formatPitch(tonesMapIdx) {
-  const noteNames = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+  const noteNames = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
   const octave = Math.floor(tonesMapIdx / 12);
-  const name   = noteNames[((tonesMapIdx % 12) + 12) % 12];
+  const name = noteNames[((tonesMapIdx % 12) + 12) % 12];
   return name + '<sub>' + octave + '</sub>';
 }
 
 function formatPitchName(tonesMapIdx) {
-  const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
   return noteNames[((tonesMapIdx % 12) + 12) % 12];
 }
 
 function positionToolbar(toolbar, anchorEl) {
   if (!anchorEl) return;
   const anchorRect = anchorEl.getBoundingClientRect();
-  const toolbarH   = toolbar.offsetHeight;
-  const toolbarW   = toolbar.offsetWidth;
-  const scrollTop  = window.scrollY || document.documentElement.scrollTop;
+  const toolbarH = toolbar.offsetHeight;
+  const toolbarW = toolbar.offsetWidth;
+  const scrollTop = window.scrollY || document.documentElement.scrollTop;
   const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
 
-  let top  = anchorRect.top + scrollTop - toolbarH - 6;
+  let top = anchorRect.top + scrollTop - toolbarH - 6;
   let left = anchorRect.left + scrollLeft + anchorRect.width / 2 - toolbarW / 2;
 
   // If toolbar would go above the document, flip below
@@ -334,13 +380,13 @@ function positionToolbar(toolbar, anchorEl) {
   // Clamp horizontally
   left = Math.max(scrollLeft + 8, Math.min(left, scrollLeft + window.innerWidth - toolbarW - 8));
 
-  toolbar.style.top  = top  + 'px';
+  toolbar.style.top = top + 'px';
   toolbar.style.left = left + 'px';
 }
 
 function onPreviewClick(e) {
   // Match both use[source-index] and text[source-index]:not(.dropCap)
-  const useEl  = e.target.closest('use[source-index]');
+  const useEl = e.target.closest('use[source-index]');
   const textEl = !useEl && e.target.closest('text[source-index]');
 
   if (textEl && textEl.classList.contains('dropCap')) {
@@ -433,6 +479,11 @@ function onExportPdf(e) {
   const gabc = gabcEditor.value.trim();
   if (!gabc) return setStatus('Nothing to export.', 'warn');
   pdfGabcInput.value = gabc;
+  const state = getState();
+  if (state.font) pdfFontInput.value = state.font;
+  if (state.fontSizePt) pdfFontSizeInput.value = state.fontSizePt;
+  if (state.pageWidthIn) pdfWidthInput.value = state.pageWidthIn;
+  if (state.pageHeightIn) pdfHeightInput.value = state.pageHeightIn;
   pdfForm.submit();
 }
 
@@ -440,7 +491,7 @@ function onExportPng(e) {
   e.preventDefault();
   if (!score) return setStatus('Nothing to export.', 'warn');
   try {
-    const svgNode  = exportSvg(ctxt, score, DEFAULT_EXPORT_WIDTH);
+    const svgNode = exportSvg(ctxt, score, DEFAULT_EXPORT_WIDTH);
     saveSvgAsPng(svgNode, getFilename('png'), { scale: DEFAULT_DPI / 96, backgroundColor: '#fff' });
     setStatus('PNG downloaded.');
   } catch (err) {
@@ -453,7 +504,7 @@ function onExportSvg(e) {
   e.preventDefault();
   if (!score) return setStatus('Nothing to export.', 'warn');
   try {
-    const svgNode  = exportSvg(ctxt, score, DEFAULT_EXPORT_WIDTH);
+    const svgNode = exportSvg(ctxt, score, DEFAULT_EXPORT_WIDTH);
     saveSvg(svgNode, getFilename('svg'));
     setStatus('SVG downloaded.');
   } catch (err) {
@@ -465,7 +516,7 @@ function onExportSvg(e) {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getFilename(ext) {
   const match = gabcEditor.value.match(/^name:\s*(.+?)\s*;/m);
-  const base  = match ? match[1].replace(/[^a-z0-9_\-]/gi, '_') : 'chant';
+  const base = match ? match[1].replace(/[^a-z0-9_\-]/gi, '_') : 'chant';
   return base + '.' + ext;
 }
 
@@ -473,9 +524,9 @@ function setStatus(msg, level = 'info') {
   if (!statusMsg) return;
   statusMsg.textContent = msg;
   const classes = {
-    info:  'text-xs text-gray-400',
+    info: 'text-xs text-gray-400',
     error: 'text-xs text-red-500',
-    warn:  'text-xs text-yellow-600',
+    warn: 'text-xs text-yellow-600',
   };
   statusMsg.className = classes[level] || classes.info;
 }
