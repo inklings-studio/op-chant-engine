@@ -18,6 +18,7 @@
     "test": "tests"
   },
   "scripts": {
+    "test": "node --test tests/unit/*.test.js",
     "test:unit": "node --test tests/unit/*.test.js",
     "test:smoke": "npx playwright test",
     "build:css": "tailwindcss -i ./v2/src/input.css -o ./v2/css/output.css --minify",
