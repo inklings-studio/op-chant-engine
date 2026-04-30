@@ -187,9 +187,16 @@
     </section>
 
     <!-- Preview pane -->
-    <section class="flex-1 flex flex-col min-w-0 overflow-hidden">
-      <div class="flex-none px-3 py-2 border-b border-gray-100 bg-gray-50">
+    <section class="flex-1 flex flex-col min-w-0">
+      <div class="flex-none border-b border-gray-100 bg-gray-50 preview-header-row">
         <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Preview</span>
+        <div id="previewControls" class="hidden flex items-center gap-1">
+          <button id="btnPlayFromStart" class="toolbar-btn toolbar-btn-primary-inline">▶ Play</button>
+          <button id="btnHeaderPitchUp" class="toolbar-btn toolbar-btn-success">▲</button>
+          <div id="headerPitchDisplay" class="toolbar-btn toolbar-btn-info toolbar-pitch-info preview-pitch-display">—</div>
+          <button id="btnHeaderPitchDown" class="toolbar-btn toolbar-btn-success">▼</button>
+        </div>
+        <div></div>
       </div>
       <div id="chantPreview" class="flex-1 overflow-auto p-4">
         <p id="previewPlaceholder" class="text-sm text-gray-400 italic mt-8 text-center">

@@ -57,6 +57,13 @@ const pdfHeightInput = document.getElementById('pdfHeight');
 const pdfFontSizeInput = document.getElementById('pdfFontSize');
 const pdfFontInput = document.getElementById('pdfFont');
 
+// Preview header controls
+const previewControls    = document.getElementById('previewControls');
+const btnPlayFromStart   = document.getElementById('btnPlayFromStart');
+const btnHeaderPitchUp   = document.getElementById('btnHeaderPitchUp');
+const btnHeaderPitchDown = document.getElementById('btnHeaderPitchDown');
+const headerPitchDisplay = document.getElementById('headerPitchDisplay');
+
 // Media controls
 const mediaControls = document.getElementById('mediaControls');
 const btnPauseResume = document.getElementById('btnPauseResume');
@@ -96,6 +103,17 @@ function init() {
 
   // Dismiss toolbar when clicking outside preview + toolbar
   document.addEventListener('click', onDocumentClick, true);
+
+  // Preview header controls
+  btnPlayFromStart?.addEventListener('click', () => {
+    if (score && isAudioAvailable()) startPlayback(null);
+  });
+  btnHeaderPitchUp?.addEventListener('click', () => {
+    if (score) { changePitch(score, 1); _updateHeaderPitchDisplay(); }
+  });
+  btnHeaderPitchDown?.addEventListener('click', () => {
+    if (score) { changePitch(score, -1); _updateHeaderPitchDisplay(); }
+  });
 
   // Media controls
   btnPauseResume?.addEventListener('click', onPauseResume);
@@ -193,6 +211,7 @@ function renderFromEditor() {
     chantPreview.innerHTML = '';
     if (placeholder) placeholder.style.display = '';
     score = null;
+    _syncPreviewControls();
     setStatus('');
     return;
   }
@@ -201,6 +220,7 @@ function renderFromEditor() {
   setStatus('Rendering…');
   try {
     score = renderGabc(ctxt, gabc, chantPreview, _getRenderWidthPx(gabc));
+    _syncPreviewControls();
     setStatus('');
   } catch (err) {
     setStatus('Render error: ' + err.message, 'error');
@@ -416,8 +436,33 @@ function onDocumentClick(e) {
 
 // ─── Playback ────────────────────────────────────────────────────────────────
 
+function _syncPreviewControls() {
+  const visible = !!score && isAudioAvailable();
+  if (previewControls) previewControls.classList.toggle('hidden', !visible);
+  if (visible) _updateHeaderPitchDisplay();
+}
+
+function _updateHeaderPitchDisplay() {
+  if (!score || !headerPitchDisplay) return;
+  const notes = getScoreNotes(score);
+  const firstPitched = notes.find(n => n.pitch && !n.isDivider);
+  if (!firstPitched) { headerPitchDisplay.innerHTML = '—'; return; }
+  getTranspose(score);
+  if (!score.defaultStartPitch) return;
+  const startPitchInt = firstPitched.pitch.toInt();
+  const transpose = score.defaultStartPitch.toInt() - startPitchInt;
+  const allPitched = notes.filter(n => n.pitch && !n.isDivider);
+  const low  = Math.min(...allPitched.map(n => n.pitch.toInt()));
+  const high = Math.max(...allPitched.map(n => n.pitch.toInt()));
+  const OFFSET = 36;
+  headerPitchDisplay.innerHTML =
+    'Pitch: ' + formatPitch(firstPitched.pitch.toInt() + transpose + OFFSET) +
+    '&ensp;·&ensp;Range: ' + formatPitch(low + transpose + OFFSET) + ' to ' + formatPitch(high + transpose + OFFSET);
+}
+
 function startPlayback(startNote) {
   stopScore();
+  if (btnPlayFromStart) btnPlayFromStart.disabled = true;
   showMediaControls();
   updateBpmDisplay();
   setPlayPauseIcon(true);
@@ -425,16 +470,17 @@ function startPlayback(startNote) {
   playScore(score, startNote, {
     onEnd: () => {
       hideMediaControls();
+      if (btnPlayFromStart) btnPlayFromStart.disabled = false;
     },
   });
 }
 
 function onPauseResume(e) {
   e.stopPropagation();
-  // Simple toggle: stop = "pause" (we don't have true pause yet; restart from beginning)
   if (isPlayingScore()) {
     stopScore();
     setPlayPauseIcon(false);
+    if (btnPlayFromStart) btnPlayFromStart.disabled = false;
   } else {
     startPlayback(null);
     setPlayPauseIcon(true);
@@ -446,6 +492,7 @@ function onMediaStop(e) {
   stopScore();
   hideMediaControls();
   removeToolbar();
+  if (btnPlayFromStart) btnPlayFromStart.disabled = false;
 }
 
 function updateBpm(delta) {
