@@ -185,20 +185,18 @@ function switchToTab(tab) {
   activeTab = tab;
 }
 
+// Applies font/size scaling from GABC header to ctxt and returns render width (px), if set.
 function _applyContextSettings(gabc) {
   const sizeM = gabc.match(/%fontsize\s*:\s*(\d+(?:\.\d+)?)\s*;/m);
   const fontM = gabc.match(/%font\s*:\s*([^;\s]+)\s*;/m);
+  const widthM = gabc.match(/%width\s*:\s*(\d+(?:\.\d+)?)\s*;/m);
   const scale = sizeM ? parseFloat(sizeM[1]) / BASE_FONT_PT : 1;
   const family = (fontM && FONT_MAP[fontM[1]]) ? FONT_MAP[fontM[1]] : "'Crimson Text', serif";
   ctxt.setFont(family, BASE_FONT_PX * scale);
   ctxt.setGlyphScaling(BASE_GLYPH_S * scale);
   ctxt.textStyles.dropCap.size = 64 * scale;
   ctxt.textStyles.annotation.size = 12.8 * scale;
-}
-
-function _getRenderWidthPx(gabc) {
-  const m = gabc.match(/%width\s*:\s*(\d+(?:\.\d+)?)\s*;/m);
-  return m ? parseFloat(m[1]) * 96 : undefined;
+  return widthM ? parseFloat(widthM[1]) * 96 : undefined;
 }
 
 function renderFromEditor() {
@@ -211,11 +209,11 @@ function renderFromEditor() {
     setStatus('');
     return;
   }
-  _applyContextSettings(gabc);
+  const renderWidthPx = _applyContextSettings(gabc);
   if (placeholder) placeholder.style.display = 'none';
   setStatus('Rendering…');
   try {
-    score = renderGabc(ctxt, gabc, chantPreview, _getRenderWidthPx(gabc));
+    score = renderGabc(ctxt, gabc, chantPreview, renderWidthPx);
     _syncPreviewControls();
     setStatus('');
   } catch (err) {
@@ -290,10 +288,8 @@ function showToolbarForNote(el, anchorOverride) {
   // ─ Play button ────────────────────────────────────────────────────────────
   const btnPlay = document.createElement('button');
   btnPlay.className = 'toolbar-btn toolbar-btn-primary';
-  btnPlay.innerHTML = '&#9654; ' + (noteEl === getScoreNotes(score).find(n => n.svgNode === noteEl)
-    ? 'Play Chant' : 'Play from here');
-  // Re-check on first paint to set the label correctly
-  btnPlay.textContent = '▶ Play from here';
+  const isFirst = getScoreNotes(score).find(n => n.pitch && !n.isDivider)?.svgNode === noteEl;
+  btnPlay.textContent = isFirst ? '▶ Play Chant' : '▶ Play from here';
   btnPlay.addEventListener('click', e => {
     e.stopPropagation();
     const startNote = noteEl?.source ?? null;
