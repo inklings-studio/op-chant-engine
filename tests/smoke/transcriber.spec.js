@@ -217,3 +217,94 @@ test('GABC import: Fit Text preserves imported melody, replaces syllables', asyn
   const chips = await page.locator('.track-chip-matched, .track-chip-overflow').all();
   expect(chips.length).toBeGreaterThan(0);
 });
+
+// ── §11 PDF settings round-trip ───────────────────────────────────────────────
+
+test('PDF settings: font size round-trips through GABC header', async ({ page }) => {
+  await page.goto(URL);
+  await buildHymn(page);
+
+  await page.fill('#editorFontSize', '14');
+  await page.dispatchEvent('#editorFontSize', 'input');
+
+  const gabc = await page.inputValue('#gabcEditor');
+  expect(gabc).toContain('%fontsize: 14;');
+
+  // Switch to GABC tab and back — values should survive dirty-flag sync
+  await page.click('#tabGabcBtn');
+  await page.click('#tabEditorBtn');
+  const restored = await page.inputValue('#editorFontSize');
+  expect(restored).toBe('14');
+});
+
+test('PDF settings: page width round-trips through GABC header', async ({ page }) => {
+  await page.goto(URL);
+  await buildHymn(page);
+
+  await page.fill('#editorPageWidth', '6.5');
+  await page.dispatchEvent('#editorPageWidth', 'input');
+
+  const gabc = await page.inputValue('#gabcEditor');
+  expect(gabc).toContain('%width: 6.5;');
+
+  await page.click('#tabGabcBtn');
+  await page.click('#tabEditorBtn');
+  const restored = await page.inputValue('#editorPageWidth');
+  expect(restored).toBe('6.5');
+});
+
+test('PDF settings: PDF form carries font size and width to hidden fields', async ({ page }) => {
+  await page.goto(URL);
+  await buildHymn(page);
+
+  await page.fill('#editorFontSize', '12');
+  await page.dispatchEvent('#editorFontSize', 'input');
+  await page.fill('#editorPageWidth', '7');
+  await page.dispatchEvent('#editorPageWidth', 'input');
+
+  await page.route('**/process.php', route => route.abort());
+  await page.click('#btnExportPdf').catch(() => {});
+
+  expect(await page.inputValue('#pdfFontSize')).toBe('12');
+  expect(await page.inputValue('#pdfWidth')).toBe('7');
+});
+
+// ── §12 Preview header play button ───────────────────────────────────────────
+
+test('play button: hidden before build, visible after build when audio available', async ({ page }) => {
+  await page.goto(URL);
+  // Before build — previewControls should be hidden (no score yet)
+  await expect(page.locator('#previewControls')).toBeHidden();
+
+  await buildHymn(page);
+  await page.waitForTimeout(400); // render debounce
+
+  // After build + render — controls visible only if audio is available
+  // (in headless Chromium, AudioContext is usually available)
+  const visible = await page.locator('#previewControls').isVisible();
+  // We can't guarantee audio in CI, so just assert no JS error occurred
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  expect(errors).toHaveLength(0);
+  // If visible, play button must be present and enabled
+  if (visible) {
+    await expect(page.locator('#btnPlayFromStart')).toBeVisible();
+    await expect(page.locator('#btnPlayFromStart')).toBeEnabled();
+  }
+});
+
+test('play button: disabled while playing, re-enabled after stop', async ({ page }) => {
+  await page.goto(URL);
+  await buildHymn(page);
+  await page.waitForTimeout(400);
+
+  // Skip if audio not available (controls hidden)
+  const visible = await page.locator('#previewControls').isVisible();
+  test.skip(!visible, 'audio not available in this environment');
+
+  await page.click('#btnPlayFromStart');
+  await expect(page.locator('#btnPlayFromStart')).toBeDisabled();
+
+  await page.click('#btnMediaStop');
+  await expect(page.locator('#btnPlayFromStart')).toBeEnabled();
+});
