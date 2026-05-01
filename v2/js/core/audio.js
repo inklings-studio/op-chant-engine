@@ -17,6 +17,7 @@ function withAudioContext(fn) {
 let _bpm = 165;
 let _isPlaying = false;
 let _timers = [];
+let _currentNote = null;
 let _currentNoteEl = null;
 let _currentSyllableEl = null;
 
@@ -32,6 +33,8 @@ export function setBpm(bpm) {
 }
 
 export function isPlayingScore() { return _isPlaying; }
+export function getCurrentNote() { return _currentNote; }
+export function clearCurrentNote() { _currentNote = null; }
 
 // ─── Note helpers ─────────────────────────────────────────────────────────────
 
@@ -151,6 +154,7 @@ export function playScore(score, startNote = null, callbacks = {}) {
 
       _timers.push(setTimeout(() => {
         if (!_isPlaying) return;
+        _currentNote = note;
         callbacks.onNote?.(note, i + startIdx);
 
         if (note.svgNode) highlightNote(note.svgNode);
@@ -169,6 +173,7 @@ export function playScore(score, startNote = null, callbacks = {}) {
     _timers.push(setTimeout(() => {
       clearHighlight();
       _isPlaying = false;
+      _currentNote = null;
       callbacks.onEnd?.();
     }, elapsed));
   });

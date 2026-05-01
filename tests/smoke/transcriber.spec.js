@@ -9,8 +9,6 @@ async function buildHymn(page, text = SAMPLE_TEXT) {
   await page.waitForSelector('.editor-melody-input');
 }
 
-// ── §7 Tab switching ──────────────────────────────────────────────────────────
-
 test('tab switch: GABC tab shows gabcTab and hides editorTab', async ({ page }) => {
   await page.goto(URL);
   await page.click('#tabGabcBtn');
@@ -263,7 +261,7 @@ test('PDF settings: PDF form carries font size and width to hidden fields', asyn
   await page.dispatchEvent('#editorPageWidth', 'input');
 
   await page.route('**/process.php', route => route.abort());
-  await page.click('#btnExportPdf').catch(() => {});
+  await page.click('#btnExportPdf').catch(() => { });
 
   expect(await page.inputValue('#pdfFontSize')).toBe('12');
   expect(await page.inputValue('#pdfWidth')).toBe('7');

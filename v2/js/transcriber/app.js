@@ -4,7 +4,7 @@
 
 import { createContext, renderGabc, exportSvg, BASE_FONT_PX, BASE_GLYPH_S, BASE_FONT_PT } from '../core/renderer.js';
 import {
-  isAudioAvailable, playScore, stopScore, isPlayingScore,
+  isAudioAvailable, playScore, stopScore, isPlayingScore, getCurrentNote, clearCurrentNote,
   getScoreNotes, getTranspose, changePitch, getBpm, setBpm,
   EXSURGE_TO_TONES_OFFSET,
 } from '../core/audio.js';
@@ -90,6 +90,7 @@ function init() {
 
   gabcEditor.addEventListener('input', onEditorInput);
   gabcEditor.addEventListener('keydown', onEditorKeydown);
+  document.addEventListener('keydown', onDocumentKeydown);
   btnPdf.addEventListener('click', onExportPdf);
   btnPng.addEventListener('click', onExportPng);
   btnSvg.addEventListener('click', onExportSvg);
@@ -102,7 +103,7 @@ function init() {
 
   // Preview header controls
   btnPlayFromStart?.addEventListener('click', () => {
-    if (score && isAudioAvailable()) startPlayback(null);
+    if (score && isAudioAvailable()) { clearCurrentNote(); startPlayback(null); }
   });
   btnHeaderPitchUp?.addEventListener('click', () => {
     if (score) { changePitch(score, 1); _updateHeaderPitchDisplay(); }
@@ -231,6 +232,35 @@ function onEditorKeydown(e) {
     gabcEditor.value =
       gabcEditor.value.slice(0, start) + '  ' + gabcEditor.value.slice(end);
     gabcEditor.selectionStart = gabcEditor.selectionEnd = start + 2;
+  }
+}
+
+// ─── Global keyboard shortcuts ────────────────────────────────────────────────
+function onDocumentKeydown(e) {
+  if (e.repeat) return;
+
+  const tag = document.activeElement?.tagName;
+  const isInteractive = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON'
+    || document.activeElement?.isContentEditable;
+
+  if (e.key === ' ') {
+    if (isInteractive || !score || !isAudioAvailable()) return;
+    e.preventDefault();
+    if (isPlayingScore()) {
+      stopScore();         // _currentNote preserved for resume
+      setPlayPauseIcon(false);
+      if (btnPlayFromStart) btnPlayFromStart.disabled = false;
+    } else {
+      startPlayback(getCurrentNote());  // null = from start if not paused mid-song
+    }
+  } else if (e.key === 'Escape') {
+    if (mediaControls?.classList.contains('hidden')) return;
+    e.preventDefault();
+    clearCurrentNote();
+    stopScore();
+    hideMediaControls();
+    removeToolbar();
+    if (btnPlayFromStart) btnPlayFromStart.disabled = false;
   }
 }
 
@@ -478,6 +508,7 @@ function onPauseResume(e) {
 
 function onMediaStop(e) {
   e.stopPropagation();
+  clearCurrentNote();
   stopScore();
   hideMediaControls();
   removeToolbar();
