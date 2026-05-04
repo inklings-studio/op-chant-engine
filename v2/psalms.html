@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="sk">
+
+<head>
+  <meta charset="UTF-8" />
+  <!--
+    IMPORTANT: Open via HTTP server, NOT file://.
+    Exsurge uses Canvas for text measurement; Web Audio requires a real origin.
+    Run: http-server -a localhost -p 8080 --no-cache
+    Then open: http://localhost:8080/v2/psalms.html
+  -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Psalm Tone Pointer — v2</title>
+
+  <link rel="stylesheet" href="css/output.css" />
+  <link rel="stylesheet" href="css/transcriber.css" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond&display=swap" rel="stylesheet" />
+
+  <!--
+    Global libraries must load as classic scripts before the ES6 module.
+    Order: Tone → tones (audio) → exsurge (rendering) → saveSvgAsPng (export)
+  -->
+  <script src="../js/Tone.min.js"></script>
+  <script src="../js/tones.js"></script>
+  <script src="../exsurge.min.js"></script>
+  <script src="../saveSvgAsPng.js"></script>
+</head>
+
+<body class="h-screen flex flex-col bg-white text-gray-900 overflow-hidden">
+
+  <!-- TOOLBAR -->
+  <header class="flex-none flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-gray-50">
+    <h1 class="text-sm font-semibold text-gray-700 tracking-wide uppercase">
+      Psalm Tone Pointer
+      <span class="ml-2 text-xs font-normal text-gray-400">v2</span>
+    </h1>
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <label class="text-xs text-gray-600" for="toneSelect">Tone</label>
+        <select id="toneSelect"
+          class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
+          <!-- populated by app.js -->
+        </select>
+      </div>
+      <div class="flex items-center gap-2">
+        <label class="text-xs text-gray-600" for="termSelect">Termination</label>
+        <select id="termSelect"
+          class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
+          <!-- populated by app.js on tone change -->
+        </select>
+      </div>
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="solemnCheck" class="accent-blue-600" />
+        <label class="text-xs text-gray-600 cursor-pointer select-none" for="solemnCheck">Solemn</label>
+      </div>
+    </div>
+  </header>
+
+  <!-- TWO-PANE LAYOUT -->
+  <main class="flex-1 flex overflow-hidden">
+
+    <!-- Left: verse input pane -->
+    <section class="w-2/5 flex flex-col border-r border-gray-200 min-w-0">
+      <div class="flex-none px-3 py-1.5 border-b border-gray-200 bg-gray-50 text-xs text-gray-400">
+        One verse per line. Use <code class="font-mono">*</code> for mediant, <code class="font-mono">†</code> for flex.
+      </div>
+      <textarea id="psalmInput" spellcheck="false" autocorrect="off" autocapitalize="none"
+        class="flex-1 resize-none p-3 font-mono text-sm leading-relaxed text-gray-800 bg-white focus:outline-none focus:ring-1 focus:ring-inset focus:ring-blue-400"
+        placeholder="Hospodin je môj pastier * a nič mi nechýba"></textarea>
+    </section>
+
+    <!-- Right: output pane -->
+    <section class="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+      <!-- GABC output (read-only, fixed height) -->
+      <textarea id="gabcOutput" readonly spellcheck="false"
+        class="flex-none resize-none p-3 font-mono text-xs leading-relaxed text-gray-600 bg-gray-50 border-b border-gray-200 h-20 focus:outline-none"
+        placeholder="Generated GABC will appear here…"></textarea>
+
+      <!-- Exsurge chant preview -->
+      <div id="chantPreview" class="flex-1 overflow-auto p-4 border-b border-gray-200">
+        <p id="previewPlaceholder" class="text-sm text-gray-400 italic text-center mt-8">
+          Enter verses to see a preview.
+        </p>
+      </div>
+
+      <!-- Breviary verses 2+ -->
+      <div class="flex-none h-48 overflow-auto px-4 py-3 bg-gray-50">
+        <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">Verses 2+</p>
+        <ol id="breviaryPreview" class="list-decimal pl-6 space-y-1 font-serif text-base leading-relaxed"></ol>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- STATUS BAR -->
+  <footer class="flex-none px-4 py-1 border-t border-gray-200 bg-gray-50">
+    <p id="statusMessage" class="text-xs text-gray-400"></p>
+  </footer>
+
+  <!-- ES6 module entry point — runs after all globals above are ready -->
+  <script type="module" src="js/psalms/app.js"></script>
+</body>
+
+</html>
