@@ -169,7 +169,7 @@ export function syllabifyPhrase(phrase) {
       if (sylIdx === syls.length - 1) syl = syl + trailPunct;
       const isStressed = stressOverrideSylIdx !== -1
         ? sylIdx === stressOverrideSylIdx
-        : sylIdx === 0;
+        : sylIdx === 0 || (syls.length >= 4 && sylIdx % 2 === 0);
       tokens.push({ syl, wordIdx, sylIdx, isStressed });
     }
     pendingPrefix = '';

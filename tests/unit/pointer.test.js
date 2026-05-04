@@ -145,3 +145,17 @@ test("pointVerse: ' stress override shifts acc to overridden syllable", () => {
   assert.equal(medTe.find(t => t.role === 'acc')?.syl, 'te',
     "with ' override on te: acc falls on \"te\"");
 });
+
+// Test 4 — Secondary stress: acc falls on nearest (rightmost) stressed syllable
+// "demokraticky * lebo", tone8/G, normal
+// "demokraticky" → de(0,★) mok(1) ra(2,★) tic(3) ky(4,★)  — 5 syllables with secondary
+// Mediant cadence [{acc:"k"},{ep:"j"},{fin:"j."}]:
+//   fin: ky; ep: tic; acc scan: ra★ (secondary) → acc on "ra"
+//   Remaining: de, mok → intonation g, h
+// Without secondary stress acc would fall all the way back to "de" (primary only).
+test('pointVerse: secondary stress — acc falls on "ra" (secondary) not "de" (primary)', () => {
+  const tokens = pointVerse('demokraticky * lebo', tone8, 'G', false, syllabifyPhrase);
+  const mediant = tokens.slice(0, 5);
+  assert.equal(mediant.find(t => t.role === 'acc')?.syl, 'ra',
+    'secondary stress at syl 2 is rightmost stressed; acc should land there, not on syl 0');
+});

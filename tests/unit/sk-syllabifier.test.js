@@ -107,3 +107,38 @@ test("control char _: k_Bohu joins into one word (syllables kBo, hu)", () => {
     { syl: 'hu',  wordIdx: 0 },
   ]);
 });
+
+// Secondary stress — words ≥ 4 syllables get stress on even-indexed syllables (0, 2, 4…)
+test("isStressed: 4-syllable word stressed on syllables 0 and 2 (demokracia)", () => {
+  // de-mok-ra-cia (4 syllables)
+  const tokens = syllabifyPhrase('demokracia');
+  assert.deepEqual(tokens.map(t => t.isStressed), [true, false, true, false]);
+});
+
+test("isStressed: 3-syllable word only stressed on syllable 0 (Hospodin)", () => {
+  // Hos-po-din (3 syllables) — secondary stress does NOT apply below 4 syllables
+  const tokens = syllabifyPhrase('Hospodin');
+  assert.deepEqual(tokens.map(t => t.isStressed), [true, false, false]);
+});
+
+test("isStressed: 5-syllable word stressed on syllables 0, 2, 4 (demokraticky)", () => {
+  // de-mok-ra-tic-ky (5 syllables)
+  const tokens = syllabifyPhrase('demokraticky');
+  assert.deepEqual(tokens.map(t => t.isStressed), [true, false, true, false, true]);
+});
+
+test("isStressed: ' override suppresses secondary stress in the same word", () => {
+  // Without override: "demokracia" → [T,F,T,F]
+  // With "de'mokracia": apostrophe at pos 2, lands in syllable 1 ("mok") → only syl 1 stressed
+  const tokens = syllabifyPhrase("de'mokracia");
+  assert.deepEqual(tokens.map(t => t.isStressed), [false, true, false, false]);
+});
+
+test("isStressed: ' override on one word does not suppress secondary stress of adjacent words", () => {
+  // First word overridden → only marked syl stressed; second word gets automatic secondary
+  const tokens = syllabifyPhrase("de'mokracia demokracia");
+  const firstWord  = tokens.filter(t => t.wordIdx === 0).map(t => t.isStressed);
+  const secondWord = tokens.filter(t => t.wordIdx === 1).map(t => t.isStressed);
+  assert.deepEqual(firstWord,  [false, true, false, false]);
+  assert.deepEqual(secondWord, [true, false, true, false]);
+});
