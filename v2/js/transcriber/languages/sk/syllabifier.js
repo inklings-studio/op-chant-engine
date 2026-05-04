@@ -133,6 +133,8 @@ function _hasNucleus(word) {
  */
 export function syllabifyPhrase(phrase) {
   const tokens = [];
+  // _ ties two tokens into one word; | forces a word boundary.
+  phrase = phrase.replace(/_/g, '').replace(/\|/g, ' ');
   const words = phrase.trim().split(/\s+/);
   let pendingPrefix = '';
 
@@ -140,7 +142,7 @@ export function syllabifyPhrase(phrase) {
     const raw = words[wordIdx];
     const leadPunct = raw.match(/^[^\p{L}]*/u)?.[0] ?? '';
     const trailPunct = raw.match(/[^\p{L}]*$/u)?.[0] ?? '';
-    const clean = raw.slice(leadPunct.length, raw.length - trailPunct.length);
+    let clean = raw.slice(leadPunct.length, raw.length - trailPunct.length);
 
     // Consonant-only word before another word → defer as prefix onto next syllable.
     if (clean && !_hasNucleus(clean) && wordIdx < words.length - 1) {
@@ -148,19 +150,34 @@ export function syllabifyPhrase(phrase) {
       continue;
     }
 
+    // ' marks explicit stress; find which syllable it falls in, then strip it.
+    let stressOverrideSylIdx = -1;
+    const apostrophePos = clean.indexOf("'");
+    if (apostrophePos !== -1) {
+      clean = clean.replace(/'/g, '');
+      let cum = 0;
+      for (const [si, s] of syllabifyWord(clean).entries()) {
+        cum += s.length;
+        if (apostrophePos < cum) { stressOverrideSylIdx = si; break; }
+      }
+    }
+
     const syls = syllabifyWord(clean);
     for (let sylIdx = 0; sylIdx < syls.length; sylIdx++) {
       let syl = syls[sylIdx];
       if (sylIdx === 0) syl = pendingPrefix + leadPunct + syl;
       if (sylIdx === syls.length - 1) syl = syl + trailPunct;
-      tokens.push({ syl, wordIdx, sylIdx });
+      const isStressed = stressOverrideSylIdx !== -1
+        ? sylIdx === stressOverrideSylIdx
+        : sylIdx === 0;
+      tokens.push({ syl, wordIdx, sylIdx, isStressed });
     }
     pendingPrefix = '';
   }
 
   // Leftover consonant-only word at end of phrase — emit as-is.
   if (pendingPrefix) {
-    tokens.push({ syl: pendingPrefix.trim(), wordIdx: words.length - 1, sylIdx: 0 });
+    tokens.push({ syl: pendingPrefix.trim(), wordIdx: words.length - 1, sylIdx: 0, isStressed: true });
   }
 
   return tokens;

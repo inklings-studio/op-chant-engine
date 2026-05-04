@@ -59,3 +59,51 @@ test('codaPattern: amen. (pattern accepts trailing punctuation directly)', () =>
   assert.equal(codaPattern.test('amen.'), true);
   assert.equal(codaPattern.test('amen,'), true);
 });
+
+// isStressed — default (first syllable of each word)
+test("isStressed: default first-syllable stress (Pane)", () => {
+  const tokens = syllabifyPhrase('Pane');
+  assert.deepEqual(tokens.map(t => t.isStressed), [true, false]);
+});
+
+test("isStressed: default across two words (Pane Bože)", () => {
+  const tokens = syllabifyPhrase('Pane Bože');
+  assert.deepEqual(tokens.map(t => ({ syl: t.syl, isStressed: t.isStressed })), [
+    { syl: 'Pa',  isStressed: true  },
+    { syl: 'ne',  isStressed: false },
+    { syl: 'Bo',  isStressed: true  },
+    { syl: 'že',  isStressed: false },
+  ]);
+});
+
+// isStressed — ' override shifts stress to marked syllable
+test("isStressed: ' override shifts stress to second syllable (Bo'že)", () => {
+  const tokens = syllabifyPhrase("Bo'že");
+  assert.deepEqual(tokens.map(t => ({ syl: t.syl, isStressed: t.isStressed })), [
+    { syl: 'Bo', isStressed: false },
+    { syl: 'že', isStressed: true  },
+  ]);
+});
+
+test("isStressed: ' stripped from syl output (Bo'že)", () => {
+  const tokens = syllabifyPhrase("Bo'že");
+  assert.deepEqual(tokens.map(t => t.syl), ['Bo', 'že']);
+});
+
+// | explicit break splits one raw token into two wordIdx values
+test("control char |: dnes|ka produces two tokens with separate wordIdx", () => {
+  const tokens = syllabifyPhrase('dnes|ka');
+  assert.deepEqual(tokens.map(t => ({ syl: t.syl, wordIdx: t.wordIdx })), [
+    { syl: 'dnes', wordIdx: 0 },
+    { syl: 'ka',   wordIdx: 1 },
+  ]);
+});
+
+// _ tie joins two raw tokens into one word (shared wordIdx, no space in syl)
+test("control char _: k_Bohu joins into one word (syllables kBo, hu)", () => {
+  const tokens = syllabifyPhrase('k_Bohu');
+  assert.deepEqual(tokens.map(t => ({ syl: t.syl, wordIdx: t.wordIdx })), [
+    { syl: 'kBo', wordIdx: 0 },
+    { syl: 'hu',  wordIdx: 0 },
+  ]);
+});
