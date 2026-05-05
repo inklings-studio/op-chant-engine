@@ -13,7 +13,7 @@ import {
 import '../languages/sk/index.js';
 
 import { getState } from '../common/state.js';
-import { initEditor, rebuildStanzas, triggerCompile } from '../common/editor.js';
+import { initEditor, rebuildStanzas, triggerCompile } from './editor.js';
 import { parseGabc, reconstructText } from '../common/gabc-parser.js';
 
 // ─── Constants ───────────────────────────────────────────────────────────────

@@ -1,106 +1,465 @@
-import { createContext, renderGabc } from '../core/renderer.js';
-import { pointVerse } from './pointer.js';
-import { generateGabc, generateBreviaryHtml } from './formatter.js';
-import { syllabifyPhrase } from '../languages/sk/syllabifier.js';
+import { createContext, renderGabc, exportSvg } from '../core/renderer.js';
 import {
-  tone1, tone2, tone3, tone4, tone4alt, tone5, tone6, tone7, tone8, per,
-} from '../tones/dominican.js';
+  isAudioAvailable, playScore, stopScore, isPlayingScore, getCurrentNote, clearCurrentNote,
+  getScoreNotes, getTranspose, changePitch, getBpm, setBpm,
+  EXSURGE_TO_TONES_OFFSET,
+} from '../core/audio.js';
+import { getState } from '../common/state.js';
+import '../languages/sk/index.js';
+import { initEditor } from './editor.js';
 
-const TONES = { tone1, tone2, tone3, tone4, tone4alt, tone5, tone6, tone7, tone8, per };
-const TONE_LABELS = {
-  tone1: 'Tone 1', tone2: 'Tone 2', tone3: 'Tone 3',
-  tone4: 'Tone 4', tone4alt: 'Tone 4 (alt)', tone5: 'Tone 5',
-  tone6: 'Tone 6', tone7: 'Tone 7', tone8: 'Tone 8', per: 'Peregrinus',
-};
+const DEFAULT_EXPORT_WIDTH = 7.5 * 96;
+const DEFAULT_DPI = 300;
+const RENDER_DEBOUNCE_MS = 300;
 
-let ctxt = null;
-let score = null;
-let _debounceTimer = null;
+// ─── DOM refs ────────────────────────────────────────────────────────────────
+const gabcEditor  = document.getElementById('gabcEditor');
+const chantPreview = document.getElementById('chantPreview');
+const placeholder  = document.getElementById('previewPlaceholder');
+const statusMsg    = document.getElementById('statusMessage');
+const btnPng       = document.getElementById('btnDownloadPng');
+const btnSvg       = document.getElementById('btnDownloadSvg');
 
-function escapeHtml(str) {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+const previewControls    = document.getElementById('previewControls');
+const btnPlayFromStart   = document.getElementById('btnPlayFromStart');
+const btnHeaderPitchUp   = document.getElementById('btnHeaderPitchUp');
+const btnHeaderPitchDown = document.getElementById('btnHeaderPitchDown');
+const headerPitchDisplay = document.getElementById('headerPitchDisplay');
 
-function setStatus(msg) {
-  document.getElementById('statusMessage').textContent = msg;
-}
+const mediaControls  = document.getElementById('mediaControls');
+const btnPauseResume = document.getElementById('btnPauseResume');
+const btnBpmMinus    = document.getElementById('btnBpmMinus');
+const btnBpmPlus     = document.getElementById('btnBpmPlus');
+const bpmDisplay     = document.getElementById('bpmDisplay');
+const btnMediaStop   = document.getElementById('btnMediaStop');
 
-function clearOutput() {
-  document.getElementById('gabcOutput').value = '';
-  const preview = document.getElementById('chantPreview');
-  preview.innerHTML = '<p id="previewPlaceholder" class="text-sm text-gray-400 italic text-center mt-8">Enter verses to see a preview.</p>';
-  document.getElementById('breviaryPreview').innerHTML = '';
-  setStatus('');
-}
+// ─── Tab refs ─────────────────────────────────────────────────────────────────
+const _editorTab = document.getElementById('editorTab');
+const _gabcTab   = document.getElementById('gabcTab');
+const _editorBtn = document.getElementById('tabEditorBtn');
+const _gabcBtn   = document.getElementById('tabGabcBtn');
 
-function onToneChange() {
-  const tone = TONES[document.getElementById('toneSelect').value];
-  const termSelect = document.getElementById('termSelect');
-  const keys = tone.terminations ? Object.keys(tone.terminations) : ['—'];
-  termSelect.innerHTML = keys.map(k => `<option value="${k}">${k}</option>`).join('');
-  onInput();
-}
+// ─── Module state ─────────────────────────────────────────────────────────────
+let ctxt    = null;
+let score   = null;
+let _toolbar = null;
+let _lastCompiledGabc = '';
+let activeTab = 'editor';
 
-function onInput() {
-  const tone = TONES[document.getElementById('toneSelect').value];
-  const cadenceKey = document.getElementById('termSelect').value;
-  const isSolemn = document.getElementById('solemnCheck').checked;
-  const lines = document.getElementById('psalmInput').value
-    .split('\n').map(l => l.trim()).filter(Boolean);
-
-  if (!lines.length) { clearOutput(); return; }
-
-  try {
-    const ast1 = pointVerse(lines[0], tone, cadenceKey, isSolemn, syllabifyPhrase);
-    const gabcBody = generateGabc(ast1);
-    const fullGabc = `initial-style: 0;\n%%\n(${tone.clef}) ${gabcBody}(::)\n`;
-
-    document.getElementById('gabcOutput').value = fullGabc;
-    const preview = document.getElementById('chantPreview');
-    score = renderGabc(ctxt, fullGabc, preview);
-
-    const items = lines.slice(1).map(line => {
-      try {
-        const ast = pointVerse(line, tone, cadenceKey, isSolemn, syllabifyPhrase);
-        return `<li>${generateBreviaryHtml(ast)}</li>`;
-      } catch (e) {
-        return `<li class="text-red-500">${escapeHtml(line)} — ${escapeHtml(e.message)}</li>`;
-      }
-    });
-    document.getElementById('breviaryPreview').innerHTML = items.join('');
-    setStatus('');
-  } catch (e) {
-    setStatus(`Error: ${e.message}`);
-  }
-}
-
-function onInputDebounced() {
-  clearTimeout(_debounceTimer);
-  _debounceTimer = setTimeout(onInput, 300);
-}
-
+// ─── Init ─────────────────────────────────────────────────────────────────────
 function init() {
   try {
     ctxt = createContext();
-  } catch (e) {
-    setStatus(`Renderer unavailable: ${e.message}`);
+  } catch (err) {
+    setStatus(err.message, 'error');
     return;
   }
 
-  const toneSelect = document.getElementById('toneSelect');
-  toneSelect.innerHTML = Object.entries(TONE_LABELS)
-    .map(([k, label]) => `<option value="${k}">${label}</option>`)
-    .join('');
-  // Default to Tone 8
-  toneSelect.value = 'tone8';
+  const state = getState();
+  state.largeInitial        = false;
+  state.strophicInheritance = false;
+  state.stanzaNumbers       = false;
 
-  toneSelect.addEventListener('change', onToneChange);
-  document.getElementById('psalmInput').addEventListener('input', onInputDebounced);
-  document.getElementById('solemnCheck').addEventListener('change', onInput);
+  initEditor(state, onCompiledGabc);
 
-  onToneChange();
+  btnPlayFromStart?.addEventListener('click', () => {
+    if (score && isAudioAvailable()) { clearCurrentNote(); startPlayback(null); }
+  });
+  btnHeaderPitchUp?.addEventListener('click', () => {
+    if (score) { changePitch(score, 1); _updateHeaderPitchDisplay(); }
+  });
+  btnHeaderPitchDown?.addEventListener('click', () => {
+    if (score) { changePitch(score, -1); _updateHeaderPitchDisplay(); }
+  });
+
+  btnPauseResume?.addEventListener('click', onPauseResume);
+  btnBpmMinus?.addEventListener('click', () => updateBpm(-10));
+  btnBpmPlus?.addEventListener('click', () => updateBpm(+10));
+  btnMediaStop?.addEventListener('click', onMediaStop);
+
+  chantPreview.addEventListener('click', onPreviewClick);
+  document.addEventListener('click', onDocumentClick, true);
+  document.addEventListener('keydown', onDocumentKeydown);
+
+  btnPng?.addEventListener('click', onExportPng);
+  btnSvg?.addEventListener('click', onExportSvg);
+
+  _editorBtn.addEventListener('click', () => switchToTab('editor'));
+  _gabcBtn.addEventListener('click',   () => switchToTab('gabc'));
+
+  setStatus(isAudioAvailable() ? 'Ready.' : 'Ready (audio unavailable).');
 }
 
+// ─── Compiled GABC callback ───────────────────────────────────────────────────
+function onCompiledGabc(gabcStr) {
+  gabcEditor.value    = gabcStr;
+  _lastCompiledGabc   = gabcStr;
+  renderFromEditor();
+}
+
+// ─── Tab switching ────────────────────────────────────────────────────────────
+function switchToTab(tab) {
+  const toEditor = tab === 'editor';
+
+  _editorTab.classList.toggle('hidden', !toEditor);
+  _gabcTab.classList.toggle('hidden', toEditor);
+
+  const [activeBtn, inactiveBtn] = toEditor ? [_editorBtn, _gabcBtn] : [_gabcBtn, _editorBtn];
+  activeBtn.classList.add('tab-btn-active', 'border-blue-600', 'text-blue-600');
+  activeBtn.classList.remove('border-transparent', 'text-gray-500');
+  inactiveBtn.classList.remove('tab-btn-active', 'border-blue-600', 'text-blue-600');
+  inactiveBtn.classList.add('border-transparent', 'text-gray-500');
+
+  activeTab = tab;
+}
+
+// ─── Rendering ────────────────────────────────────────────────────────────────
+let renderTimer = null;
+
+function renderFromEditor() {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(_doRender, RENDER_DEBOUNCE_MS);
+}
+
+function _doRender() {
+  const gabc = gabcEditor.value.trim();
+  if (!gabc) {
+    chantPreview.innerHTML = '';
+    if (placeholder) placeholder.style.display = '';
+    score = null;
+    _syncPreviewControls();
+    setStatus('');
+    return;
+  }
+  if (placeholder) placeholder.style.display = 'none';
+  setStatus('Rendering…');
+  try {
+    score = renderGabc(ctxt, gabc, chantPreview);
+    _syncPreviewControls();
+    setStatus('');
+  } catch (err) {
+    setStatus('Render error: ' + err.message, 'error');
+    console.error('[app.js] renderGabc failed:', err);
+  }
+}
+
+// ─── Floating toolbar ─────────────────────────────────────────────────────────
+
+function removeToolbar() {
+  if (_toolbar) { _toolbar.remove(); _toolbar = null; }
+  if (!isPlayingScore()) {
+    chantPreview.querySelectorAll('use.active, text.active').forEach(el => {
+      el.classList.remove('active');
+    });
+  }
+}
+
+function resolveClickedNote(el) {
+  let noteEl = null;
+  let note   = null;
+  let group  = null;
+
+  if (el.tagName.toLowerCase() === 'use' && el.source?.neume) {
+    noteEl = el;
+    note   = el.source;
+    group  = el.parentElement;
+  } else if (el.tagName.toLowerCase() === 'text') {
+    group  = el.parentElement;
+    noteEl = group?.querySelector('use[source-index]') ?? null;
+    if (noteEl && noteEl.source?.neume) note = noteEl.source;
+  }
+
+  return { noteEl, note, group };
+}
+
+function showToolbarForNote(el, anchorOverride) {
+  removeToolbar();
+  if (!score || !isAudioAvailable()) return;
+
+  const { noteEl, note, group } = resolveClickedNote(el);
+  if (!note || !note.pitch) return;
+
+  el.classList.add('active');
+  if (anchorOverride) anchorOverride.classList.add('active');
+
+  const toolbar = document.createElement('div');
+  toolbar.className = 'chant-toolbar';
+  toolbar.setAttribute('data-toolbar', '');
+
+  const btnPlay = document.createElement('button');
+  btnPlay.className = 'toolbar-btn toolbar-btn-primary';
+  const isFirst = getScoreNotes(score).find(n => n.pitch && !n.isDivider)?.svgNode === noteEl;
+  btnPlay.textContent = isFirst ? '▶ Play Chant' : '▶ Play from here';
+  btnPlay.addEventListener('click', e => {
+    e.stopPropagation();
+    startPlayback(noteEl?.source ?? null);
+    removeToolbar();
+  });
+  toolbar.appendChild(btnPlay);
+
+  const pitchRow = document.createElement('div');
+  pitchRow.className = 'toolbar-row';
+
+  const btnUp = document.createElement('button');
+  btnUp.className = 'toolbar-btn toolbar-btn-success';
+  btnUp.textContent = '▲';
+  btnUp.addEventListener('click', e => { e.stopPropagation(); changePitch(score, 1); updatePitchDisplay(pitchCenter, note); });
+
+  const pitchCenter = document.createElement('button');
+  pitchCenter.className = 'toolbar-btn toolbar-btn-info toolbar-pitch-info';
+  pitchCenter.addEventListener('click', e => e.stopPropagation());
+
+  const btnDown = document.createElement('button');
+  btnDown.className = 'toolbar-btn toolbar-btn-success';
+  btnDown.textContent = '▼';
+  btnDown.addEventListener('click', e => { e.stopPropagation(); changePitch(score, -1); updatePitchDisplay(pitchCenter, note); });
+
+  pitchRow.appendChild(btnUp);
+  pitchRow.appendChild(pitchCenter);
+  pitchRow.appendChild(btnDown);
+  toolbar.appendChild(pitchRow);
+
+  const doLabel = document.createElement('div');
+  doLabel.className = 'toolbar-do-label';
+  toolbar.appendChild(doLabel);
+
+  updatePitchDisplay(pitchCenter, note, doLabel);
+
+  document.body.appendChild(toolbar);
+  _toolbar = toolbar;
+  positionToolbar(toolbar, anchorOverride || group || noteEl || el);
+}
+
+function _getPitchData() {
+  if (!score) return null;
+  const notes = getScoreNotes(score);
+  const firstPitched = notes.find(n => n.pitch && !n.isDivider);
+  if (!firstPitched || !score.defaultStartPitch) return null;
+  const allPitched = notes.filter(n => n.pitch && !n.isDivider);
+  return {
+    firstPitched,
+    transpose: score.defaultStartPitch.toInt() - firstPitched.pitch.toInt(),
+    low:  Math.min(...allPitched.map(n => n.pitch.toInt())),
+    high: Math.max(...allPitched.map(n => n.pitch.toInt())),
+  };
+}
+
+function updatePitchDisplay(pitchCenter, note, doLabel) {
+  if (!note?.pitch) return;
+  getTranspose(score);
+  const d = _getPitchData();
+  if (!d) return;
+  const { transpose, low, high } = d;
+  const OFF = EXSURGE_TO_TONES_OFFSET;
+  pitchCenter.innerHTML =
+    'Pitch: ' + formatPitch(note.pitch.toInt() + transpose + OFF) +
+    '<br>Range: ' + formatPitch(low + transpose + OFF) + ' to ' + formatPitch(high + transpose + OFF);
+  if (doLabel) {
+    doLabel.textContent = 'Do = ' + formatPitchName(score.defaultStartPitch.toInt() + transpose + OFF);
+  }
+}
+
+function formatPitch(tonesMapIdx) {
+  const noteNames = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
+  const octave = Math.floor(tonesMapIdx / 12);
+  const name = noteNames[((tonesMapIdx % 12) + 12) % 12];
+  return name + '<sub>' + octave + '</sub>';
+}
+
+function formatPitchName(tonesMapIdx) {
+  const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  return noteNames[((tonesMapIdx % 12) + 12) % 12];
+}
+
+function positionToolbar(toolbar, anchorEl) {
+  if (!anchorEl) return;
+  const anchorRect = anchorEl.getBoundingClientRect();
+  const toolbarH   = toolbar.offsetHeight;
+  const toolbarW   = toolbar.offsetWidth;
+  const scrollTop  = window.scrollY  || document.documentElement.scrollTop;
+  const scrollLeft = window.scrollX  || document.documentElement.scrollLeft;
+
+  let top  = anchorRect.top  + scrollTop  - toolbarH - 6;
+  let left = anchorRect.left + scrollLeft + anchorRect.width / 2 - toolbarW / 2;
+
+  if (top < scrollTop + 4) top = anchorRect.bottom + scrollTop + 6;
+  left = Math.max(scrollLeft + 8, Math.min(left, scrollLeft + window.innerWidth - toolbarW - 8));
+
+  toolbar.style.top  = top  + 'px';
+  toolbar.style.left = left + 'px';
+}
+
+function onPreviewClick(e) {
+  const useEl  = e.target.closest('use[source-index]');
+  const textEl = !useEl && e.target.closest('text[source-index]');
+
+  if (textEl && textEl.classList.contains('dropCap')) {
+    e.stopPropagation();
+    if (score && isAudioAvailable()) {
+      const firstUse = Array.from(chantPreview.querySelectorAll('svg use[source-index]'))
+        .find(u => u.source?.pitch);
+      if (firstUse) showToolbarForNote(firstUse, textEl);
+    }
+    return;
+  }
+
+  const target = useEl || textEl;
+  if (!target) { removeToolbar(); return; }
+  e.stopPropagation();
+  showToolbarForNote(target);
+}
+
+function onDocumentClick(e) {
+  if (!_toolbar) return;
+  if (_toolbar.contains(e.target) || chantPreview.contains(e.target)) return;
+  removeToolbar();
+}
+
+// ─── Playback ────────────────────────────────────────────────────────────────
+
+function _syncPreviewControls() {
+  const visible = !!score && isAudioAvailable();
+  if (previewControls) previewControls.classList.toggle('hidden', !visible);
+  if (visible) _updateHeaderPitchDisplay();
+}
+
+function _updateHeaderPitchDisplay() {
+  if (!headerPitchDisplay) return;
+  getTranspose(score);
+  const d = _getPitchData();
+  if (!d) { headerPitchDisplay.innerHTML = '—'; return; }
+  const { firstPitched, transpose, low, high } = d;
+  const OFF = EXSURGE_TO_TONES_OFFSET;
+  headerPitchDisplay.innerHTML =
+    'Pitch: ' + formatPitch(firstPitched.pitch.toInt() + transpose + OFF) +
+    '&ensp;·&ensp;Range: ' + formatPitch(low + transpose + OFF) + ' to ' + formatPitch(high + transpose + OFF);
+}
+
+function startPlayback(startNote) {
+  stopScore();
+  if (btnPlayFromStart) btnPlayFromStart.disabled = true;
+  showMediaControls();
+  updateBpmDisplay();
+  setPlayPauseIcon(true);
+  playScore(score, startNote, {
+    onEnd: () => {
+      hideMediaControls();
+      if (btnPlayFromStart) btnPlayFromStart.disabled = false;
+    },
+  });
+}
+
+function onPauseResume(e) {
+  e.stopPropagation();
+  if (isPlayingScore()) {
+    stopScore();
+    setPlayPauseIcon(false);
+    if (btnPlayFromStart) btnPlayFromStart.disabled = false;
+  } else {
+    startPlayback(null);
+    setPlayPauseIcon(true);
+  }
+}
+
+function onMediaStop(e) {
+  e.stopPropagation();
+  clearCurrentNote();
+  stopScore();
+  hideMediaControls();
+  removeToolbar();
+  if (btnPlayFromStart) btnPlayFromStart.disabled = false;
+}
+
+function onDocumentKeydown(e) {
+  if (e.repeat) return;
+  const tag = document.activeElement?.tagName;
+  const isInteractive = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON'
+    || document.activeElement?.isContentEditable;
+
+  if (e.key === ' ') {
+    if (isInteractive || !score || !isAudioAvailable()) return;
+    e.preventDefault();
+    if (isPlayingScore()) {
+      stopScore();
+      setPlayPauseIcon(false);
+      if (btnPlayFromStart) btnPlayFromStart.disabled = false;
+    } else {
+      startPlayback(getCurrentNote());
+    }
+  } else if (e.key === 'Escape') {
+    if (mediaControls?.classList.contains('hidden')) return;
+    e.preventDefault();
+    clearCurrentNote();
+    stopScore();
+    hideMediaControls();
+    removeToolbar();
+    if (btnPlayFromStart) btnPlayFromStart.disabled = false;
+  }
+}
+
+function updateBpm(delta) {
+  setBpm(getBpm() + delta);
+  updateBpmDisplay();
+}
+
+function updateBpmDisplay() {
+  if (bpmDisplay) bpmDisplay.textContent = getBpm() + ' BPM';
+}
+
+function setPlayPauseIcon(playing) {
+  if (btnPauseResume) btnPauseResume.textContent = playing ? '⏸' : '▶';
+}
+
+function showMediaControls() {
+  if (mediaControls) mediaControls.classList.remove('hidden');
+}
+
+function hideMediaControls() {
+  if (mediaControls) mediaControls.classList.add('hidden');
+}
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+
+function onExportPng(e) {
+  e.preventDefault();
+  if (!score) return setStatus('Nothing to export.', 'warn');
+  try {
+    const svgNode = exportSvg(ctxt, score, DEFAULT_EXPORT_WIDTH);
+    saveSvgAsPng(svgNode, 'psalm.png', { scale: DEFAULT_DPI / 96, backgroundColor: '#fff' });
+    setStatus('PNG downloaded.');
+  } catch (err) {
+    setStatus('PNG export failed: ' + err.message, 'error');
+    console.error(err);
+  }
+}
+
+function onExportSvg(e) {
+  e.preventDefault();
+  if (!score) return setStatus('Nothing to export.', 'warn');
+  try {
+    const svgNode = exportSvg(ctxt, score, DEFAULT_EXPORT_WIDTH);
+    saveSvg(svgNode, 'psalm.svg');
+    setStatus('SVG downloaded.');
+  } catch (err) {
+    setStatus('SVG export failed: ' + err.message, 'error');
+    console.error(err);
+  }
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function setStatus(msg, level = 'info') {
+  if (!statusMsg) return;
+  statusMsg.textContent = msg;
+  const classes = {
+    info:  'text-xs text-gray-400',
+    error: 'text-xs text-red-500',
+    warn:  'text-xs text-yellow-600',
+  };
+  statusMsg.className = classes[level] || classes.info;
+}
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {

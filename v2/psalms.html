@@ -37,62 +37,129 @@
       Psalm Tone Pointer
       <span class="ml-2 text-xs font-normal text-gray-400">v2</span>
     </h1>
-    <div class="flex items-center gap-4">
-      <div class="flex items-center gap-2">
-        <label class="text-xs text-gray-600" for="toneSelect">Tone</label>
-        <select id="toneSelect"
-          class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
-          <!-- populated by app.js -->
-        </select>
-      </div>
-      <div class="flex items-center gap-2">
-        <label class="text-xs text-gray-600" for="termSelect">Termination</label>
-        <select id="termSelect"
-          class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
-          <!-- populated by app.js on tone change -->
-        </select>
-      </div>
-      <div class="flex items-center gap-2">
-        <input type="checkbox" id="solemnCheck" class="accent-blue-600" />
-        <label class="text-xs text-gray-600 cursor-pointer select-none" for="solemnCheck">Solemn</label>
-      </div>
+    <div class="flex items-center gap-2">
+      <button id="btnDownloadPng"
+        class="px-3 py-1 text-xs font-medium rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors">
+        PNG
+      </button>
+      <button id="btnDownloadSvg"
+        class="px-3 py-1 text-xs font-medium rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors">
+        SVG
+      </button>
     </div>
   </header>
 
   <!-- TWO-PANE LAYOUT -->
   <main class="flex-1 flex overflow-hidden">
 
-    <!-- Left: verse input pane -->
+    <!-- Editor pane -->
     <section class="w-2/5 flex flex-col border-r border-gray-200 min-w-0">
-      <div class="flex-none px-3 py-1.5 border-b border-gray-200 bg-gray-50 text-xs text-gray-400">
-        One verse per line. Use <code class="font-mono">*</code> for mediant, <code class="font-mono">†</code> for flex.
+
+      <!-- Tab bar -->
+      <div class="flex-none flex border-b border-gray-200 bg-gray-50">
+        <button id="tabEditorBtn"
+          class="tab-btn tab-btn-active px-4 py-2 text-xs font-medium border-b-2 border-blue-500 text-gray-700">
+          Editor
+        </button>
+        <button id="tabGabcBtn"
+          class="tab-btn px-4 py-2 text-xs font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+          GABC
+        </button>
       </div>
-      <textarea id="psalmInput" spellcheck="false" autocorrect="off" autocapitalize="none"
-        class="flex-1 resize-none p-3 font-mono text-sm leading-relaxed text-gray-800 bg-white focus:outline-none focus:ring-1 focus:ring-inset focus:ring-blue-400"
-        placeholder="Hospodin je môj pastier * a nič mi nechýba"></textarea>
+
+      <!-- Tab 1: Structured editor -->
+      <div id="editorTab" class="flex-1 flex flex-col overflow-y-auto p-3 min-w-0">
+
+        <!-- Controls -->
+        <div class="pb-3 mb-3 border-b border-gray-200 flex items-center w-full">
+          <!-- Left grid: label | control -->
+          <div style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center;">
+            <span class="text-xs text-gray-600 text-right">Language</span>
+            <select id="editorLang" class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
+              <!-- options populated by editor.js from language registry -->
+            </select>
+            <span class="text-xs text-gray-600 text-right">Annotation</span>
+            <input type="text" id="editorAnnotation" spellcheck="false"
+              class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+              placeholder="e.g. Ps." style="width:90px;" />
+            <span class="text-xs text-gray-600 text-right">Tone</span>
+            <select id="editorTone" class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
+              <!-- options populated by editor.js -->
+            </select>
+            <span class="text-xs text-gray-600 text-right">Termination</span>
+            <select id="editorTerm" class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
+              <!-- options populated by editor.js on tone change -->
+            </select>
+          </div>
+          <!-- Right grid: label | checkbox — pushed to far right -->
+          <div style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center; margin-left:auto;">
+            <label class="text-xs text-gray-600 cursor-pointer select-none" for="editorLargeInitial">Large Initial</label>
+            <input type="checkbox" id="editorLargeInitial" class="accent-blue-600">
+            <label class="text-xs text-gray-600 cursor-pointer select-none" for="editorSolemn">Solemn</label>
+            <input type="checkbox" id="editorSolemn" class="accent-blue-600">
+          </div>
+        </div>
+
+        <!-- Raw text input + Build -->
+        <div id="editorTextInputArea" class="flex-1 flex gap-2 mb-2">
+          <textarea id="editorRawText" spellcheck="false"
+            class="flex-1 min-h-24 resize-y border border-gray-300 rounded px-2 py-1.5 text-xs font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-blue-400"
+            placeholder="Paste psalm verses here… (one verse per line, * for mediant, † for flex)"></textarea>
+          <div class="self-stretch flex flex-col justify-end gap-1">
+            <button id="editorBuildBtn"
+              class="px-3 py-2.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 active:bg-blue-800">
+              Build
+            </button>
+            <button id="editorRebuildBtn"
+              class="hidden px-3 py-2 bg-gray-500 text-white text-xs font-medium rounded hover:bg-gray-600 active:bg-gray-700"
+              title="Re-parse text and re-point all verses from scratch">
+              Re-Point
+            </button>
+            <button id="editorFitTextBtn"
+              class="hidden px-3 py-2 bg-emerald-600 text-white text-xs font-medium rounded hover:bg-emerald-700 active:bg-emerald-800"
+              title="Re-syllabify new text while keeping existing melody edits">
+              Fit Text
+            </button>
+          </div>
+        </div>
+
+        <!-- Edit-melody toggle — revealed after first Build -->
+        <button id="editorEditToggle"
+          class="hidden mb-2 px-2 py-0.5 text-xs text-blue-600 border border-blue-300 rounded hover:bg-blue-50">
+          Edit melody
+        </button>
+
+        <!-- Dynamic verse rows injected here by editor.js -->
+        <div id="editorStanzas" class="hidden"></div>
+
+      </div>
+
+      <!-- Tab 2: Generated GABC (read-only) -->
+      <div id="gabcTab" class="hidden flex-1 flex flex-col min-w-0">
+        <textarea id="gabcEditor" readonly spellcheck="false" autocorrect="off" autocapitalize="none"
+          class="flex-1 resize-none p-3 font-mono text-sm leading-relaxed text-gray-800 bg-gray-50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-blue-400"
+          placeholder="Generated GABC will appear here after Build…"></textarea>
+      </div>
+
     </section>
 
-    <!-- Right: output pane -->
-    <section class="flex-1 flex flex-col min-w-0 overflow-hidden">
-
-      <!-- GABC output (read-only, fixed height) -->
-      <textarea id="gabcOutput" readonly spellcheck="false"
-        class="flex-none resize-none p-3 font-mono text-xs leading-relaxed text-gray-600 bg-gray-50 border-b border-gray-200 h-20 focus:outline-none"
-        placeholder="Generated GABC will appear here…"></textarea>
-
-      <!-- Exsurge chant preview -->
-      <div id="chantPreview" class="flex-1 overflow-auto p-4 border-b border-gray-200">
-        <p id="previewPlaceholder" class="text-sm text-gray-400 italic text-center mt-8">
-          Enter verses to see a preview.
+    <!-- Preview pane -->
+    <section class="flex-1 flex flex-col min-w-0">
+      <div class="flex-none border-b border-gray-100 bg-gray-50 preview-header-row">
+        <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Preview</span>
+        <div id="previewControls" class="hidden flex items-center gap-1">
+          <button id="btnPlayFromStart" class="toolbar-btn toolbar-btn-primary-inline">▶ Play</button>
+          <button id="btnHeaderPitchUp" class="toolbar-btn toolbar-btn-success">▲</button>
+          <div id="headerPitchDisplay" class="toolbar-btn toolbar-btn-info toolbar-pitch-info preview-pitch-display">—</div>
+          <button id="btnHeaderPitchDown" class="toolbar-btn toolbar-btn-success">▼</button>
+        </div>
+        <div></div>
+      </div>
+      <div id="chantPreview" class="flex-1 overflow-auto p-4">
+        <p id="previewPlaceholder" class="text-sm text-gray-400 italic mt-8 text-center">
+          Enter psalm verses and click Build to see a preview.
         </p>
       </div>
-
-      <!-- Breviary verses 2+ -->
-      <div class="flex-none h-48 overflow-auto px-4 py-3 bg-gray-50">
-        <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">Verses 2+</p>
-        <ol id="breviaryPreview" class="list-decimal pl-6 space-y-1 font-serif text-base leading-relaxed"></ol>
-      </div>
-
     </section>
 
   </main>
@@ -101,6 +168,15 @@
   <footer class="flex-none px-4 py-1 border-t border-gray-200 bg-gray-50">
     <p id="statusMessage" class="text-xs text-gray-400"></p>
   </footer>
+
+  <!-- Media controls — shown during playback, fixed at bottom -->
+  <div id="mediaControls" class="hidden">
+    <button id="btnPauseResume" class="mc-btn mc-btn-primary" title="Pause / Resume">⏸</button>
+    <button id="btnBpmMinus"    class="mc-btn mc-btn-default" title="Slower">−</button>
+    <span   id="bpmDisplay">165 BPM</span>
+    <button id="btnBpmPlus"     class="mc-btn mc-btn-default" title="Faster">+</button>
+    <button id="btnMediaStop"   class="mc-btn mc-btn-danger"  title="Stop">■ Stop</button>
+  </div>
 
   <!-- ES6 module entry point — runs after all globals above are ready -->
   <script type="module" src="js/psalms/app.js"></script>

@@ -1,7 +1,7 @@
-import { listLanguages, getLanguage } from './language.js';
-import { parseText } from './parser.js';
-import { compileGabc } from './compiler.js';
-import { BARLINES, tokenizeMelody } from './melody.js';
+import { listLanguages, getLanguage } from '../common/language.js';
+import { parseText } from '../common/parser.js';
+import { compileGabc } from '../common/compiler.js';
+import { BARLINES, tokenizeMelody } from '../common/melody.js';
 
 let _state          = null;
 let _onGabcCompiled = null;
