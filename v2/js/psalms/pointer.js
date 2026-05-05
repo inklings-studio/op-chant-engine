@@ -11,7 +11,8 @@
  * @param {function} syllabifierFn — syllabifyPhrase (or equivalent) returning [{syl, isStressed, ...}]
  * @param {boolean}  isFirstVerse  — true only for verse index 0; controls intonation assignment
  * @returns {Array<{syl: string, note: string, role: string}>}
- *   role ∈ { 'tenor', 'intonation', 'acc', 'ep', 'fin', 'prep' }
+ *   role ∈ { 'tenor', 'intonation', 'acc', 'ep', 'fin', 'prep', 'flex', 'mediant' }
+ *   'flex' and 'mediant' are barline sentinels: syl is '' and note is ',' / ';' respectively.
  */
 export function pointVerse(rawVerseText, toneObject, cadenceKey, isSolemn, syllabifierFn, isFirstVerse = true) {
   const daggerIdx = rawVerseText.indexOf('†');
@@ -34,10 +35,12 @@ export function pointVerse(rawVerseText, toneObject, cadenceKey, isSolemn, sylla
   if (flexRaw.trim()) {
     const tokens = syllabifierFn(flexRaw.trim());
     result.push(...alignChunk(tokens, toneObject.flex, tenorNote, []));
+    result.push({ syl: '', note: ',', role: 'flex' });
   }
 
   const mediantTokens = syllabifierFn(mediantRaw.trim());
   result.push(...alignChunk(mediantTokens, cadenceSection.cadence, tenorNote, intonation));
+  result.push({ syl: '', note: ';', role: 'mediant' });
 
   const termTokens = syllabifierFn(termRaw.trim());
   result.push(...alignChunk(termTokens, termCadence, tenorNote, []));

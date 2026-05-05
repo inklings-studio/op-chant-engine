@@ -206,6 +206,67 @@ function _syncBuildButtons(state) {
 // ─── Verse parsing & pointing ─────────────────────────────────────────────────
 
 /**
+ * Groups raw input lines into verse strings.
+ * A group closes when the accumulated text contains '*' and the last line ends
+ * with terminal punctuation ([.?!]), or when 3 lines have been collected.
+ */
+function _groupVerses(lines) {
+  const verses = [];
+  let current = [];
+
+  for (const line of lines) {
+    current.push(line);
+    const joined = current.join('\n');
+    const isComplete = joined.includes('*') && /[.?!]\s*$/.test(line);
+    if (isComplete || current.length >= 3) {
+      verses.push(joined);
+      current = [];
+    }
+  }
+
+  if (current.length) verses.push(current.join('\n'));
+  return verses;
+}
+
+/**
+ * Reconstruct the verse text from the AST with accent markers (') and section
+ * breaks (†, *) re-inserted. Used to update the raw textarea after pointing.
+ * Each section is placed on its own line for multi-line display.
+ */
+function _buildMarkedLine(ast, wordMap) {
+  let lines  = [''];
+  let sylIdx = 0;
+  let prevWordIdx = -1;
+
+  for (const token of ast) {
+    if (token.role === 'flex') {
+      lines[lines.length - 1] += '†';
+      lines.push('');
+      prevWordIdx = -1;
+      continue;
+    }
+    if (token.role === 'mediant') {
+      lines[lines.length - 1] += '*';
+      lines.push('');
+      prevWordIdx = -1;
+      continue;
+    }
+
+    const wIdx = wordMap[sylIdx] ?? sylIdx;
+    if (prevWordIdx !== -1 && wIdx !== prevWordIdx) {
+      lines[lines.length - 1] += ' ';
+    }
+    lines[lines.length - 1] += token.syl;
+    if (token.role === 'acc') lines[lines.length - 1] += "'";
+
+    prevWordIdx = wIdx;
+    sylIdx++;
+  }
+
+  return lines.map(l => l.trim()).filter(Boolean).join('\n');
+}
+
+/**
  * Parses verse lines from rawText, points each one via the psalm tone,
  * and writes state.stanzas (one stanza per verse, one line per stanza).
  * Preserves manually-edited notes when a verse line is unchanged (rawLine matches).
@@ -213,7 +274,7 @@ function _syncBuildButtons(state) {
 function _parseAndPoint(rawText, state) {
   const tone    = TONES[_toneKey];
   const plugin  = getLanguage(state.language);
-  const verses  = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+  const verses  = _groupVerses(rawText.split('\n').map(l => l.trim()).filter(Boolean));
 
   state.stanzas = verses.map((rawLine, vi) => {
     const existing = state.stanzas[vi]?.lines[0];
@@ -226,6 +287,7 @@ function _parseAndPoint(rawText, state) {
 
   state.clef = tone.clef;
   state.coda  = null;
+  _syncRawTextarea(state);
 }
 
 /**
@@ -244,9 +306,11 @@ function _repointAll(state) {
     line.parsedNotes = repointed.parsedNotes;
     line.syllables   = repointed.syllables;
     line.wordMap     = repointed.wordMap;
+    line.rawLine     = repointed.rawLine;
   });
 
   state.clef = tone.clef;
+  _syncRawTextarea(state);
 }
 
 /**
@@ -255,11 +319,11 @@ function _repointAll(state) {
  */
 function _resyllabify(rawText, state) {
   const plugin = getLanguage(state.language);
-  const verses = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+  const verses = _groupVerses(rawText.split('\n').map(l => l.trim()).filter(Boolean));
 
   state.stanzas = verses.map((rawLine, vi) => {
-    const existing = state.stanzas[vi]?.lines[0];
-    const cleanLine = rawLine.replace(/[†*]/g, ' ').replace(/\s+/g, ' ').trim();
+    const existing  = state.stanzas[vi]?.lines[0];
+    const cleanLine = rawLine.replace(/[†*']/g, ' ').replace(/\s+/g, ' ').trim();
     const tokens    = plugin.syllabifyPhrase(cleanLine);
     const syllables = tokens.map(t => t.syl);
     const wordMap   = tokens.map(t => t.wordIdx);
@@ -270,6 +334,17 @@ function _resyllabify(rawText, state) {
 }
 
 /**
+ * Writes the marked verse texts (with ' and †* section markers) back into
+ * the raw textarea so the user can see and adjust accent positions.
+ */
+function _syncRawTextarea(state) {
+  _rawText().value = state.stanzas
+    .map(s => s.lines[0]?.rawLine ?? '')
+    .filter(Boolean)
+    .join('\n');
+}
+
+/**
  * Points a single verse line; returns the full line state object.
  */
 function _pointLine(rawLine, tone, plugin, isFirstVerse = true) {
@@ -277,14 +352,17 @@ function _pointLine(rawLine, tone, plugin, isFirstVerse = true) {
     const ast         = pointVerse(rawLine, tone, _cadenceKey, _isSolemn, plugin.syllabifyPhrase, isFirstVerse);
     const notes       = ast.map(t => t.note).join(' ');
     const parsedNotes = tokenizeMelody(notes);
-    const syllables   = ast.map(t => t.syl);
-    const cleanLine   = rawLine.replace(/[†*]/g, ' ').replace(/\s+/g, ' ').trim();
+    // Barline sentinels (flex/mediant) have empty syl — exclude from syllables/wordMap arrays
+    // so that buildLine's sylIdx stays in sync with the non-barline note tokens.
+    const syllables   = ast.filter(t => t.role !== 'flex' && t.role !== 'mediant').map(t => t.syl);
+    const cleanLine   = rawLine.replace(/[†*']/g, ' ').replace(/\s+/g, ' ').trim();
     const langTokens  = plugin.syllabifyPhrase(cleanLine);
     const wordMap     = langTokens.map(t => t.wordIdx);
-    return { syllables, wordMap, notes, parsedNotes, rawLine };
+    const markedLine  = _buildMarkedLine(ast, wordMap);
+    return { syllables, wordMap, notes, parsedNotes, rawLine: markedLine };
   } catch (_e) {
     // Verse missing * marker or other pointing error — store syllables only.
-    const cleanLine = rawLine.replace(/[†*]/g, ' ').replace(/\s+/g, ' ').trim();
+    const cleanLine = rawLine.replace(/[†*']/g, ' ').replace(/\s+/g, ' ').trim();
     const tokens    = plugin.syllabifyPhrase(cleanLine);
     return {
       syllables:   tokens.map(t => t.syl),

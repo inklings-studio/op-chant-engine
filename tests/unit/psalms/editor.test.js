@@ -240,6 +240,56 @@ test('psalm editor Fit Text: new syllables reflected in track chips', () => {
     'track chips should reflect the new text syllables');
 });
 
+// ── Marked textarea (accent feedback) ────────────────────────────────────
+
+test("psalm editor build: textarea updated with ' accent markers after Build", () => {
+  setup();
+  buildVerses([VERSE_1]);
+  const raw = document.getElementById('editorRawText').value;
+  assert.ok(raw.includes("'"), "textarea should contain ' accent markers after Build");
+});
+
+test('psalm editor build: textarea contains * mediant marker after Build', () => {
+  setup();
+  buildVerses([VERSE_1]);
+  const raw = document.getElementById('editorRawText').value;
+  assert.ok(raw.includes('*'), 'textarea should retain * mediant marker');
+});
+
+test('psalm editor build: textarea split across multiple lines at section boundaries', () => {
+  setup();
+  buildVerses([VERSE_1]);
+  const raw = document.getElementById('editorRawText').value;
+  const lines = raw.split('\n').filter(Boolean);
+  // VERSE_1 has no flex, so exactly 2 lines: mediant and termination
+  assert.equal(lines.length, 2, 'verse without flex should produce 2 lines (mediant + term)');
+});
+
+test('psalm editor build: multi-line verse input (split at *) is grouped into one verse', () => {
+  setup();
+  // Manually feed a verse split across two lines as a user would after seeing the marked text
+  const line1 = 'Hospodin je môj pastier*';
+  const line2 = 'a nič mi nechýba.';
+  buildVerses([line1, line2]);  // treated as ONE verse by _groupVerses
+  const inputs = [...document.querySelectorAll('.editor-melody-input')];
+  assert.equal(inputs.length, 1, 'two lines forming one verse should produce one melody input');
+});
+
+test("psalm editor Re-Point: ' markers in textarea feed as stress overrides", () => {
+  setup();
+  // Build with a verse where the natural stress on "pastier" is on "pas"
+  buildVerses([VERSE_1]);
+  const notesNatural = document.querySelector('.editor-melody-input').value;
+
+  // Manually shift the accent marker from natural position to override it
+  // Use a verse where we can predictably override: force stress onto second syllable of "pastier"
+  document.getElementById('editorRawText').value = "Hospodin je môj pas'tier * a nič mi nechýba.";
+  fire(document.getElementById('editorRebuildBtn'), 'click');
+  const notesOverride = document.querySelector('.editor-melody-input').value;
+
+  assert.notEqual(notesOverride, notesNatural, "' override should shift accent and change notes");
+});
+
 // ── Note preservation on identical rawLine ────────────────────────────────
 
 test('psalm editor build: unchanged verse preserves manually-edited notes', () => {
@@ -251,8 +301,9 @@ test('psalm editor build: unchanged verse preserves manually-edited notes', () =
   input.value = 'z z z z z z z';
   fire(input, 'input');
 
-  // Build again with the same verse text — notes should be preserved
-  document.getElementById('editorRawText').value = VERSE_1;
+  // Build again — the textarea was updated by _syncRawTextarea after the first Build
+  // and already contains the marked text, so we do NOT reset it to the original VERSE_1.
+  // Resetting would break the rawLine cache key (which is now the marked form).
   fire(document.getElementById('editorBuildBtn'), 'click');
 
   // Re-query — _renderStanzas replaced the old input element

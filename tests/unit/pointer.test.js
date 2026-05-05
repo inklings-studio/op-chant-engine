@@ -146,3 +146,39 @@ test('pointVerse: isFirstVerse=false — intonation syllables become tenor', () 
   assert.equal(later[0].note, 'j',     'later verse: Hos note is tenor j');
   assert.equal(later[1].role, 'tenor', 'later verse: po is tenor');
 });
+
+// ── Barline sentinels ─────────────────────────────────────────────────────────
+
+// Verse with flex and mediant: both barline sentinels must appear in output.
+// The flex sentinel (role:'flex', note:',') must immediately follow flex tokens.
+// The mediant sentinel (role:'mediant', note:';') must immediately follow mediant tokens.
+test('pointVerse: barline sentinels emitted after flex and mediant sections', () => {
+  const tokens = pointVerse(
+    'Chváľte Pána † lebo je dobrý * aleluja',
+    tone8, 'G', false, syllabifyPhrase
+  );
+
+  const flexBarlineIdx  = tokens.findIndex(t => t.role === 'flex');
+  const mediantBarlineIdx = tokens.findIndex(t => t.role === 'mediant');
+
+  assert.ok(flexBarlineIdx > 0,  'flex barline sentinel must follow flex tokens');
+  assert.ok(mediantBarlineIdx > flexBarlineIdx, 'mediant barline sentinel must follow flex barline');
+  assert.equal(tokens[flexBarlineIdx].note,   ',', 'flex barline note is comma (small pause)');
+  assert.equal(tokens[flexBarlineIdx].syl,    '',  'flex barline syl is empty');
+  assert.equal(tokens[mediantBarlineIdx].note, ';', 'mediant barline note is semicolon (medium pause)');
+  assert.equal(tokens[mediantBarlineIdx].syl,  '',  'mediant barline syl is empty');
+});
+
+// Verse with no flex: only mediant barline appears.
+test('pointVerse: mediant-only verse emits only mediant barline sentinel', () => {
+  const tokens = pointVerse(
+    'Hospodin je môj pastier * a nič mi nechýba',
+    tone8, 'G', false, syllabifyPhrase
+  );
+
+  const flexCount    = tokens.filter(t => t.role === 'flex').length;
+  const mediantCount = tokens.filter(t => t.role === 'mediant').length;
+
+  assert.equal(flexCount,    0, 'no flex barline for a verse without †');
+  assert.equal(mediantCount, 1, 'exactly one mediant barline sentinel');
+});
