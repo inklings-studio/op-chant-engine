@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BARLINES, tokenizeMelody } from '../../v2/js/transcriber/common/melody.js';
-import { registerLanguage, getLanguage, listLanguages } from '../../v2/js/transcriber/common/language.js';
+import { BARLINES, tokenizeMelody } from '../../v2/js/common/melody.js';
+import { registerLanguage, getLanguage, listLanguages } from '../../v2/js/common/language.js';
 
 // ─── tokenizeMelody ───────────────────────────────────────────────────────────
 

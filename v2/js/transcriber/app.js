@@ -10,11 +10,11 @@ import {
 } from '../core/audio.js';
 
 // Language plugins — self-register via side-effect import
-import './languages/sk/index.js';
+import '../languages/sk/index.js';
 
-import { getState } from './common/state.js';
-import { initEditor, rebuildStanzas, triggerCompile } from './common/editor.js';
-import { parseGabc, reconstructText } from './common/gabc-parser.js';
+import { getState } from '../common/state.js';
+import { initEditor, rebuildStanzas, triggerCompile } from '../common/editor.js';
+import { parseGabc, reconstructText } from '../common/gabc-parser.js';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const PDF_SERVICE_URL = 'https://www.sourceandsummit.com/editor/legacy/process.php';

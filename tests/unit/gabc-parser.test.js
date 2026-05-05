@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseGabc, reconstructText } from '../../v2/js/transcriber/common/gabc-parser.js';
-import { compileGabc } from '../../v2/js/transcriber/common/compiler.js';
+import { parseGabc, reconstructText } from '../../v2/js/common/gabc-parser.js';
+import { compileGabc } from '../../v2/js/common/compiler.js';
 
 test('parseGabc: clef extracted', () => {
   const result = parseGabc('initial-style: 0;\n%%\n(c4) Kris(f)te(g) (::)');

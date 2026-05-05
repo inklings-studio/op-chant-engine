@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { pointVerse } from '../../v2/js/psalms/pointer.js';
 import { tone8 } from '../../v2/js/tones/dominican.js';
-import { syllabifyPhrase } from '../../v2/js/transcriber/languages/sk/syllabifier.js';
+import { syllabifyPhrase } from '../../v2/js/languages/sk/syllabifier.js';
 
 // Test 1 — Standard Tone 8 mediant (no flex)
 // "Hospodin je môj pastier * a nič mi nechýba"

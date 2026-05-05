@@ -1,7 +1,7 @@
 import { createContext, renderGabc } from '../core/renderer.js';
 import { pointVerse } from './pointer.js';
 import { generateGabc, generateBreviaryHtml } from './formatter.js';
-import { syllabifyPhrase } from '../transcriber/languages/sk/syllabifier.js';
+import { syllabifyPhrase } from '../languages/sk/syllabifier.js';
 import {
   tone1, tone2, tone3, tone4, tone4alt, tone5, tone6, tone7, tone8, per,
 } from '../tones/dominican.js';

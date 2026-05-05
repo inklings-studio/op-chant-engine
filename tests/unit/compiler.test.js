@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { compileGabc } from '../../v2/js/transcriber/common/compiler.js';
+import { compileGabc } from '../../v2/js/common/compiler.js';
 
 function makeState(overrides = {}) {
   return {
