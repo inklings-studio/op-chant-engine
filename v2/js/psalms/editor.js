@@ -221,7 +221,7 @@ function _parseAndPoint(rawText, state) {
     if (existing?.rawLine === rawLine && existing?.notes) {
       return { lines: [existing] };
     }
-    return { lines: [_pointLine(rawLine, tone, plugin)] };
+    return { lines: [_pointLine(rawLine, tone, plugin, vi === 0)] };
   });
 
   state.clef = tone.clef;
@@ -236,10 +236,10 @@ function _repointAll(state) {
   const tone   = TONES[_toneKey];
   const plugin = getLanguage(state.language);
 
-  state.stanzas.forEach(stanza => {
+  state.stanzas.forEach((stanza, si) => {
     const line = stanza.lines[0];
     if (!line?.rawLine) return;
-    const repointed = _pointLine(line.rawLine, tone, plugin);
+    const repointed = _pointLine(line.rawLine, tone, plugin, si === 0);
     line.notes       = repointed.notes;
     line.parsedNotes = repointed.parsedNotes;
     line.syllables   = repointed.syllables;
@@ -272,9 +272,9 @@ function _resyllabify(rawText, state) {
 /**
  * Points a single verse line; returns the full line state object.
  */
-function _pointLine(rawLine, tone, plugin) {
+function _pointLine(rawLine, tone, plugin, isFirstVerse = true) {
   try {
-    const ast         = pointVerse(rawLine, tone, _cadenceKey, _isSolemn, plugin.syllabifyPhrase);
+    const ast         = pointVerse(rawLine, tone, _cadenceKey, _isSolemn, plugin.syllabifyPhrase, isFirstVerse);
     const notes       = ast.map(t => t.note).join(' ');
     const parsedNotes = tokenizeMelody(notes);
     const syllables   = ast.map(t => t.syl);
