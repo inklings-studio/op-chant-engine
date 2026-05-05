@@ -172,6 +172,8 @@ function _wireStaticEvents(state) {
   _editToggle().addEventListener('click', () => {
     const hidden = _textArea().classList.toggle('hidden');
     _editToggle().textContent = hidden ? 'Edit text' : 'Hide';
+    // Hide stanza container while textarea is visible so it gets full flex-1 height.
+    _stanzasEl().classList.toggle('hidden', !hidden);
   });
 
   _fontSel().addEventListener('change', () => {
@@ -199,6 +201,7 @@ function _wireStaticEvents(state) {
 
 function _showStanzas() {
   _textArea().classList.add('hidden');
+  _stanzasEl().classList.remove('hidden');
   _editToggle().classList.remove('hidden');
   _editToggle().textContent = 'Edit text';
 }
@@ -261,7 +264,7 @@ function _buildLineRow(state, si, li, line) {
   track.dataset.stanza = si;
   track.dataset.line   = li;
 
-  _renderTrack(track, line.syllables ?? [], line.parsedNotes ?? []);
+  _renderTrack(track, line.syllables ?? [], line.parsedNotes ?? [], line.wordMap ?? null);
   _updateInputOverflow(input, line.syllables ?? [], line.parsedNotes ?? []);
 
   input.addEventListener('input', () => {
@@ -269,7 +272,7 @@ function _buildLineRow(state, si, li, line) {
     if (!target) return;
     target.notes       = input.value;
     target.parsedNotes = tokenizeMelody(input.value);
-    _renderTrack(track, target.syllables, target.parsedNotes);
+    _renderTrack(track, target.syllables, target.parsedNotes, target.wordMap ?? null);
     _updateInputOverflow(input, target.syllables, target.parsedNotes);
     if (document.activeElement === input) _highlightCursorChip(input, track);
     if (si === 0 && state.strophicInheritance) _propagateStrophicLine(state, li);
@@ -291,22 +294,47 @@ function _buildLineRow(state, si, li, line) {
 
 // ─── Alignment track ──────────────────────────────────────────────────────────
 
-function _renderTrack(trackEl, syllables, parsedNotes) {
+function _renderTrack(trackEl, syllables, parsedNotes, wordMap) {
   trackEl.innerHTML = '';
   let sylIdx = 0;
 
+  // Word-group helpers — same-wordIdx chips get wrapped in a .track-word-group
+  // so they appear visually connected in the editor.
+  let curWordIdx  = null;
+  let curGroupEl  = null;
+
+  function _flushGroup() {
+    if (curGroupEl) { trackEl.appendChild(curGroupEl); curGroupEl = null; curWordIdx = null; }
+  }
+
+  function _groupFor(wIdx) {
+    if (wIdx !== curWordIdx) {
+      _flushGroup();
+      curGroupEl  = document.createElement('span');
+      curGroupEl.className = 'track-word-group';
+      curWordIdx  = wIdx;
+    }
+    return curGroupEl;
+  }
+
   for (const token of parsedNotes) {
     if (BARLINES.has(token)) {
+      _flushGroup();
       trackEl.appendChild(_chip(token === '::' ? '‖' : '|', 'track-chip track-chip-barline'));
     } else {
-      const syl = syllables[sylIdx++];
+      const syl  = syllables[sylIdx];
+      const wIdx = wordMap?.[sylIdx] ?? sylIdx;
+      sylIdx++;
+      const group = _groupFor(wIdx);
       const chip = syl
         ? _chip(`${syl}(${token})`, 'track-chip track-chip-matched')
         : _chip('—', 'track-chip track-chip-empty');
       chip.dataset.isMatched = syl ? '1' : '0';
-      trackEl.appendChild(chip);
+      group.appendChild(chip);
     }
   }
+
+  _flushGroup();
 
   while (sylIdx < syllables.length) {
     trackEl.appendChild(_chip(syllables[sylIdx++], 'track-chip track-chip-overflow'));
@@ -391,7 +419,7 @@ function _propagateStrophicLine(state, li) {
     target.parsedNotes = src.parsedNotes;
     input.value = src.notes;
     const track = input.nextElementSibling;
-    _renderTrack(track, target.syllables, target.parsedNotes);
+    _renderTrack(track, target.syllables, target.parsedNotes, target.wordMap ?? null);
     _updateInputOverflow(input, target.syllables, target.parsedNotes);
   });
 }

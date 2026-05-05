@@ -90,22 +90,42 @@ test("isStressed: ' stripped from syl output (Bo'že)", () => {
   assert.deepEqual(tokens.map(t => t.syl), ['Bo', 'že']);
 });
 
-// | explicit break splits one raw token into two wordIdx values
-test("control char |: dnes|ka produces two tokens with separate wordIdx", () => {
+// | in-word split: two chips, same wordIdx → no GABC space between them
+test("control char |: dnes|ka produces two chips with the same wordIdx (no GABC space)", () => {
   const tokens = syllabifyPhrase('dnes|ka');
   assert.deepEqual(tokens.map(t => ({ syl: t.syl, wordIdx: t.wordIdx })), [
     { syl: 'dnes', wordIdx: 0 },
-    { syl: 'ka',   wordIdx: 1 },
+    { syl: 'ka',   wordIdx: 0 },
   ]);
 });
 
-// _ tie joins two raw tokens into one word (shared wordIdx, no space in syl)
-test("control char _: k_Bohu joins into one word (syllables kBo, hu)", () => {
+test("control char |: Slo|ven|sku produces three chips all with the same wordIdx", () => {
+  const tokens = syllabifyPhrase('Slo|ven|sku');
+  assert.equal(tokens.length, 3);
+  assert.ok(tokens.every(t => t.wordIdx === tokens[0].wordIdx), 'all share wordIdx');
+  assert.deepEqual(tokens.map(t => t.syl), ['Slo', 'ven', 'sku']);
+});
+
+// _ semantic tie: ALL joined fragments collapse into ONE chip / ONE melody note.
+// Surrounding whitespace is consumed, so "a _ po" and "a_po" behave identically.
+test("control char _: a_po ties into one chip (one melody note)", () => {
+  const tokens = syllabifyPhrase('a_po');
+  assert.equal(tokens.length, 1);
+  assert.equal(tokens[0].syl, 'a po');
+  assert.equal(tokens[0].wordIdx, 0);
+});
+
+test("control char _: 'a _ po' (spaces around _) behaves identically to a_po", () => {
+  const tokens = syllabifyPhrase('a _ po');
+  assert.equal(tokens.length, 1);
+  assert.equal(tokens[0].syl, 'a po');
+});
+
+test("control char _: k_Bohu ties k + Bo + hu into one chip", () => {
   const tokens = syllabifyPhrase('k_Bohu');
-  assert.deepEqual(tokens.map(t => ({ syl: t.syl, wordIdx: t.wordIdx })), [
-    { syl: 'kBo', wordIdx: 0 },
-    { syl: 'hu',  wordIdx: 0 },
-  ]);
+  assert.equal(tokens.length, 1);
+  assert.equal(tokens[0].syl, 'k Bo hu');
+  assert.equal(tokens[0].wordIdx, 0);
 });
 
 // Secondary stress — words ≥ 4 syllables get stress on even-indexed syllables (0, 2, 4…)

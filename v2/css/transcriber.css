@@ -203,3 +203,25 @@
 .editor-melody-input-strophic {
   background: #f3f4f6;
 }
+
+/* ── Word groups in alignment track ──────────────────────────────────────── */
+/* Chips that share the same wordIdx are wrapped in .track-word-group so they
+   appear visually connected — making same-word (e.g. _ tie) groupings obvious. */
+.track-word-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.track-word-group .track-chip-matched,
+.track-word-group .track-chip-cursor {
+  border-radius: 0;
+  border-right: 1px solid rgba(147, 197, 253, 0.55);
+}
+
+.track-word-group .track-chip-matched:last-child,
+.track-word-group .track-chip-cursor:last-child {
+  border-right: none;
+}

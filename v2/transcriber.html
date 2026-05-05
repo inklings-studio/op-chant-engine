@@ -144,9 +144,9 @@
         </div>
 
         <!-- Raw text input + Build -->
-        <div id="editorTextInputArea" class="flex gap-2 mb-2">
+        <div id="editorTextInputArea" class="flex-1 flex gap-2 mb-2">
           <textarea id="editorRawText" spellcheck="false"
-            class="flex-1 h-24 resize-y border border-gray-300 rounded px-2 py-1.5 text-xs font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-blue-400"
+            class="flex-1 min-h-24 resize-y border border-gray-300 rounded px-2 py-1.5 text-xs font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-blue-400"
             placeholder="Paste hymn text here…"></textarea>
           <div class="self-stretch flex flex-col justify-end gap-1">
             <button id="editorBuildBtn"
@@ -166,9 +166,9 @@
           </div>
         </div>
 
-        <!-- Edit text toggle — shown after first Build -->
+        <!-- Edit-text toggle sits between textarea and stanzas so both sections can be toggled independently -->
         <button id="editorEditToggle"
-          class="hidden self-start mb-2 px-2 py-0.5 text-xs text-blue-600 border border-blue-300 rounded hover:bg-blue-50">
+          class="hidden mb-2 px-2 py-0.5 text-xs text-blue-600 border border-blue-300 rounded hover:bg-blue-50">
           Edit text
         </button>
 
