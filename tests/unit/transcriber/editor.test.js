@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
-import { initEditor } from '../../v2/js/transcriber/editor.js';
-import '../../v2/js/languages/sk/index.js'; // registers SK plugin
+import { initEditor } from '../../../v2/js/transcriber/editor.js';
+import '../../../v2/js/languages/sk/index.js'; // registers SK plugin
 
 const SCAFFOLD = `<!DOCTYPE html><html><body>
   <select id="editorLang"></select>

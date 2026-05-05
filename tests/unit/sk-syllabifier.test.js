@@ -69,10 +69,10 @@ test("isStressed: default first-syllable stress (Pane)", () => {
 test("isStressed: default across two words (Pane Bože)", () => {
   const tokens = syllabifyPhrase('Pane Bože');
   assert.deepEqual(tokens.map(t => ({ syl: t.syl, isStressed: t.isStressed })), [
-    { syl: 'Pa',  isStressed: true  },
-    { syl: 'ne',  isStressed: false },
-    { syl: 'Bo',  isStressed: true  },
-    { syl: 'že',  isStressed: false },
+    { syl: 'Pa', isStressed: true },
+    { syl: 'ne', isStressed: false },
+    { syl: 'Bo', isStressed: true },
+    { syl: 'že', isStressed: false },
   ]);
 });
 
@@ -81,7 +81,7 @@ test("isStressed: ' override shifts stress to second syllable (Bo'že)", () => {
   const tokens = syllabifyPhrase("Bo'že");
   assert.deepEqual(tokens.map(t => ({ syl: t.syl, isStressed: t.isStressed })), [
     { syl: 'Bo', isStressed: false },
-    { syl: 'že', isStressed: true  },
+    { syl: 'že', isStressed: true },
   ]);
 });
 
@@ -95,7 +95,7 @@ test("control char |: dnes|ka produces two chips with the same wordIdx (no GABC 
   const tokens = syllabifyPhrase('dnes|ka');
   assert.deepEqual(tokens.map(t => ({ syl: t.syl, wordIdx: t.wordIdx })), [
     { syl: 'dnes', wordIdx: 0 },
-    { syl: 'ka',   wordIdx: 0 },
+    { syl: 'ka', wordIdx: 0 },
   ]);
 });
 
@@ -157,8 +157,8 @@ test("isStressed: ' override suppresses secondary stress in the same word", () =
 test("isStressed: ' override on one word does not suppress secondary stress of adjacent words", () => {
   // First word overridden → only marked syl stressed; second word gets automatic secondary
   const tokens = syllabifyPhrase("de'mokracia demokracia");
-  const firstWord  = tokens.filter(t => t.wordIdx === 0).map(t => t.isStressed);
+  const firstWord = tokens.filter(t => t.wordIdx === 0).map(t => t.isStressed);
   const secondWord = tokens.filter(t => t.wordIdx === 1).map(t => t.isStressed);
-  assert.deepEqual(firstWord,  [false, true, false, false]);
+  assert.deepEqual(firstWord, [false, true, false, false]);
   assert.deepEqual(secondWord, [true, false, true, false]);
 });
