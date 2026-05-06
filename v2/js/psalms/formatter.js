@@ -37,12 +37,12 @@ export function generateBreviaryHtml(verseAst, wordMap, wrappers = {}) {
 
   for (const t of verseAst) {
     if (t.role === 'flex') {
-      result += ' †';
+      result += ' <span class="verse-mark">†</span>';
       prevWordIdx = null;
       continue;
     }
     if (t.role === 'mediant') {
-      result += ' *';
+      result += ' <span class="verse-mark">*</span>';
       prevWordIdx = null;
       continue;
     }
@@ -84,7 +84,7 @@ export function compileBreviaryHtml(state, wrappers = {}) {
       if (!ast) return '';
       const verseNum = idx + 2;
       const html = generateBreviaryHtml(ast, wordMap, wrappers);
-      return `<p class="verse-line" data-verse="${verseNum}"><span class="verse-num">${verseNum}.</span> ${html}</p>`;
+      return `<p class="verse-line" data-verse="${verseNum}"><span class="verse-num">${verseNum}.</span><span class="verse-text">${html}</span></p>`;
     })
     .filter(Boolean)
     .join('\n');

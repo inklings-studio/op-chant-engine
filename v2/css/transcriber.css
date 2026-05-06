@@ -228,14 +228,16 @@
 
 /* ── Breviary HTML verse output ──────────────────────────────────────────── */
 #versesPreview {
-  font-family: 'EB Garamond', 'Garamond', Georgia, serif;
-  font-size: 1.05rem;
-  line-height: 1.8;
+  font-family: 'Crimson Text', Georgia, serif;
+  font-size: 18px;
+  line-height: 1.5;
   color: #1f2937;
 }
 
 #versesPreview .verse-line {
-  margin: 0 0 0.6rem;
+  display: flex;
+  gap: 0.4em;
+  margin: 0 0 0.3em;
 }
 
 #versesPreview .verse-line:last-child {
@@ -243,9 +245,20 @@
 }
 
 #versesPreview .verse-num {
+  min-width: 1.5em;
+  text-align: right;
+  flex-shrink: 0;
   font-style: normal;
-  font-weight: 600;
-  color: #6b7280;
-  margin-right: 0.25em;
-  font-size: 0.85em;
+  font-weight: normal;
+  color: #c00;
+  font-size: 1em;
+}
+
+#versesPreview .verse-mark {
+  color: #c00;
+}
+
+#versesPreview .verse-text {
+  flex: 1;
+  min-width: 0;
 }
