@@ -70,9 +70,9 @@
       <!-- Tab 1: Structured editor -->
       <div id="editorTab" class="flex-1 flex flex-col overflow-y-auto p-3 min-w-0">
 
-        <!-- Controls row 1: language, psalm, tone, termination, checkboxes -->
-        <div class="pb-3 mb-0 border-b border-gray-200 flex items-center w-full">
-          <!-- Left grid: label | control -->
+        <!-- Controls row 1: Language/Psalm/Annotation (left) | Tone/Termination/Solemn (right) -->
+        <div class="pb-3 mb-0 border-b border-gray-200 flex items-start w-full">
+          <!-- Left grid: Language, Psalm, Annotation -->
           <div style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center;">
             <span class="text-xs text-gray-600 text-right">Language</span>
             <select id="editorLang" class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
@@ -87,6 +87,9 @@
             <input type="text" id="editorAnnotation" spellcheck="false"
               class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
               placeholder="e.g. Ps." style="width:90px;" />
+          </div>
+          <!-- Right grid: Tone, Termination, Solemn — pushed to far right -->
+          <div style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center; margin-left:auto;">
             <span class="text-xs text-gray-600 text-right">Tone</span>
             <select id="editorTone" class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
               <!-- options populated by editor.js -->
@@ -95,37 +98,43 @@
             <select id="editorTerm" class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
               <!-- options populated by editor.js on tone change -->
             </select>
-          </div>
-          <!-- Right grid: label | checkbox — pushed to far right -->
-          <div style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center; margin-left:auto;">
-            <label class="text-xs text-gray-600 cursor-pointer select-none" for="editorLargeInitial">Large Initial</label>
-            <input type="checkbox" id="editorLargeInitial" class="accent-blue-600">
-            <label class="text-xs text-gray-600 cursor-pointer select-none" for="editorSolemn">Solemn</label>
+            <label class="text-xs text-gray-600 cursor-pointer select-none text-right" for="editorSolemn">Solemn</label>
             <input type="checkbox" id="editorSolemn" class="accent-blue-600">
           </div>
         </div>
 
-        <!-- Controls row 2: output mode -->
-        <div class="py-2 mb-3 border-b border-gray-200 flex items-start gap-4 w-full">
-          <div style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center; flex-shrink:0;">
-            <span class="text-xs text-gray-600 text-right">Output</span>
-            <select id="editorOutputMode" class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
-              <option value="gabc">GABC</option>
-              <option value="html">HTML</option>
-            </select>
+        <!-- Controls row 2: Output selector + conditional options -->
+        <div class="py-2 mb-3 border-b border-gray-200 flex items-start w-full">
+          <!-- Left area: Output select + mode-specific controls -->
+          <div>
+            <div style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center;">
+              <span class="text-xs text-gray-600 text-right">Output</span>
+              <select id="editorOutputMode" class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
+                <option value="gabc">GABC</option>
+                <option value="html">HTML</option>
+              </select>
+            </div>
+            <!-- GABC mode: Large Initial checkbox -->
+            <div id="editorGabcOptions" style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center; margin-top:5px;">
+              <label class="text-xs text-gray-600 cursor-pointer select-none text-right" for="editorLargeInitial">Large Initial</label>
+              <input type="checkbox" id="editorLargeInitial" class="accent-blue-600" checked>
+            </div>
+            <!-- HTML mode: Prep begin + Acc begin (left column) -->
+            <div id="editorHtmlLeft" style="display:none; grid-template-columns:auto auto; gap:4px 8px; align-items:center; margin-top:5px;">
+              <span class="text-xs text-gray-500 text-right whitespace-nowrap">Prep begin</span>
+              <input type="text" id="editorPrepBegin" value="&lt;i&gt;"
+                class="border border-gray-300 rounded px-1 py-0.5 text-xs font-mono text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+                style="width:52px;">
+              <span class="text-xs text-gray-500 text-right whitespace-nowrap">Acc begin</span>
+              <input type="text" id="editorAccBegin" value="&lt;b&gt;"
+                class="border border-gray-300 rounded px-1 py-0.5 text-xs font-mono text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+                style="width:52px;">
+            </div>
           </div>
-          <!-- HTML wrapper inputs — hidden until Output = HTML -->
-          <div id="editorHtmlWrappers" style="display:none; grid-template-columns:auto auto auto auto; gap:4px 8px; align-items:center;">
-            <span class="text-xs text-gray-500 text-right whitespace-nowrap">Prep begin</span>
-            <input type="text" id="editorPrepBegin" value="&lt;i&gt;"
-              class="border border-gray-300 rounded px-1 py-0.5 text-xs font-mono text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
-              style="width:52px;">
+          <!-- Right area: HTML mode Prep end + Acc end — aligned to right column above -->
+          <div id="editorHtmlRight" style="display:none; grid-template-columns:auto auto; gap:4px 8px; align-items:center; margin-left:auto; align-self:flex-end;">
             <span class="text-xs text-gray-500 text-right whitespace-nowrap">Prep end</span>
             <input type="text" id="editorPrepEnd" value="&lt;/i&gt;"
-              class="border border-gray-300 rounded px-1 py-0.5 text-xs font-mono text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
-              style="width:52px;">
-            <span class="text-xs text-gray-500 text-right whitespace-nowrap">Acc begin</span>
-            <input type="text" id="editorAccBegin" value="&lt;b&gt;"
               class="border border-gray-300 rounded px-1 py-0.5 text-xs font-mono text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
               style="width:52px;">
             <span class="text-xs text-gray-500 text-right whitespace-nowrap">Acc end</span>
@@ -135,7 +144,13 @@
           </div>
         </div>
 
-        <!-- Raw text input + Build -->
+        <!-- Edit text toggle — revealed after first Build; sits between textarea and stanzas -->
+        <button id="editorEditToggle"
+          class="hidden mb-2 px-2 py-0.5 text-xs text-blue-600 border border-blue-300 rounded hover:bg-blue-50">
+          Edit text
+        </button>
+
+        <!-- Raw text input + Build — hidden after first Build -->
         <div id="editorTextInputArea" class="flex-1 flex gap-2 mb-2">
           <textarea id="editorRawText" spellcheck="false"
             class="flex-1 min-h-24 resize-y border border-gray-300 rounded px-2 py-1.5 text-xs font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-blue-400"
@@ -152,12 +167,6 @@
             </button>
           </div>
         </div>
-
-        <!-- Edit-melody toggle — revealed after first Build -->
-        <button id="editorEditToggle"
-          class="hidden mb-2 px-2 py-0.5 text-xs text-blue-600 border border-blue-300 rounded hover:bg-blue-50">
-          Edit melody
-        </button>
 
         <!-- Dynamic verse rows injected here by editor.js -->
         <div id="editorStanzas" class="hidden"></div>

@@ -58,35 +58,36 @@ function buildVerses(verses = [VERSE_1, VERSE_2]) {
 
 // ── Build default view ─────────────────────────────────────────────────────
 
-test('psalm editor build: textarea stays visible after Build', () => {
+test('psalm editor build: textarea is hidden after Build (melody view shown)', () => {
   setup();
   buildVerses();
   const textArea = document.getElementById('editorTextInputArea');
-  assert.ok(!textArea.classList.contains('hidden'), 'textarea should remain visible');
+  assert.ok(textArea.classList.contains('hidden'), 'textarea should be hidden after Build (melody editor shown)');
 });
 
-test('psalm editor build: stanzas are hidden after Build', () => {
+test('psalm editor build: stanzas are visible after Build', () => {
   setup();
   buildVerses();
   const stanzas = document.getElementById('editorStanzas');
-  assert.ok(stanzas.classList.contains('hidden'), 'stanzas should stay hidden after Build');
+  assert.ok(!stanzas.classList.contains('hidden'), 'stanzas should be visible after Build');
 });
 
-test('psalm editor build: Edit melody toggle is revealed after Build', () => {
+test('psalm editor build: Edit text toggle is revealed after Build', () => {
   setup();
   buildVerses();
   const toggle = document.getElementById('editorEditToggle');
   assert.ok(!toggle.classList.contains('hidden'), 'toggle should be visible after Build');
-  assert.equal(toggle.textContent.trim(), 'Edit melody');
+  assert.equal(toggle.textContent.trim(), 'Edit text');
 });
 
 test('psalm editor build: note inputs are auto-filled by pointing algorithm', () => {
   setup();
   buildVerses();
+  // buildVerses() uses 2 verses; each verse has 2 phrase-lines (mediant + term) → 4 inputs total
   const inputs = [...document.querySelectorAll('.editor-melody-input')];
-  assert.equal(inputs.length, 2);
+  assert.equal(inputs.length, 4);
   inputs.forEach((input, i) => {
-    assert.ok(input.value.trim().length > 0, `verse ${i + 1} note input should be non-empty`);
+    assert.ok(input.value.trim().length > 0, `phrase input ${i + 1} should be non-empty`);
   });
 });
 
@@ -101,30 +102,31 @@ test('psalm editor build: verse rows are labeled "Verse N"', () => {
 
 // ── Edit melody toggle ─────────────────────────────────────────────────────
 
-test('psalm editor toggle: click hides textarea and shows stanzas', () => {
+test('psalm editor toggle: click shows textarea and hides stanzas', () => {
+  // After Build the melody editor (stanzas) is shown; clicking toggle goes back to text view
   setup();
   buildVerses();
   fire(document.getElementById('editorEditToggle'), 'click');
-  assert.ok(document.getElementById('editorTextInputArea').classList.contains('hidden'));
-  assert.ok(!document.getElementById('editorStanzas').classList.contains('hidden'));
+  assert.ok(!document.getElementById('editorTextInputArea').classList.contains('hidden'));
+  assert.ok(document.getElementById('editorStanzas').classList.contains('hidden'));
 });
 
-test('psalm editor toggle: click changes button text to "Edit text"', () => {
+test('psalm editor toggle: click changes button text to "Hide"', () => {
   setup();
   buildVerses();
   fire(document.getElementById('editorEditToggle'), 'click');
-  assert.equal(document.getElementById('editorEditToggle').textContent.trim(), 'Edit text');
+  assert.equal(document.getElementById('editorEditToggle').textContent.trim(), 'Hide');
 });
 
-test('psalm editor toggle: second click restores textarea and hides stanzas', () => {
+test('psalm editor toggle: second click returns to melody view', () => {
   setup();
   buildVerses();
   const toggle = document.getElementById('editorEditToggle');
-  fire(toggle, 'click'); // open melody view
-  fire(toggle, 'click'); // back to text view
-  assert.ok(!document.getElementById('editorTextInputArea').classList.contains('hidden'));
-  assert.ok(document.getElementById('editorStanzas').classList.contains('hidden'));
-  assert.equal(toggle.textContent.trim(), 'Edit melody');
+  fire(toggle, 'click'); // text view (textarea shown)
+  fire(toggle, 'click'); // back to melody view (stanzas shown)
+  assert.ok(document.getElementById('editorTextInputArea').classList.contains('hidden'));
+  assert.ok(!document.getElementById('editorStanzas').classList.contains('hidden'));
+  assert.equal(toggle.textContent.trim(), 'Edit text');
 });
 
 // ── Button state machine ───────────────────────────────────────────────────
@@ -194,7 +196,7 @@ test('psalm editor solemn: toggling solemn re-points note inputs', () => {
 
 // ── Fit Text ──────────────────────────────────────────────────────────────
 
-test('psalm editor Fit Text: preserves existing notes when text changes', () => {
+test('psalm editor Fit Text: re-points notes when text changes', () => {
   setup();
   buildVerses([VERSE_1]);
   const notesBefore = document.querySelector('.editor-melody-input').value;
@@ -205,7 +207,8 @@ test('psalm editor Fit Text: preserves existing notes when text changes', () => 
 
   // Re-query — _renderStanzas replaced the old input element
   const notesAfter = document.querySelector('.editor-melody-input').value;
-  assert.equal(notesAfter, notesBefore, 'Fit Text must preserve existing note string');
+  assert.ok(notesAfter.trim().length > 0, 'Fit Text must produce non-empty notes for the new verse');
+  assert.notEqual(notesAfter, notesBefore, 'Fit Text with different text should re-point and produce different notes');
 });
 
 test('psalm editor Fit Text: new syllables reflected in track chips', () => {
@@ -266,7 +269,8 @@ test('psalm editor build: multi-line verse input (split at *) is grouped into on
   const line2 = 'a nič mi nechýba.';
   buildVerses([line1, line2]);  // treated as ONE verse by _groupVerses
   const inputs = [...document.querySelectorAll('.editor-melody-input')];
-  assert.equal(inputs.length, 1, 'two lines forming one verse should produce one melody input');
+  // One verse with a mediant → two phrase-lines (mediant + termination) → two melody inputs
+  assert.equal(inputs.length, 2, 'two lines forming one verse should produce two phrase-line inputs (mediant + term)');
 });
 
 

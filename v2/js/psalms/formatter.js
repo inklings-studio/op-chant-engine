@@ -68,7 +68,7 @@ export function generateBreviaryHtml(verseAst, wordMap, wrappers = {}) {
 
 /**
  * Compile breviary HTML for verses 2+ from state.stanzas.
- * Each stanza line must have an `ast` and `wordMap` (stored by editor._pointLine).
+ * Each stanza must have an `ast` and `wordMap` at the stanza level.
  * Returns an HTML string of <p class="verse-line"> elements with verse numbers.
  * @param {object} state
  * @param {{ prepBegin?:string, prepEnd?:string, accBegin?:string, accEnd?:string }} [wrappers]
@@ -78,9 +78,8 @@ export function compileBreviaryHtml(state, wrappers = {}) {
   return state.stanzas
     .slice(1)
     .map((stanza, idx) => {
-      const line    = stanza.lines[0];
-      const ast     = line?.ast;
-      const wordMap = line?.wordMap;
+      const ast     = stanza.ast;
+      const wordMap = stanza.wordMap;
       if (!ast) return '';
       const verseNum = idx + 2;
       const html = generateBreviaryHtml(ast, wordMap, wrappers);

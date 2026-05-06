@@ -24,20 +24,23 @@ let _isSolemn = false;
 let _outputMode = 'gabc';
 
 // ─── DOM refs (all static — exist in psalms.html) ────────────────────────────
-const _langSel = () => document.getElementById('editorLang');
-const _psalmSel = () => document.getElementById('psalmSelect');
-const _psalmLabel = () => document.getElementById('psalmSelectLabel');
-const _largeInitChk = () => document.getElementById('editorLargeInitial');
-const _annotationInput = () => document.getElementById('editorAnnotation');
-const _rawText = () => document.getElementById('editorRawText');
-const _buildBtn = () => document.getElementById('editorBuildBtn');
-const _fitTextBtn = () => document.getElementById('editorFitTextBtn');
-const _editToggle = () => document.getElementById('editorEditToggle');
-const _textArea = () => document.getElementById('editorTextInputArea');
-const _stanzasEl = () => document.getElementById('editorStanzas');
-const _toneSelect = () => document.getElementById('editorTone');
-const _termSelect = () => document.getElementById('editorTerm');
-const _solemnChk = () => document.getElementById('editorSolemn');
+const _langSel        = () => document.getElementById('editorLang');
+const _psalmSel       = () => document.getElementById('psalmSelect');
+const _psalmLabel     = () => document.getElementById('psalmSelectLabel');
+const _largeInitChk   = () => document.getElementById('editorLargeInitial');
+const _annotationInput= () => document.getElementById('editorAnnotation');
+const _rawText        = () => document.getElementById('editorRawText');
+const _buildBtn       = () => document.getElementById('editorBuildBtn');
+const _fitTextBtn     = () => document.getElementById('editorFitTextBtn');
+const _editToggle     = () => document.getElementById('editorEditToggle');
+const _textArea       = () => document.getElementById('editorTextInputArea');
+const _stanzasEl      = () => document.getElementById('editorStanzas');
+const _toneSelect     = () => document.getElementById('editorTone');
+const _termSelect     = () => document.getElementById('editorTerm');
+const _solemnChk      = () => document.getElementById('editorSolemn');
+const _gabcOptions    = () => document.getElementById('editorGabcOptions');
+const _htmlLeft       = () => document.getElementById('editorHtmlLeft');
+const _htmlRight      = () => document.getElementById('editorHtmlRight');
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
@@ -45,7 +48,7 @@ const _solemnChk = () => document.getElementById('editorSolemn');
  * Initialises the editor: populates controls, wires events.
  * Call once on page load.
  * @param {object} state
- * @param {function(string): void} onGabcCompiled
+ * @param {function(object): void} onGabcCompiled
  * @param {{ onStatus?: function(string, string=): void }} [options]
  */
 export function initEditor(state, onGabcCompiled, options = {}) {
@@ -63,9 +66,7 @@ export function initEditor(state, onGabcCompiled, options = {}) {
 
   if (state.stanzas.length > 0) {
     _renderStanzas(state);
-    _editToggle().classList.remove('hidden');
-    _editToggle().textContent = 'Edit melody';
-    // Textarea stays visible by default — do NOT call _showMelody()
+    _showStanzas();
   }
 }
 
@@ -94,9 +95,9 @@ function _buildResult(state) {
 function _getWrappers() {
   return {
     prepBegin: document.getElementById('editorPrepBegin')?.value ?? '<i>',
-    prepEnd: document.getElementById('editorPrepEnd')?.value ?? '</i>',
-    accBegin: document.getElementById('editorAccBegin')?.value ?? '<b>',
-    accEnd: document.getElementById('editorAccEnd')?.value ?? '</b>',
+    prepEnd:   document.getElementById('editorPrepEnd')?.value   ?? '</i>',
+    accBegin:  document.getElementById('editorAccBegin')?.value  ?? '<b>',
+    accEnd:    document.getElementById('editorAccEnd')?.value    ?? '</b>',
   };
 }
 
@@ -149,11 +150,11 @@ function _populatePsalmSelect(lang) {
 }
 
 function _syncControlsToState(state) {
-  _langSel().value = state.language;
-  _largeInitChk().checked = state.largeInitial;
-  _annotationInput().value = state.annotation ?? '';
-  _toneSelect().value = _toneKey;
-  _solemnChk().checked = _isSolemn;
+  _langSel().value            = state.language;
+  _largeInitChk().checked     = state.largeInitial;
+  _annotationInput().value    = state.annotation ?? '';
+  _toneSelect().value         = _toneKey;
+  _solemnChk().checked        = _isSolemn;
 }
 
 function _wireStaticEvents(state) {
@@ -235,15 +236,19 @@ function _wireStaticEvents(state) {
   _fitTextBtn().addEventListener('click', () => {
     const raw = _rawText().value.trim();
     if (!raw) return;
-    _resyllabify(raw, state);
+    _parseAndPoint(raw, state);
     _renderStanzas(state);
     triggerCompile(state);
   });
 
   document.getElementById('editorOutputMode')?.addEventListener('change', e => {
     _outputMode = e.target.value;
-    const wrappersEl = document.getElementById('editorHtmlWrappers');
-    if (wrappersEl) wrappersEl.style.display = _outputMode === 'html' ? 'grid' : 'none';
+    const isHtml = _outputMode === 'html';
+    _gabcOptions().style.display  = isHtml ? 'none'  : 'grid';
+    _htmlLeft().style.display     = isHtml ? 'grid'  : 'none';
+    _htmlRight().style.display    = isHtml ? 'grid'  : 'none';
+    // Large Initial: always on in HTML mode (drop cap on verse 1), user-controlled in GABC
+    state.largeInitial = isHtml ? true : _largeInitChk().checked;
     triggerCompile(state);
   });
 
@@ -252,10 +257,18 @@ function _wireStaticEvents(state) {
   });
 
   _editToggle().addEventListener('click', () => {
-    const textareaHidden = _textArea().classList.toggle('hidden');
-    _stanzasEl().classList.toggle('hidden', !textareaHidden);
-    _editToggle().textContent = textareaHidden ? 'Edit text' : 'Edit melody';
+    const hidden = _textArea().classList.toggle('hidden');
+    _editToggle().textContent = hidden ? 'Edit text' : 'Hide';
+    _stanzasEl().classList.toggle('hidden', !hidden);
+    if (!hidden) _syncRawTextarea(state);
   });
+}
+
+function _showStanzas() {
+  _textArea().classList.add('hidden');
+  _stanzasEl().classList.remove('hidden');
+  _editToggle().classList.remove('hidden');
+  _editToggle().textContent = 'Edit text';
 }
 
 // Swap between Build (empty state) and Fit Text (has content).
@@ -270,9 +283,8 @@ function _syncBuildButtons(state) {
 function _doBuild(rawText, state) {
   _parseAndPoint(rawText, state);
   _renderStanzas(state);
+  _showStanzas();
   _syncBuildButtons(state);
-  _editToggle().classList.remove('hidden');
-  _editToggle().textContent = 'Edit melody';
   triggerCompile(state);
 }
 
@@ -338,9 +350,73 @@ function _buildMarkedLine(ast, wordMap) {
 }
 
 /**
+ * Splits a verse AST into phrase-line objects at flex/mediant boundaries.
+ * Each phrase becomes one line: { syllables, wordMap, notes, parsedNotes }.
+ * @param {Array} ast
+ * @param {number[]} wordMap — global syllable→word-index map for the whole verse
+ * @returns {Array<{syllables, wordMap, notes, parsedNotes}>}
+ */
+function _splitAstToLines(ast, wordMap) {
+  const phrases = [];
+  let current = [];
+
+  for (const token of ast) {
+    current.push(token);
+    if (token.role === 'flex' || token.role === 'mediant') {
+      phrases.push([...current]);
+      current = [];
+    }
+  }
+  if (current.length) phrases.push(current);
+
+  let sylOffset = 0;
+  return phrases.map(phrase => {
+    const sylTokens = phrase.filter(t => t.role !== 'flex' && t.role !== 'mediant');
+    const syllables = sylTokens.map(t => t.syl);
+    const phraseWordMap = wordMap ? wordMap.slice(sylOffset, sylOffset + syllables.length) : null;
+    sylOffset += syllables.length;
+
+    const notes = phrase.map(t => t.note).filter(Boolean).join(' ');
+    const parsedNotes = tokenizeMelody(notes);
+    return { syllables, wordMap: phraseWordMap, notes, parsedNotes };
+  });
+}
+
+/**
+ * Builds a full stanza object from a raw verse line.
+ * Returns { rawLine, lines } where lines is a 2-3 element phrase-line array.
+ */
+function _buildStanza(rawLine, tone, plugin, isFirstVerse) {
+  try {
+    const ast = pointVerse(rawLine, tone, _cadenceKey, _isSolemn, plugin.syllabifyPhrase, isFirstVerse);
+    const cleanLine = rawLine.replace(/[†*']/g, ' ').replace(/\s+/g, ' ').trim();
+    const langTokens = plugin.syllabifyPhrase(cleanLine);
+    const wordMap = langTokens.map(t => t.wordIdx);
+    const markedLine = _buildMarkedLine(ast, wordMap);
+    const lines = _splitAstToLines(ast, wordMap);
+    // ast and wordMap stored at stanza level for HTML formatter
+    return { rawLine: markedLine, ast, wordMap, lines };
+  } catch (_e) {
+    const cleanLine = rawLine.replace(/[†*']/g, ' ').replace(/\s+/g, ' ').trim();
+    const tokens = plugin.syllabifyPhrase(cleanLine);
+    return {
+      rawLine,
+      ast:     null,
+      wordMap: tokens.map(t => t.wordIdx),
+      lines: [{
+        syllables: tokens.map(t => t.syl),
+        wordMap:   tokens.map(t => t.wordIdx),
+        notes:       '',
+        parsedNotes: [],
+      }],
+    };
+  }
+}
+
+/**
  * Parses verse lines from rawText, points each one via the psalm tone,
- * and writes state.stanzas (one stanza per verse, one line per stanza).
- * Preserves manually-edited notes when a verse line is unchanged (rawLine matches).
+ * and writes state.stanzas. Each stanza has { rawLine, lines: [phraseLines…] }.
+ * Preserves manually-edited lines when a verse rawLine is unchanged.
  */
 function _parseAndPoint(rawText, state) {
   const tone = TONES[_toneKey];
@@ -348,12 +424,11 @@ function _parseAndPoint(rawText, state) {
   const verses = _groupVerses(rawText.split('\n').map(l => l.trim()).filter(Boolean));
 
   state.stanzas = verses.map((rawLine, vi) => {
-    const existing = state.stanzas[vi]?.lines[0];
-    // Preserve manually-edited notes if the verse text hasn't changed.
-    if (existing?.rawLine === rawLine && existing?.notes) {
-      return { lines: [existing] };
+    const existing = state.stanzas[vi];
+    if (existing?.rawLine === rawLine && existing?.lines[0]?.notes) {
+      return existing;
     }
-    return { lines: [_pointLine(rawLine, tone, plugin, vi === 0)] };
+    return _buildStanza(rawLine, tone, plugin, vi === 0);
   });
   state.clef = tone.clef;
   state.coda = null;
@@ -369,15 +444,10 @@ function _repointAll(state) {
   const plugin = getLanguage(state.language);
 
   state.stanzas.forEach((stanza, si) => {
-    const line = stanza.lines[0];
-    if (!line?.rawLine) return;
-    const repointed = _pointLine(line.rawLine, tone, plugin, si === 0);
-    line.notes = repointed.notes;
-    line.parsedNotes = repointed.parsedNotes;
-    line.syllables = repointed.syllables;
-    line.wordMap = repointed.wordMap;
-    line.rawLine = repointed.rawLine;
-    line.ast = repointed.ast;
+    if (!stanza.rawLine) return;
+    const newStanza = _buildStanza(stanza.rawLine, tone, plugin, si === 0);
+    stanza.lines   = newStanza.lines;
+    stanza.rawLine = newStanza.rawLine;
   });
 
   state.clef = tone.clef;
@@ -385,117 +455,13 @@ function _repointAll(state) {
 }
 
 /**
- * Re-syllabifies verse lines but keeps existing note strings.
- * Called by Fit Text — useful when verse text changes slightly (typo fix).
- * Rebuilds rawLine with | injected to show updated syllabification.
- */
-function _resyllabify(rawText, state) {
-  const tone = TONES[_toneKey];
-  const plugin = getLanguage(state.language);
-  const verses = _groupVerses(rawText.split('\n').map(l => l.trim()).filter(Boolean));
-
-  state.stanzas = verses.map((rawLine, vi) => {
-    const existing = state.stanzas[vi]?.lines[0];
-    const { syllables, wordMap, markedLine } = _syllabifyWithMarkers(rawLine, plugin);
-    const notes = existing?.notes ?? '';
-    const parsedNotes = existing?.parsedNotes ?? [];
-    // Re-point to get a fresh AST for HTML role assignment (notes from AST are discarded).
-    const pointed = _pointLine(rawLine, tone, plugin, vi === 0);
-    return { lines: [{ syllables, wordMap, notes, parsedNotes, rawLine: markedLine, ast: pointed.ast }] };
-  });
-}
-
-/**
- * Syllabifies a verse (which may contain † and * section markers on separate
- * lines) and injects | between syllables of the same word.
- * Returns global syllables, wordMap, and the rebuilt rawLine.
- */
-function _syllabifyWithMarkers(rawLine, plugin) {
-  // Remove | without spaces so Hos|po|din rejoins into Hospodin before re-syllabifying.
-  // Section markers (†*) become spaces; ' is stripped as a safeguard.
-  const flatText = rawLine.replace(/[†*']/g, ' ').replace(/\|/g, '').replace(/\s+/g, ' ').trim();
-  const tokens = plugin.syllabifyPhrase(flatText);
-
-  const sectionParts = rawLine.split(/(†|\*)/);
-  let tokenOffset = 0;
-  const markedSections = [];
-
-  for (const part of sectionParts) {
-    if (part === '†' || part === '*') { markedSections.push(part); continue; }
-    const stripped = part.replace(/[†*']/g, ' ').replace(/\|/g, '').replace(/\s+/g, ' ').trim();
-    if (!stripped) { markedSections.push(''); continue; }
-
-    const count = plugin.syllabifyPhrase(stripped).length;
-    const sectionSlice = tokens.slice(tokenOffset, tokenOffset + count);
-    tokenOffset += count;
-    markedSections.push(_buildSectionText(sectionSlice));
-  }
-
-  let result = '';
-  for (const part of markedSections) {
-    if (part === '†' || part === '*') result = result.trimEnd() + part + '\n';
-    else result += part;
-  }
-
-  return {
-    syllables: tokens.map(t => t.syl),
-    wordMap: tokens.map(t => t.wordIdx),
-    markedLine: result.trim(),
-  };
-}
-
-/** Joins syllable tokens into a string, using | within a word and space between words. */
-function _buildSectionText(tokens) {
-  let text = '';
-  let prevWordIdx = -1;
-  for (const t of tokens) {
-    if (prevWordIdx !== -1) text += t.wordIdx === prevWordIdx ? '|' : ' ';
-    text += t.syl;
-    prevWordIdx = t.wordIdx;
-  }
-  return text;
-}
-
-/**
- * Writes the marked verse texts (with ' and †* section markers) back into
- * the raw textarea so the user can see and adjust accent positions.
+ * Writes the marked verse texts back into the raw textarea.
  */
 function _syncRawTextarea(state) {
   _rawText().value = state.stanzas
-    .map(s => s.lines[0]?.rawLine ?? '')
+    .map(s => s.rawLine ?? '')
     .filter(Boolean)
     .join('\n');
-}
-
-/**
- * Points a single verse line; returns the full line state object.
- */
-function _pointLine(rawLine, tone, plugin, isFirstVerse = true) {
-  try {
-    const ast = pointVerse(rawLine, tone, _cadenceKey, _isSolemn, plugin.syllabifyPhrase, isFirstVerse);
-    const notes = ast.map(t => t.note).join(' ');
-    const parsedNotes = tokenizeMelody(notes);
-    // Barline sentinels (flex/mediant) have empty syl — exclude from syllables/wordMap arrays
-    // so that buildLine's sylIdx stays in sync with the non-barline note tokens.
-    const syllables = ast.filter(t => t.role !== 'flex' && t.role !== 'mediant').map(t => t.syl);
-    const cleanLine = rawLine.replace(/[†*']/g, ' ').replace(/\s+/g, ' ').trim();
-    const langTokens = plugin.syllabifyPhrase(cleanLine);
-    const wordMap = langTokens.map(t => t.wordIdx);
-    const markedLine = _buildMarkedLine(ast, wordMap);
-    return { syllables, wordMap, notes, parsedNotes, rawLine: markedLine, ast };
-  } catch (_e) {
-    // Verse missing * marker or other pointing error — store syllables only.
-    const cleanLine = rawLine.replace(/[†*']/g, ' ').replace(/\s+/g, ' ').trim();
-    const tokens = plugin.syllabifyPhrase(cleanLine);
-    return {
-      syllables: tokens.map(t => t.syl),
-      wordMap: tokens.map(t => t.wordIdx),
-      notes: '',
-      parsedNotes: [],
-      rawLine,
-      ast: null,
-    };
-  }
 }
 
 // ─── Dynamic verse rows ───────────────────────────────────────────────────────
@@ -523,17 +489,17 @@ function _buildLineRow(state, si, li, line) {
   row.className = 'mb-2';
 
   const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'editor-melody-input w-full font-mono text-xs border border-gray-300 rounded px-2 py-1 mb-1 focus:outline-none focus:ring-1 focus:ring-blue-400';
+  input.type        = 'text';
+  input.className   = 'editor-melody-input w-full font-mono text-xs border border-gray-300 rounded px-2 py-1 mb-1 focus:outline-none focus:ring-1 focus:ring-blue-400';
   input.dataset.stanza = si;
-  input.dataset.line = li;
-  input.value = line.notes ?? '';
-  input.placeholder = 'Melody notes  e.g.  g g g k j.';
+  input.dataset.line   = li;
+  input.value          = line.notes ?? '';
+  input.placeholder    = 'Melody notes  e.g.  g g g k j.';
 
   const track = document.createElement('div');
-  track.className = 'editor-alignment-track';
+  track.className      = 'editor-alignment-track';
   track.dataset.stanza = si;
-  track.dataset.line = li;
+  track.dataset.line   = li;
 
   _renderTrack(track, line.syllables ?? [], line.parsedNotes ?? [], line.wordMap ?? null);
   _updateInputOverflow(input, line.syllables ?? [], line.parsedNotes ?? []);
@@ -541,7 +507,7 @@ function _buildLineRow(state, si, li, line) {
   input.addEventListener('input', () => {
     const target = state.stanzas[si]?.lines[li];
     if (!target) return;
-    target.notes = input.value;
+    target.notes       = input.value;
     target.parsedNotes = tokenizeMelody(input.value);
     _renderTrack(track, target.syllables, target.parsedNotes, target.wordMap ?? null);
     _updateInputOverflow(input, target.syllables, target.parsedNotes);
@@ -551,11 +517,11 @@ function _buildLineRow(state, si, li, line) {
 
   // Cursor-position chip highlight
   const _onCursorMove = () => _highlightCursorChip(input, track);
-  const _onBlur = () => _clearCursorHighlight(track);
-  input.addEventListener('focus', _onCursorMove);
-  input.addEventListener('click', _onCursorMove);
-  input.addEventListener('keyup', _onCursorMove);
-  input.addEventListener('blur', _onBlur);
+  const _onBlur       = () => _clearCursorHighlight(track);
+  input.addEventListener('focus',  _onCursorMove);
+  input.addEventListener('click',  _onCursorMove);
+  input.addEventListener('keyup',  _onCursorMove);
+  input.addEventListener('blur',   _onBlur);
 
   row.appendChild(input);
   row.appendChild(track);
@@ -590,7 +556,7 @@ function _renderTrack(trackEl, syllables, parsedNotes, wordMap) {
       _flushGroup();
       trackEl.appendChild(_chip(token === '::' ? '‖' : '|', 'track-chip track-chip-barline'));
     } else {
-      const syl = syllables[sylIdx];
+      const syl  = syllables[sylIdx];
       const wIdx = wordMap?.[sylIdx] ?? sylIdx;
       sylIdx++;
       const group = _groupFor(wIdx);
@@ -610,7 +576,7 @@ function _renderTrack(trackEl, syllables, parsedNotes, wordMap) {
 
   if (!parsedNotes.length && !syllables.length) {
     const hint = document.createElement('span');
-    hint.className = 'text-xs italic track-chip track-chip-empty';
+    hint.className   = 'text-xs italic track-chip track-chip-empty';
     hint.textContent = 'enter notes above';
     trackEl.appendChild(hint);
   }
@@ -618,7 +584,7 @@ function _renderTrack(trackEl, syllables, parsedNotes, wordMap) {
 
 function _chip(text, cls) {
   const span = document.createElement('span');
-  span.className = cls;
+  span.className   = cls;
   span.textContent = text;
   return span;
 }
@@ -643,9 +609,9 @@ function _highlightCursorChip(input, track) {
   const idx = _cursorNoteIndex(input.value, input.selectionStart);
   track.querySelectorAll('.track-chip-matched, .track-chip-empty, .track-chip-cursor').forEach((chip, i) => {
     const active = i === idx;
-    chip.classList.toggle('track-chip-cursor', active);
+    chip.classList.toggle('track-chip-cursor',  active);
     chip.classList.toggle('track-chip-matched', !active && chip.dataset.isMatched === '1');
-    chip.classList.toggle('track-chip-empty', !active && chip.dataset.isMatched === '0');
+    chip.classList.toggle('track-chip-empty',   !active && chip.dataset.isMatched === '0');
   });
 }
 
