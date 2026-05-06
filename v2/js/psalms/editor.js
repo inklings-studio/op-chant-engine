@@ -1,8 +1,9 @@
 import { listLanguages, getLanguage } from '../common/language.js';
-import { compileGabc } from '../common/compiler.js';
+import { compileGabc, compileGabc1 } from '../common/compiler.js';
 import { BARLINES, tokenizeMelody } from '../common/melody.js';
 import { pointVerse } from './pointer.js';
 import { loadPsalm } from './loader.js';
+import { compileBreviaryHtml } from './formatter.js';
 import {
   tone1, tone2, tone3, tone4, tone4alt, tone5, tone6, tone7, tone8, per,
 } from '../tones/dominican.js';
@@ -20,6 +21,7 @@ let _onStatus       = null;
 let _toneKey        = 'tone8';
 let _cadenceKey     = null;
 let _isSolemn       = false;
+let _outputMode     = 'gabc';
 
 // ─── DOM refs (all static — exist in psalms.html) ────────────────────────────
 const _langSel         = () => document.getElementById('editorLang');
@@ -68,14 +70,34 @@ export function initEditor(state, onGabcCompiled, options = {}) {
 }
 
 /**
- * Recompiles and fires onGabcCompiled.
+ * Recompiles and fires onGabcCompiled with a structured result object.
+ * GABC mode:  { mode:'gabc', gabcFull }
+ * HTML mode:  { mode:'html', gabcFull, gabc1, versesHtml }
  * @param {object} [state]
- * @param {function(string): void} [onGabcCompiled]
+ * @param {function(object): void} [onGabcCompiled]
  */
 export function triggerCompile(state, onGabcCompiled) {
   const s  = state          ?? _state;
   const cb = onGabcCompiled ?? _onGabcCompiled;
-  cb?.(compileGabc(s));
+  cb?.(_buildResult(s));
+}
+
+function _buildResult(state) {
+  const gabcFull = compileGabc(state);
+  if (_outputMode !== 'html') return { mode: 'gabc', gabcFull };
+  const gabc1      = compileGabc1(state);
+  const wrappers   = _getWrappers();
+  const versesHtml = compileBreviaryHtml(state, wrappers);
+  return { mode: 'html', gabcFull, gabc1, versesHtml };
+}
+
+function _getWrappers() {
+  return {
+    prepBegin: document.getElementById('editorPrepBegin')?.value ?? '<i>',
+    prepEnd:   document.getElementById('editorPrepEnd')?.value   ?? '</i>',
+    accBegin:  document.getElementById('editorAccBegin')?.value  ?? '<b>',
+    accEnd:    document.getElementById('editorAccEnd')?.value    ?? '</b>',
+  };
 }
 
 // ─── Tone helpers ─────────────────────────────────────────────────────────────
@@ -218,6 +240,17 @@ function _wireStaticEvents(state) {
     triggerCompile(state);
   });
 
+  document.getElementById('editorOutputMode')?.addEventListener('change', e => {
+    _outputMode = e.target.value;
+    const wrappersEl = document.getElementById('editorHtmlWrappers');
+    if (wrappersEl) wrappersEl.style.display = _outputMode === 'html' ? 'grid' : 'none';
+    triggerCompile(state);
+  });
+
+  ['editorPrepBegin', 'editorPrepEnd', 'editorAccBegin', 'editorAccEnd'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', () => triggerCompile(state));
+  });
+
   _editToggle().addEventListener('click', () => {
     const textareaHidden = _textArea().classList.toggle('hidden');
     _stanzasEl().classList.toggle('hidden', !textareaHidden);
@@ -345,6 +378,7 @@ function _repointAll(state) {
     line.syllables   = repointed.syllables;
     line.wordMap     = repointed.wordMap;
     line.rawLine     = repointed.rawLine;
+    line.ast         = repointed.ast;
   });
 
   state.clef = tone.clef;
@@ -357,6 +391,7 @@ function _repointAll(state) {
  * Rebuilds rawLine with | injected to show updated syllabification.
  */
 function _resyllabify(rawText, state) {
+  const tone   = TONES[_toneKey];
   const plugin = getLanguage(state.language);
   const verses = _groupVerses(rawText.split('\n').map(l => l.trim()).filter(Boolean));
 
@@ -365,7 +400,9 @@ function _resyllabify(rawText, state) {
     const { syllables, wordMap, markedLine }  = _syllabifyWithMarkers(rawLine, plugin);
     const notes       = existing?.notes       ?? '';
     const parsedNotes = existing?.parsedNotes ?? [];
-    return { lines: [{ syllables, wordMap, notes, parsedNotes, rawLine: markedLine }] };
+    // Re-point to get a fresh AST for HTML role assignment (notes from AST are discarded).
+    const pointed = _pointLine(rawLine, tone, plugin, vi === 0);
+    return { lines: [{ syllables, wordMap, notes, parsedNotes, rawLine: markedLine, ast: pointed.ast }] };
   });
 }
 
@@ -446,7 +483,7 @@ function _pointLine(rawLine, tone, plugin, isFirstVerse = true) {
     const langTokens  = plugin.syllabifyPhrase(cleanLine);
     const wordMap     = langTokens.map(t => t.wordIdx);
     const markedLine  = _buildMarkedLine(ast, wordMap);
-    return { syllables, wordMap, notes, parsedNotes, rawLine: markedLine };
+    return { syllables, wordMap, notes, parsedNotes, rawLine: markedLine, ast };
   } catch (_e) {
     // Verse missing * marker or other pointing error — store syllables only.
     const cleanLine = rawLine.replace(/[†*']/g, ' ').replace(/\s+/g, ' ').trim();
@@ -457,6 +494,7 @@ function _pointLine(rawLine, tone, plugin, isFirstVerse = true) {
       notes:       '',
       parsedNotes: [],
       rawLine,
+      ast:         null,
     };
   }
 }

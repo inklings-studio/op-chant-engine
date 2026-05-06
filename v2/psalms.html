@@ -70,8 +70,8 @@
       <!-- Tab 1: Structured editor -->
       <div id="editorTab" class="flex-1 flex flex-col overflow-y-auto p-3 min-w-0">
 
-        <!-- Controls -->
-        <div class="pb-3 mb-3 border-b border-gray-200 flex items-center w-full">
+        <!-- Controls row 1: language, psalm, tone, termination, checkboxes -->
+        <div class="pb-3 mb-0 border-b border-gray-200 flex items-center w-full">
           <!-- Left grid: label | control -->
           <div style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center;">
             <span class="text-xs text-gray-600 text-right">Language</span>
@@ -102,6 +102,36 @@
             <input type="checkbox" id="editorLargeInitial" class="accent-blue-600">
             <label class="text-xs text-gray-600 cursor-pointer select-none" for="editorSolemn">Solemn</label>
             <input type="checkbox" id="editorSolemn" class="accent-blue-600">
+          </div>
+        </div>
+
+        <!-- Controls row 2: output mode -->
+        <div class="py-2 mb-3 border-b border-gray-200 flex items-start gap-4 w-full">
+          <div style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center; flex-shrink:0;">
+            <span class="text-xs text-gray-600 text-right">Output</span>
+            <select id="editorOutputMode" class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
+              <option value="gabc">GABC</option>
+              <option value="html">HTML</option>
+            </select>
+          </div>
+          <!-- HTML wrapper inputs — hidden until Output = HTML -->
+          <div id="editorHtmlWrappers" style="display:none; grid-template-columns:auto auto auto auto; gap:4px 8px; align-items:center;">
+            <span class="text-xs text-gray-500 text-right whitespace-nowrap">Prep begin</span>
+            <input type="text" id="editorPrepBegin" value="&lt;i&gt;"
+              class="border border-gray-300 rounded px-1 py-0.5 text-xs font-mono text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+              style="width:52px;">
+            <span class="text-xs text-gray-500 text-right whitespace-nowrap">Prep end</span>
+            <input type="text" id="editorPrepEnd" value="&lt;/i&gt;"
+              class="border border-gray-300 rounded px-1 py-0.5 text-xs font-mono text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+              style="width:52px;">
+            <span class="text-xs text-gray-500 text-right whitespace-nowrap">Acc begin</span>
+            <input type="text" id="editorAccBegin" value="&lt;b&gt;"
+              class="border border-gray-300 rounded px-1 py-0.5 text-xs font-mono text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+              style="width:52px;">
+            <span class="text-xs text-gray-500 text-right whitespace-nowrap">Acc end</span>
+            <input type="text" id="editorAccEnd" value="&lt;/b&gt;"
+              class="border border-gray-300 rounded px-1 py-0.5 text-xs font-mono text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+              style="width:52px;">
           </div>
         </div>
 
@@ -155,10 +185,14 @@
         </div>
         <div></div>
       </div>
-      <div id="chantPreview" class="flex-1 overflow-auto p-4">
-        <p id="previewPlaceholder" class="text-sm text-gray-400 italic mt-8 text-center">
-          Enter psalm verses and click Build to see a preview.
-        </p>
+      <!-- Shared scroll container for GABC SVG + HTML verses -->
+      <div class="flex-1 overflow-y-auto">
+        <div id="chantPreview" class="p-4">
+          <p id="previewPlaceholder" class="text-sm text-gray-400 italic mt-8 text-center">
+            Enter psalm verses and click Build to see a preview.
+          </p>
+        </div>
+        <div id="versesPreview" class="hidden px-6 pb-6 border-t border-gray-100"></div>
       </div>
     </section>
 

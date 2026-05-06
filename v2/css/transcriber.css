@@ -225,3 +225,27 @@
 .track-word-group .track-chip-cursor:last-child {
   border-right: none;
 }
+
+/* ── Breviary HTML verse output ──────────────────────────────────────────── */
+#versesPreview {
+  font-family: 'EB Garamond', 'Garamond', Georgia, serif;
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: #1f2937;
+}
+
+#versesPreview .verse-line {
+  margin: 0 0 0.6rem;
+}
+
+#versesPreview .verse-line:last-child {
+  margin-bottom: 0;
+}
+
+#versesPreview .verse-num {
+  font-style: normal;
+  font-weight: 600;
+  color: #6b7280;
+  margin-right: 0.25em;
+  font-size: 0.85em;
+}

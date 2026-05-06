@@ -2,6 +2,17 @@ import { BARLINES, tokenizeMelody } from './melody.js';
 
 export { tokenizeMelody } from './melody.js';
 
+/**
+ * Compiles only the first stanza into GABC.
+ * Used in HTML output mode: verse 1 renders as GABC, verses 2+ render as breviary HTML.
+ * @param {object} state
+ * @returns {string}
+ */
+export function compileGabc1(state) {
+  if (!state.stanzas.length) return '';
+  return compileGabc({ ...state, stanzas: state.stanzas.slice(0, 1) });
+}
+
 const DOUBLE_BAR = '(::)';
 
 function resolveNotes(state, si, li) {
@@ -21,7 +32,10 @@ function buildLine(notes, syllables, wordMap) {
 
   for (const token of notes) {
     if (BARLINES.has(token)) {
-      result  += prevSep + (token === '::' ? DOUBLE_BAR : `(${token})`);
+      if (token === '::')     result += prevSep + DOUBLE_BAR;
+      else if (token === ':') result += prevSep + '*(;)';
+      else if (token === ',') result += prevSep + '†(,)';
+      else                    result += prevSep + `(${token})`;
       prevSep  = ' ';
     } else {
       const syl      = sylIdx < syllables.length ? syllables[sylIdx] : '-';

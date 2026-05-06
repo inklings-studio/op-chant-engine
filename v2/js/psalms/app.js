@@ -13,10 +13,11 @@ const DEFAULT_DPI = 300;
 const RENDER_DEBOUNCE_MS = 300;
 
 // ─── DOM refs ────────────────────────────────────────────────────────────────
-const gabcEditor = document.getElementById('gabcEditor');
-const chantPreview = document.getElementById('chantPreview');
-const placeholder = document.getElementById('previewPlaceholder');
-const statusMsg = document.getElementById('statusMessage');
+const gabcEditor    = document.getElementById('gabcEditor');
+const chantPreview  = document.getElementById('chantPreview');
+const versesPreview = document.getElementById('versesPreview');
+const placeholder   = document.getElementById('previewPlaceholder');
+const statusMsg     = document.getElementById('statusMessage');
 const btnPng = document.getElementById('btnDownloadPng');
 const btnSvg = document.getElementById('btnDownloadSvg');
 
@@ -42,6 +43,10 @@ const _gabcBtn = document.getElementById('tabGabcBtn');
 // ─── Module state ─────────────────────────────────────────────────────────────
 let ctxt = null;
 let score = null;
+let _audioScore = null;       // full-chant score for audio in HTML output mode
+let _audioContainer = null;   // off-screen container for _audioScore's SVG layout
+let _currentMode = 'gabc';    // tracks last compiled output mode
+let _renderGabc = '';         // what _doRender actually renders (may differ from gabcEditor in HTML mode)
 let _toolbar = null;
 let _lastCompiledGabc = '';
 let activeTab = 'editor';
@@ -55,21 +60,31 @@ function init() {
     return;
   }
 
+  // Off-screen container for the full-chant audio score in HTML output mode.
+  // Uses visibility:hidden (not display:none) so Exsurge can measure dimensions.
+  _audioContainer = document.createElement('div');
+  _audioContainer.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:720px;visibility:hidden;pointer-events:none';
+  document.body.appendChild(_audioContainer);
+
   const state = getState();
   state.largeInitial = true;
   state.strophicInheritance = false;
-  state.stanzaNumbers = false;
+  state.stanzaNumbers = true;
 
-  initEditor(state, onCompiledGabc, { onStatus: setStatus });
+  initEditor(state, onCompiled, { onStatus: setStatus });
 
   btnPlayFromStart?.addEventListener('click', () => {
-    if (score && isAudioAvailable()) { clearCurrentNote(); startPlayback(null); }
+    if ((_audioScore ?? score) && isAudioAvailable()) { clearCurrentNote(); startPlayback(null); }
   });
   btnHeaderPitchUp?.addEventListener('click', () => {
-    if (score) { changePitch(score, 1); _updateHeaderPitchDisplay(); }
+    if (score) changePitch(score, 1);
+    if (_audioScore) changePitch(_audioScore, 1);
+    if (score || _audioScore) _updateHeaderPitchDisplay();
   });
   btnHeaderPitchDown?.addEventListener('click', () => {
-    if (score) { changePitch(score, -1); _updateHeaderPitchDisplay(); }
+    if (score) changePitch(score, -1);
+    if (_audioScore) changePitch(_audioScore, -1);
+    if (score || _audioScore) _updateHeaderPitchDisplay();
   });
 
   btnPauseResume?.addEventListener('click', onPauseResume);
@@ -90,11 +105,30 @@ function init() {
   setStatus(isAudioAvailable() ? 'Ready.' : 'Ready (audio unavailable).');
 }
 
-// ─── Compiled GABC callback ───────────────────────────────────────────────────
-function onCompiledGabc(gabcStr) {
-  gabcEditor.value = gabcStr;
-  _lastCompiledGabc = gabcStr;
-  renderFromEditor();
+// ─── Compiled output callback ─────────────────────────────────────────────────
+function onCompiled(result) {
+  _currentMode     = result.mode;
+  _lastCompiledGabc = result.gabcFull;
+  gabcEditor.value  = result.gabcFull;   // GABC tab always shows full GABC
+
+  if (result.mode === 'html') {
+    // Verse 1 renders visually; full GABC renders into hidden container for audio.
+    _scheduleRender(result.gabc1 ?? '');
+    _audioScore = result.gabcFull?.trim()
+      ? renderGabc(ctxt, result.gabcFull, _audioContainer, DEFAULT_EXPORT_WIDTH)
+      : null;
+    _syncPreviewControls();
+
+    if (versesPreview) {
+      versesPreview.innerHTML = result.versesHtml ?? '';
+      versesPreview.classList.toggle('hidden', !result.versesHtml);
+    }
+  } else {
+    // GABC mode — clear audio score and HTML verses, render full GABC visually.
+    _audioScore = null;
+    if (versesPreview) { versesPreview.innerHTML = ''; versesPreview.classList.add('hidden'); }
+    _scheduleRender(result.gabcFull);
+  }
 }
 
 // ─── Tab switching ────────────────────────────────────────────────────────────
@@ -116,13 +150,14 @@ function switchToTab(tab) {
 // ─── Rendering ────────────────────────────────────────────────────────────────
 let renderTimer = null;
 
-function renderFromEditor() {
+function _scheduleRender(gabc) {
+  _renderGabc = gabc;
   clearTimeout(renderTimer);
   renderTimer = setTimeout(_doRender, RENDER_DEBOUNCE_MS);
 }
 
 function _doRender() {
-  const gabc = gabcEditor.value.trim();
+  const gabc = _renderGabc.trim();
   if (!gabc) {
     chantPreview.innerHTML = '';
     if (placeholder) placeholder.style.display = '';
@@ -231,14 +266,15 @@ function showToolbarForNote(el, anchorOverride) {
 }
 
 function _getPitchData() {
-  if (!score) return null;
-  const notes = getScoreNotes(score);
+  const pitchScore = _audioScore ?? score;
+  if (!pitchScore) return null;
+  const notes = getScoreNotes(pitchScore);
   const firstPitched = notes.find(n => n.pitch && !n.isDivider);
-  if (!firstPitched || !score.defaultStartPitch) return null;
+  if (!firstPitched || !pitchScore.defaultStartPitch) return null;
   const allPitched = notes.filter(n => n.pitch && !n.isDivider);
   return {
     firstPitched,
-    transpose: score.defaultStartPitch.toInt() - firstPitched.pitch.toInt(),
+    transpose: pitchScore.defaultStartPitch.toInt() - firstPitched.pitch.toInt(),
     low: Math.min(...allPitched.map(n => n.pitch.toInt())),
     high: Math.max(...allPitched.map(n => n.pitch.toInt())),
   };
@@ -246,7 +282,7 @@ function _getPitchData() {
 
 function updatePitchDisplay(pitchCenter, note, doLabel) {
   if (!note?.pitch) return;
-  getTranspose(score);
+  getTranspose(_audioScore ?? score);
   const d = _getPitchData();
   if (!d) return;
   const { transpose, low, high } = d;
@@ -290,6 +326,9 @@ function positionToolbar(toolbar, anchorEl) {
 }
 
 function onPreviewClick(e) {
+  // In HTML mode verse 1 SVG is visual only; play is driven by the full audio score.
+  if (_currentMode === 'html') { removeToolbar(); return; }
+
   const useEl = e.target.closest('use[source-index]');
   const textEl = !useEl && e.target.closest('text[source-index]');
 
@@ -318,14 +357,15 @@ function onDocumentClick(e) {
 // ─── Playback ────────────────────────────────────────────────────────────────
 
 function _syncPreviewControls() {
-  const visible = !!score && isAudioAvailable();
+  const playableScore = _audioScore ?? score;
+  const visible = !!playableScore && isAudioAvailable();
   if (previewControls) previewControls.classList.toggle('hidden', !visible);
   if (visible) _updateHeaderPitchDisplay();
 }
 
 function _updateHeaderPitchDisplay() {
   if (!headerPitchDisplay) return;
-  getTranspose(score);
+  getTranspose(_audioScore ?? score);
   const d = _getPitchData();
   if (!d) { headerPitchDisplay.innerHTML = '—'; return; }
   const { firstPitched, transpose, low, high } = d;
@@ -336,12 +376,14 @@ function _updateHeaderPitchDisplay() {
 }
 
 function startPlayback(startNote) {
+  const playableScore = _audioScore ?? score;
+  if (!playableScore) return;
   stopScore();
   if (btnPlayFromStart) btnPlayFromStart.disabled = true;
   showMediaControls();
   updateBpmDisplay();
   setPlayPauseIcon(true);
-  playScore(score, startNote, {
+  playScore(playableScore, startNote, {
     onEnd: () => {
       hideMediaControls();
       if (btnPlayFromStart) btnPlayFromStart.disabled = false;
