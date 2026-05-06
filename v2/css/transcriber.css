@@ -26,18 +26,18 @@
 
 /* Hover highlight */
 #chantPreview svg use[source-index]:hover {
-  fill: #c9973a;
+  fill: #3b82f6;
 }
 #chantPreview svg text[source-index]:hover {
-  fill: #7a4a1e;
+  fill: #1d4ed8;
 }
 
 /* Active highlight during selection / playback */
 #chantPreview svg use[source-index].active {
-  fill: #6b2737;
+  fill: #2563eb;
 }
 #chantPreview svg text[source-index].active {
-  fill: #6b2737;
+  fill: #1e40af;
   font-weight: bold;
 }
 
@@ -75,8 +75,8 @@
 
 .toolbar-btn:hover { filter: brightness(0.92); }
 
-.toolbar-btn-primary        { background: #6b2737; color: #fff; width: 100%; text-align: center; }
-.toolbar-btn-primary-inline { background: #6b2737; color: #fff; }
+.toolbar-btn-primary        { background: #2563eb; color: #fff; width: 100%; text-align: center; }
+.toolbar-btn-primary-inline { background: #2563eb; color: #fff; }
 .toolbar-btn-success        { background: #7a4a1e; color: #fff; flex: 0 0 auto; }
 .toolbar-btn-info           { background: #c9973a; color: #1a1208; flex: 1 1 auto; text-align: center; }
 
@@ -135,7 +135,7 @@
   transition: filter .1s;
 }
 .mc-btn:hover    { filter: brightness(0.88); }
-.mc-btn-primary  { background: #6b2737; color: #fff; }
+.mc-btn-primary  { background: #2563eb; color: #fff; }
 .mc-btn-default  { background: #e8d5b0; color: #1a1208; }
 .mc-btn-danger   { background: #dc2626; color: #fff; }
 
@@ -166,7 +166,7 @@
 
 .track-chip-matched {
   background: #f5e6cc;
-  color: #4d1a27;
+  color: #1e3a8a;
   padding: 0 5px;
   border-radius: 3px;
 }
@@ -189,8 +189,8 @@
 }
 
 .track-chip-cursor {
-  background: #f5d9a0;
-  color: #5a3010;
+  background: #dbeafe;
+  color: #1e3a8a;
   padding: 0 5px;
   border-radius: 3px;
 }
@@ -293,7 +293,7 @@
 .op-export-btn:active { background: rgba(196, 168, 130, 0.25); }
 
 .op-export-btn-primary {
-  border-color: rgba(201, 151, 58, 0.7);
-  color: #c9973a;
+  border-color: rgba(96, 165, 250, 0.7);
+  color: #93c5fd;
 }
-.op-export-btn-primary:hover { background: rgba(201, 151, 58, 0.15); border-color: #c9973a; }
+.op-export-btn-primary:hover { background: rgba(59, 130, 246, 0.15); border-color: #60a5fa; }
