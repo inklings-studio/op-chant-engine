@@ -258,7 +258,7 @@ function _renderStanzas(state) {
     stanzaEl.className = 'mb-4';
 
     const label = document.createElement('div');
-    label.className = 'text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1';
+    label.className = 'text-xs font-semibold uppercase tracking-wide text-op-ink-faint mb-1';
     label.textContent = `Stanza ${si + 1}`;
     stanzaEl.appendChild(label);
 
@@ -270,7 +270,7 @@ function _renderStanzas(state) {
     const codaEl = document.createElement('div');
     codaEl.className = 'mb-4';
     const label = document.createElement('div');
-    label.className = 'text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1';
+    label.className = 'text-xs font-semibold uppercase tracking-wide text-op-ink-faint mb-1';
     label.textContent = 'Coda';
     codaEl.appendChild(label);
     codaEl.appendChild(_buildLineRow(state, 'coda', 0, state.coda));
@@ -286,7 +286,7 @@ function _buildLineRow(state, si, li, line) {
 
   const input = document.createElement('input');
   input.type        = 'text';
-  input.className   = 'editor-melody-input w-full font-mono text-xs border border-gray-300 rounded px-2 py-1 mb-1 focus:outline-none focus:ring-1 focus:ring-blue-400';
+  input.className   = 'editor-melody-input w-full font-mono text-xs border border-op-tan rounded px-2 py-1 mb-1 focus:outline-none focus:ring-1 focus:ring-op-gold';
   input.dataset.stanza = si;
   input.dataset.line   = li;
   input.value          = line.notes ?? '';

@@ -94,7 +94,7 @@ test('psalm editor build: note inputs are auto-filled by pointing algorithm', ()
 test('psalm editor build: verse rows are labeled "Verse N"', () => {
   setup();
   buildVerses([VERSE_1, VERSE_2]);
-  const labels = [...document.querySelectorAll('#editorStanzas .text-gray-400')];
+  const labels = [...document.querySelectorAll('#editorStanzas .text-op-ink-faint')];
   assert.ok(labels.some(l => l.textContent === 'Verse 1'), 'should have "Verse 1" label');
   assert.ok(labels.some(l => l.textContent === 'Verse 2'), 'should have "Verse 2" label');
   assert.ok(!labels.some(l => l.textContent.startsWith('Stanza')), 'should not use "Stanza" label');

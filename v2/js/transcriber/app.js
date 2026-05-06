@@ -172,10 +172,10 @@ function switchToTab(tab) {
   _gabcTab.classList.toggle('hidden', toEditor);
 
   const [activeBtn, inactiveBtn] = toEditor ? [_editorBtn, _gabcBtn] : [_gabcBtn, _editorBtn];
-  activeBtn.classList.add('tab-btn-active', 'border-blue-600', 'text-blue-600');
-  activeBtn.classList.remove('border-transparent', 'text-gray-500');
-  inactiveBtn.classList.remove('tab-btn-active', 'border-blue-600', 'text-blue-600');
-  inactiveBtn.classList.add('border-transparent', 'text-gray-500');
+  activeBtn.classList.add('tab-btn-active', 'border-op-gold', 'text-op-ink');
+  activeBtn.classList.remove('border-transparent', 'text-op-ink-subtle');
+  inactiveBtn.classList.remove('tab-btn-active', 'border-op-gold', 'text-op-ink');
+  inactiveBtn.classList.add('border-transparent', 'text-op-ink-subtle');
 
   activeTab = tab;
 }

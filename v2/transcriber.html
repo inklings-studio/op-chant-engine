@@ -10,7 +10,8 @@
     Then open: http://localhost/v2/transcriber.html
   -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GABC Transcriber — v2</title>
+  <title>OP GABC Transcriber</title>
+  <link rel="icon" href="assets/clear-main.png" type="image/png" />
 
   <link rel="stylesheet" href="css/output.css" />
 
@@ -19,7 +20,9 @@
   <!-- Web-font equivalents for the sourceandsummit font list -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond&family=Sorts+Mill+Goudy&family=Fanwood+Text&family=IM+Fell+Double+Pica&family=IM+Fell+DW+Pica&family=IM+Fell+English&family=IM+Fell+French+Canon&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=EB+Garamond&family=Sorts+Mill+Goudy&family=Fanwood+Text&family=IM+Fell+Double+Pica&family=IM+Fell+DW+Pica&family=IM+Fell+English&family=IM+Fell+French+Canon&display=swap"
+    rel="stylesheet" />
   <!-- Note: Times, Palatino, Gill Sans are system fonts; no Google Fonts request needed -->
 
   <!--
@@ -32,27 +35,33 @@
   <script src="../saveSvgAsPng.js"></script>
 </head>
 
-<body class="h-screen flex flex-col bg-white text-gray-900 overflow-hidden">
+<body class="h-screen flex flex-col bg-op-parchment text-op-ink overflow-hidden">
 
   <!-- TOOLBAR -->
-  <header class="flex-none flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-gray-50">
-    <h1 class="text-sm font-semibold text-gray-700 tracking-wide uppercase">
-      GABC Transcriber
-      <span class="ml-2 text-xs font-normal text-gray-400">v2</span>
-    </h1>
-    <div class="flex items-center gap-2">
-      <button id="btnExportPdf"
-        class="px-3 py-1 text-xs font-medium rounded bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition-colors">
-        PDF
-      </button>
-      <button id="btnDownloadPng"
-        class="px-3 py-1 text-xs font-medium rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors">
-        PNG
-      </button>
-      <button id="btnDownloadSvg"
-        class="px-3 py-1 text-xs font-medium rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors">
-        SVG
-      </button>
+  <header class="flex-none grid items-center px-4 py-2 border-b border-op-burgundy-deeper bg-op-burgundy-dark"
+    style="grid-template-columns:1fr auto 1fr;">
+    <!-- Left: branding -->
+    <div class="flex items-center gap-2.5">
+      <img src="assets/op-logo.png" alt="O.P." class="h-6 w-auto"
+        style="filter:brightness(0) invert(1); opacity:0.88; max-width:88px; object-fit:contain; object-position:left center;" />
+      <div class="flex items-center gap-2">
+        <span class="text-[11px] tracking-[0.18em] uppercase font-light text-op-gold-light"
+          style="font-family:'Cinzel',serif;">Ordo Praedicatorum</span>
+        <span class="text-op-gold select-none">·</span>
+        <span class="text-[13px] font-semibold text-op-parchment" style="font-family:'Cinzel',serif;">Chant
+          Engine</span>
+      </div>
+    </div>
+    <!-- Center: tool navigation -->
+    <nav class="flex items-center">
+      <a href="transcriber.html" class="op-tool-nav-link active">GABC Transcriber</a>
+      <a href="psalms.html" class="op-tool-nav-link">Psalm Tone Tool</a>
+    </nav>
+    <!-- Right: export buttons -->
+    <div class="flex items-center gap-2 justify-end">
+      <button id="btnExportPdf" class="op-export-btn op-export-btn-primary">PDF</button>
+      <button id="btnDownloadPng" class="op-export-btn">PNG</button>
+      <button id="btnDownloadSvg" class="op-export-btn">SVG</button>
     </div>
   </header>
 
@@ -60,16 +69,16 @@
   <main class="flex-1 flex overflow-hidden">
 
     <!-- Editor pane -->
-    <section class="w-2/5 flex flex-col border-r border-gray-200 min-w-0">
+    <section class="w-2/5 flex flex-col border-r border-op-tan-light min-w-0">
 
       <!-- Tab bar -->
-      <div class="flex-none flex border-b border-gray-200 bg-gray-50">
+      <div class="flex-none flex border-b border-op-tan-light bg-op-cream">
         <button id="tabEditorBtn"
-          class="tab-btn tab-btn-active px-4 py-2 text-xs font-medium border-b-2 border-blue-500 text-gray-700">
+          class="tab-btn tab-btn-active px-4 py-2 text-xs font-medium border-b-2 border-op-gold text-op-ink">
           Editor
         </button>
         <button id="tabGabcBtn"
-          class="tab-btn px-4 py-2 text-xs font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+          class="tab-btn px-4 py-2 text-xs font-medium border-b-2 border-transparent text-op-ink-subtle hover:text-op-ink">
           GABC
         </button>
       </div>
@@ -78,41 +87,52 @@
       <div id="editorTab" class="flex-1 flex flex-col overflow-y-auto p-3 min-w-0">
 
         <!-- Controls -->
-        <div class="pb-3 mb-3 border-b border-gray-200 flex items-center w-full">
+        <div class="pb-3 mb-3 border-b border-op-tan-light flex items-center w-full">
           <!-- Left grid: label | control -->
           <div style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center;">
-            <span class="text-xs text-gray-600 text-right">Language</span>
-            <select id="editorLang" class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
+            <span class="text-xs text-op-ink-light text-right">Language</span>
+            <select id="editorLang"
+              class="border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold">
               <!-- options populated by editor.js from language registry -->
             </select>
-            <span class="text-xs text-gray-600 text-right">Annotation</span>
+            <span class="text-xs text-op-ink-light text-right">Annotation</span>
             <input type="text" id="editorAnnotation" spellcheck="false"
-              class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+              class="border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
               placeholder="e.g. Ant." style="width:90px;" />
-            <span class="text-xs text-gray-600 text-right">Clef</span>
-            <select id="editorClef" class="border border-gray-300 rounded px-2 py-1 text-xs font-mono text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400">
-              <option>c1</option><option>c2</option><option>c3</option>
-              <option selected>c4</option><option>f3</option><option>f4</option>
+            <span class="text-xs text-op-ink-light text-right">Clef</span>
+            <select id="editorClef"
+              class="border border-op-tan rounded px-2 py-1 text-xs font-mono text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold">
+              <option>c1</option>
+              <option>c2</option>
+              <option>c3</option>
+              <option selected>c4</option>
+              <option>f3</option>
+              <option>f4</option>
             </select>
           </div>
           <!-- Right grid: label | checkbox — pushed to far right -->
-          <div style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center; margin-left:auto;">
-            <label class="text-xs text-gray-600 cursor-pointer select-none" for="editorStrophic">Strophic Copy</label>
-            <input type="checkbox" id="editorStrophic" class="accent-blue-600">
-            <label class="text-xs text-gray-600 cursor-pointer select-none" for="editorLargeInitial">Large Initial</label>
-            <input type="checkbox" id="editorLargeInitial" class="accent-blue-600">
-            <label class="text-xs text-gray-600 cursor-pointer select-none" for="editorStanzaNumbers">Stanza Numbers</label>
-            <input type="checkbox" id="editorStanzaNumbers" class="accent-blue-600">
+          <div
+            style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center; margin-left:auto;">
+            <label class="text-xs text-op-ink-light cursor-pointer select-none" for="editorStrophic">Strophic
+              Copy</label>
+            <input type="checkbox" id="editorStrophic" class="accent-op-burgundy">
+            <label class="text-xs text-op-ink-light cursor-pointer select-none" for="editorLargeInitial">Large
+              Initial</label>
+            <input type="checkbox" id="editorLargeInitial" class="accent-op-burgundy">
+            <label class="text-xs text-op-ink-light cursor-pointer select-none" for="editorStanzaNumbers">Stanza
+              Numbers</label>
+            <input type="checkbox" id="editorStanzaNumbers" class="accent-op-burgundy">
           </div>
         </div>
 
         <!-- PDF export settings -->
-        <div class="pb-3 mb-3 border-b border-gray-200 flex items-center gap-3 w-full">
-          <span class="text-xs font-medium text-gray-400 uppercase tracking-wide shrink-0">PDF</span>
-          <div style="display:grid; grid-template-columns:auto auto auto auto auto auto auto auto; gap:4px 8px; align-items:center;">
-            <span class="text-xs text-gray-600">Font</span>
+        <div class="pb-3 mb-3 border-b border-op-tan-light flex items-center gap-3 w-full">
+          <span class="text-xs font-medium text-op-ink-faint uppercase tracking-wide shrink-0">PDF</span>
+          <div
+            style="display:grid; grid-template-columns:auto auto auto auto auto auto auto auto; gap:4px 8px; align-items:center;">
+            <span class="text-xs text-op-ink-light">Font</span>
             <select id="editorFont"
-              class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+              class="border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
               style="width:140px;">
               <option value="">— default —</option>
               <option value="Crimson">Crimson</option>
@@ -128,17 +148,17 @@
               <option value="GillSansMTPro">Gill Sans MT Pro</option>
               <option value="GillSansMTProLight">Gill Sans MT Pro Light</option>
             </select>
-            <span class="text-xs text-gray-600">Font size</span>
+            <span class="text-xs text-op-ink-light">Font size</span>
             <input type="number" id="editorFontSize" min="8" max="24" step="1"
-              class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+              class="border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
               placeholder="pt" style="width:56px;" />
-            <span class="text-xs text-gray-600">Width</span>
+            <span class="text-xs text-op-ink-light">Width</span>
             <input type="number" id="editorPageWidth" min="4" max="20" step="0.5"
-              class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+              class="border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
               placeholder="in" style="width:56px;" />
-            <span class="text-xs text-gray-600">Height</span>
+            <span class="text-xs text-op-ink-light">Height</span>
             <input type="number" id="editorPageHeight" min="4" max="20" step="0.5"
-              class="border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+              class="border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
               placeholder="in" style="width:56px;" />
           </div>
         </div>
@@ -146,20 +166,20 @@
         <!-- Raw text input + Build -->
         <div id="editorTextInputArea" class="flex-1 flex gap-2 mb-2">
           <textarea id="editorRawText" spellcheck="false"
-            class="flex-1 min-h-24 resize-y border border-gray-300 rounded px-2 py-1.5 text-xs font-mono leading-relaxed focus:outline-none focus:ring-1 focus:ring-blue-400"
+            class="flex-1 min-h-24 resize-y border border-op-tan rounded px-2 py-1.5 text-xs font-mono leading-relaxed bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
             placeholder="Paste hymn text here…"></textarea>
           <div class="self-stretch flex flex-col justify-end gap-1">
             <button id="editorBuildBtn"
-              class="px-3 py-2.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 active:bg-blue-800">
+              class="px-3 py-2.5 bg-op-burgundy text-white text-xs font-medium rounded hover:bg-op-burgundy-dark active:bg-op-burgundy-deeper">
               Build
             </button>
             <button id="editorRebuildBtn"
-              class="hidden px-3 py-2 bg-gray-500 text-white text-xs font-medium rounded hover:bg-gray-600 active:bg-gray-700"
+              class="hidden px-3 py-2 bg-op-ink-subtle text-white text-xs font-medium rounded hover:bg-op-ink-light active:bg-[#4a3c32]"
               title="Re-parse text and reset melody to rectotone defaults">
               Re-Build
             </button>
             <button id="editorFitTextBtn"
-              class="hidden px-3 py-2 bg-emerald-600 text-white text-xs font-medium rounded hover:bg-emerald-700 active:bg-emerald-800"
+              class="hidden px-3 py-2 bg-op-amber-dark text-white text-xs font-medium rounded hover:bg-op-amber-darker active:bg-op-amber-deepest"
               title="Re-syllabify new text while keeping existing melody">
               Fit Text
             </button>
@@ -168,7 +188,7 @@
 
         <!-- Edit-text toggle sits between textarea and stanzas so both sections can be toggled independently -->
         <button id="editorEditToggle"
-          class="hidden mb-2 px-2 py-0.5 text-xs text-blue-600 border border-blue-300 rounded hover:bg-blue-50">
+          class="hidden mb-2 px-2 py-0.5 text-xs text-op-burgundy border border-op-tan rounded hover:bg-op-cream">
           Edit text
         </button>
 
@@ -180,7 +200,7 @@
       <!-- Tab 2: Raw GABC — gabcEditor ID preserved exactly for app.js -->
       <div id="gabcTab" class="hidden flex-1 flex flex-col min-w-0">
         <textarea id="gabcEditor" spellcheck="false" autocorrect="off" autocapitalize="none"
-          class="flex-1 resize-none p-3 font-mono text-sm leading-relaxed text-gray-800 bg-white focus:outline-none focus:ring-1 focus:ring-inset focus:ring-blue-400"
+          class="flex-1 resize-none p-3 font-mono text-sm leading-relaxed text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-inset focus:ring-op-gold"
           placeholder="Paste or type integrated GABC here…"></textarea>
       </div>
 
@@ -188,18 +208,19 @@
 
     <!-- Preview pane -->
     <section class="flex-1 flex flex-col min-w-0">
-      <div class="flex-none border-b border-gray-100 bg-gray-50 preview-header-row">
-        <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Preview</span>
+      <div class="flex-none border-b border-op-tan-light bg-op-cream preview-header-row">
+        <span class="text-xs font-medium text-op-ink-subtle uppercase tracking-wide">Preview</span>
         <div id="previewControls" class="hidden flex items-center gap-1">
           <button id="btnPlayFromStart" class="toolbar-btn toolbar-btn-primary-inline">▶ Play</button>
           <button id="btnHeaderPitchUp" class="toolbar-btn toolbar-btn-success">▲</button>
-          <div id="headerPitchDisplay" class="toolbar-btn toolbar-btn-info toolbar-pitch-info preview-pitch-display">—</div>
+          <div id="headerPitchDisplay" class="toolbar-btn toolbar-btn-info toolbar-pitch-info preview-pitch-display">—
+          </div>
           <button id="btnHeaderPitchDown" class="toolbar-btn toolbar-btn-success">▼</button>
         </div>
         <div></div>
       </div>
       <div id="chantPreview" class="flex-1 overflow-auto p-4">
-        <p id="previewPlaceholder" class="text-sm text-gray-400 italic mt-8 text-center">
+        <p id="previewPlaceholder" class="text-sm text-op-ink-faint italic mt-8 text-center">
           Enter GABC in the editor to see a preview.
         </p>
       </div>
@@ -208,30 +229,30 @@
   </main>
 
   <!-- STATUS BAR -->
-  <footer class="flex-none px-4 py-1 border-t border-gray-200 bg-gray-50">
-    <p id="statusMessage" class="text-xs text-gray-400"></p>
+  <footer class="flex-none px-4 py-1 border-t border-op-tan-light bg-op-cream">
+    <p id="statusMessage" class="text-xs text-op-ink-faint"></p>
   </footer>
 
   <!-- Hidden PDF export form -->
   <form id="pdfForm" target="_blank" method="post" action="https://www.sourceandsummit.com/editor/legacy/process.php"
     class="hidden">
-    <input type="hidden" id="pdfGabc"     name="gabc[]" />
-    <input type="hidden" id="pdfWidth"    name="width"    value="7.5" />
-    <input type="hidden" id="pdfHeight"   name="height"   value="11" />
+    <input type="hidden" id="pdfGabc" name="gabc[]" />
+    <input type="hidden" id="pdfWidth" name="width" value="7.5" />
+    <input type="hidden" id="pdfHeight" name="height" value="11" />
     <input type="hidden" id="pdfFontSize" name="fontsize" value="20" />
-    <input type="hidden" name="croppdf"  value="false" />
-    <input type="hidden" name="spacing"  value="vichi" />
-    <input type="hidden" id="pdfFont"   name="font"     value="Crimson" />
-    <input type="hidden" name="fmt"      value="pdf" />
+    <input type="hidden" name="croppdf" value="false" />
+    <input type="hidden" name="spacing" value="vichi" />
+    <input type="hidden" id="pdfFont" name="font" value="Crimson" />
+    <input type="hidden" name="fmt" value="pdf" />
   </form>
 
   <!-- Media controls — shown during playback, fixed at bottom -->
   <div id="mediaControls" class="hidden">
     <button id="btnPauseResume" class="mc-btn mc-btn-primary" title="Pause / Resume">⏸</button>
-    <button id="btnBpmMinus"    class="mc-btn mc-btn-default" title="Slower">−</button>
-    <span   id="bpmDisplay">165 BPM</span>
-    <button id="btnBpmPlus"     class="mc-btn mc-btn-default" title="Faster">+</button>
-    <button id="btnMediaStop"   class="mc-btn mc-btn-danger"  title="Stop">■ Stop</button>
+    <button id="btnBpmMinus" class="mc-btn mc-btn-default" title="Slower">−</button>
+    <span id="bpmDisplay">165 BPM</span>
+    <button id="btnBpmPlus" class="mc-btn mc-btn-default" title="Faster">+</button>
+    <button id="btnMediaStop" class="mc-btn mc-btn-danger" title="Stop">■ Stop</button>
   </div>
 
   <!-- ES6 module entry point — runs after all globals above are ready -->
