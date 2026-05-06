@@ -15,29 +15,29 @@ const TONE_LABELS = {
   tone6: 'Tone 6', tone7: 'Tone 7', tone8: 'Tone 8', per: 'Peregrinus',
 };
 
-let _state          = null;
+let _state = null;
 let _onGabcCompiled = null;
-let _onStatus       = null;
-let _toneKey        = 'tone8';
-let _cadenceKey     = null;
-let _isSolemn       = false;
-let _outputMode     = 'gabc';
+let _onStatus = null;
+let _toneKey = 'tone8';
+let _cadenceKey = null;
+let _isSolemn = false;
+let _outputMode = 'gabc';
 
 // ─── DOM refs (all static — exist in psalms.html) ────────────────────────────
-const _langSel         = () => document.getElementById('editorLang');
-const _psalmSel        = () => document.getElementById('psalmSelect');
-const _psalmLabel      = () => document.getElementById('psalmSelectLabel');
-const _largeInitChk    = () => document.getElementById('editorLargeInitial');
+const _langSel = () => document.getElementById('editorLang');
+const _psalmSel = () => document.getElementById('psalmSelect');
+const _psalmLabel = () => document.getElementById('psalmSelectLabel');
+const _largeInitChk = () => document.getElementById('editorLargeInitial');
 const _annotationInput = () => document.getElementById('editorAnnotation');
-const _rawText         = () => document.getElementById('editorRawText');
-const _buildBtn        = () => document.getElementById('editorBuildBtn');
-const _fitTextBtn      = () => document.getElementById('editorFitTextBtn');
-const _editToggle      = () => document.getElementById('editorEditToggle');
-const _textArea        = () => document.getElementById('editorTextInputArea');
-const _stanzasEl       = () => document.getElementById('editorStanzas');
-const _toneSelect      = () => document.getElementById('editorTone');
-const _termSelect      = () => document.getElementById('editorTerm');
-const _solemnChk       = () => document.getElementById('editorSolemn');
+const _rawText = () => document.getElementById('editorRawText');
+const _buildBtn = () => document.getElementById('editorBuildBtn');
+const _fitTextBtn = () => document.getElementById('editorFitTextBtn');
+const _editToggle = () => document.getElementById('editorEditToggle');
+const _textArea = () => document.getElementById('editorTextInputArea');
+const _stanzasEl = () => document.getElementById('editorStanzas');
+const _toneSelect = () => document.getElementById('editorTone');
+const _termSelect = () => document.getElementById('editorTerm');
+const _solemnChk = () => document.getElementById('editorSolemn');
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
@@ -49,9 +49,9 @@ const _solemnChk       = () => document.getElementById('editorSolemn');
  * @param {{ onStatus?: function(string, string=): void }} [options]
  */
 export function initEditor(state, onGabcCompiled, options = {}) {
-  _state          = state;
+  _state = state;
   _onGabcCompiled = onGabcCompiled;
-  _onStatus       = options.onStatus ?? null;
+  _onStatus = options.onStatus ?? null;
 
   _populateLangSelect(state);
   _populatePsalmSelect(getLanguage(state.language));
@@ -77,7 +77,7 @@ export function initEditor(state, onGabcCompiled, options = {}) {
  * @param {function(object): void} [onGabcCompiled]
  */
 export function triggerCompile(state, onGabcCompiled) {
-  const s  = state          ?? _state;
+  const s = state ?? _state;
   const cb = onGabcCompiled ?? _onGabcCompiled;
   cb?.(_buildResult(s));
 }
@@ -85,8 +85,8 @@ export function triggerCompile(state, onGabcCompiled) {
 function _buildResult(state) {
   const gabcFull = compileGabc(state);
   if (_outputMode !== 'html') return { mode: 'gabc', gabcFull };
-  const gabc1      = compileGabc1(state);
-  const wrappers   = _getWrappers();
+  const gabc1 = compileGabc1(state);
+  const wrappers = _getWrappers();
   const versesHtml = compileBreviaryHtml(state, wrappers);
   return { mode: 'html', gabcFull, gabc1, versesHtml };
 }
@@ -94,9 +94,9 @@ function _buildResult(state) {
 function _getWrappers() {
   return {
     prepBegin: document.getElementById('editorPrepBegin')?.value ?? '<i>',
-    prepEnd:   document.getElementById('editorPrepEnd')?.value   ?? '</i>',
-    accBegin:  document.getElementById('editorAccBegin')?.value  ?? '<b>',
-    accEnd:    document.getElementById('editorAccEnd')?.value    ?? '</b>',
+    prepEnd: document.getElementById('editorPrepEnd')?.value ?? '</i>',
+    accBegin: document.getElementById('editorAccBegin')?.value ?? '<b>',
+    accEnd: document.getElementById('editorAccEnd')?.value ?? '</b>',
   };
 }
 
@@ -112,7 +112,7 @@ function _populateToneSelect() {
 
 function _populateTermSelect() {
   const tone = TONES[_toneKey];
-  const sel  = _termSelect();
+  const sel = _termSelect();
   const keys = tone.terminations ? Object.keys(tone.terminations) : ['—'];
   sel.innerHTML = keys.map(k => `<option value="${k}">${k}</option>`).join('');
   _cadenceKey = sel.value;
@@ -125,9 +125,9 @@ function _populateLangSelect(state) {
   sel.innerHTML = '';
   listLanguages().forEach(p => {
     const opt = document.createElement('option');
-    opt.value       = p.code;
+    opt.value = p.code;
     opt.textContent = p.label;
-    opt.selected    = p.code === state.language;
+    opt.selected = p.code === state.language;
     sel.appendChild(opt);
   });
 }
@@ -142,18 +142,18 @@ function _populatePsalmSelect(lang) {
   sel.innerHTML = '<option value="">— select —</option>';
   lang.psalms.forEach(p => {
     const opt = document.createElement('option');
-    opt.value       = String(p.num);
+    opt.value = String(p.num);
     opt.textContent = p.label;
     sel.appendChild(opt);
   });
 }
 
 function _syncControlsToState(state) {
-  _langSel().value         = state.language;
-  _largeInitChk().checked  = state.largeInitial;
+  _langSel().value = state.language;
+  _largeInitChk().checked = state.largeInitial;
   _annotationInput().value = state.annotation ?? '';
-  _toneSelect().value      = _toneKey;
-  _solemnChk().checked     = _isSolemn;
+  _toneSelect().value = _toneKey;
+  _solemnChk().checked = _isSolemn;
 }
 
 function _wireStaticEvents(state) {
@@ -306,7 +306,7 @@ function _groupVerses(lines) {
  * of the same word, and section breaks (†, *) on separate lines.
  */
 function _buildMarkedLine(ast, wordMap) {
-  let lines  = [''];
+  let lines = [''];
   let sylIdx = 0;
   let prevWordIdx = -1;
 
@@ -343,9 +343,9 @@ function _buildMarkedLine(ast, wordMap) {
  * Preserves manually-edited notes when a verse line is unchanged (rawLine matches).
  */
 function _parseAndPoint(rawText, state) {
-  const tone    = TONES[_toneKey];
-  const plugin  = getLanguage(state.language);
-  const verses  = _groupVerses(rawText.split('\n').map(l => l.trim()).filter(Boolean));
+  const tone = TONES[_toneKey];
+  const plugin = getLanguage(state.language);
+  const verses = _groupVerses(rawText.split('\n').map(l => l.trim()).filter(Boolean));
 
   state.stanzas = verses.map((rawLine, vi) => {
     const existing = state.stanzas[vi]?.lines[0];
@@ -355,9 +355,8 @@ function _parseAndPoint(rawText, state) {
     }
     return { lines: [_pointLine(rawLine, tone, plugin, vi === 0)] };
   });
-
   state.clef = tone.clef;
-  state.coda  = null;
+  state.coda = null;
   _syncRawTextarea(state);
 }
 
@@ -366,19 +365,19 @@ function _parseAndPoint(rawText, state) {
  * Called when tone, termination, or solemn changes.
  */
 function _repointAll(state) {
-  const tone   = TONES[_toneKey];
+  const tone = TONES[_toneKey];
   const plugin = getLanguage(state.language);
 
   state.stanzas.forEach((stanza, si) => {
     const line = stanza.lines[0];
     if (!line?.rawLine) return;
     const repointed = _pointLine(line.rawLine, tone, plugin, si === 0);
-    line.notes       = repointed.notes;
+    line.notes = repointed.notes;
     line.parsedNotes = repointed.parsedNotes;
-    line.syllables   = repointed.syllables;
-    line.wordMap     = repointed.wordMap;
-    line.rawLine     = repointed.rawLine;
-    line.ast         = repointed.ast;
+    line.syllables = repointed.syllables;
+    line.wordMap = repointed.wordMap;
+    line.rawLine = repointed.rawLine;
+    line.ast = repointed.ast;
   });
 
   state.clef = tone.clef;
@@ -391,14 +390,14 @@ function _repointAll(state) {
  * Rebuilds rawLine with | injected to show updated syllabification.
  */
 function _resyllabify(rawText, state) {
-  const tone   = TONES[_toneKey];
+  const tone = TONES[_toneKey];
   const plugin = getLanguage(state.language);
   const verses = _groupVerses(rawText.split('\n').map(l => l.trim()).filter(Boolean));
 
   state.stanzas = verses.map((rawLine, vi) => {
-    const existing                            = state.stanzas[vi]?.lines[0];
-    const { syllables, wordMap, markedLine }  = _syllabifyWithMarkers(rawLine, plugin);
-    const notes       = existing?.notes       ?? '';
+    const existing = state.stanzas[vi]?.lines[0];
+    const { syllables, wordMap, markedLine } = _syllabifyWithMarkers(rawLine, plugin);
+    const notes = existing?.notes ?? '';
     const parsedNotes = existing?.parsedNotes ?? [];
     // Re-point to get a fresh AST for HTML role assignment (notes from AST are discarded).
     const pointed = _pointLine(rawLine, tone, plugin, vi === 0);
@@ -415,10 +414,10 @@ function _syllabifyWithMarkers(rawLine, plugin) {
   // Remove | without spaces so Hos|po|din rejoins into Hospodin before re-syllabifying.
   // Section markers (†*) become spaces; ' is stripped as a safeguard.
   const flatText = rawLine.replace(/[†*']/g, ' ').replace(/\|/g, '').replace(/\s+/g, ' ').trim();
-  const tokens   = plugin.syllabifyPhrase(flatText);
+  const tokens = plugin.syllabifyPhrase(flatText);
 
-  const sectionParts   = rawLine.split(/(†|\*)/);
-  let tokenOffset      = 0;
+  const sectionParts = rawLine.split(/(†|\*)/);
+  let tokenOffset = 0;
   const markedSections = [];
 
   for (const part of sectionParts) {
@@ -426,9 +425,9 @@ function _syllabifyWithMarkers(rawLine, plugin) {
     const stripped = part.replace(/[†*']/g, ' ').replace(/\|/g, '').replace(/\s+/g, ' ').trim();
     if (!stripped) { markedSections.push(''); continue; }
 
-    const count        = plugin.syllabifyPhrase(stripped).length;
+    const count = plugin.syllabifyPhrase(stripped).length;
     const sectionSlice = tokens.slice(tokenOffset, tokenOffset + count);
-    tokenOffset       += count;
+    tokenOffset += count;
     markedSections.push(_buildSectionText(sectionSlice));
   }
 
@@ -439,20 +438,20 @@ function _syllabifyWithMarkers(rawLine, plugin) {
   }
 
   return {
-    syllables:  tokens.map(t => t.syl),
-    wordMap:    tokens.map(t => t.wordIdx),
+    syllables: tokens.map(t => t.syl),
+    wordMap: tokens.map(t => t.wordIdx),
     markedLine: result.trim(),
   };
 }
 
 /** Joins syllable tokens into a string, using | within a word and space between words. */
 function _buildSectionText(tokens) {
-  let text        = '';
+  let text = '';
   let prevWordIdx = -1;
   for (const t of tokens) {
     if (prevWordIdx !== -1) text += t.wordIdx === prevWordIdx ? '|' : ' ';
-    text        += t.syl;
-    prevWordIdx  = t.wordIdx;
+    text += t.syl;
+    prevWordIdx = t.wordIdx;
   }
   return text;
 }
@@ -473,28 +472,28 @@ function _syncRawTextarea(state) {
  */
 function _pointLine(rawLine, tone, plugin, isFirstVerse = true) {
   try {
-    const ast         = pointVerse(rawLine, tone, _cadenceKey, _isSolemn, plugin.syllabifyPhrase, isFirstVerse);
-    const notes       = ast.map(t => t.note).join(' ');
+    const ast = pointVerse(rawLine, tone, _cadenceKey, _isSolemn, plugin.syllabifyPhrase, isFirstVerse);
+    const notes = ast.map(t => t.note).join(' ');
     const parsedNotes = tokenizeMelody(notes);
     // Barline sentinels (flex/mediant) have empty syl — exclude from syllables/wordMap arrays
     // so that buildLine's sylIdx stays in sync with the non-barline note tokens.
-    const syllables   = ast.filter(t => t.role !== 'flex' && t.role !== 'mediant').map(t => t.syl);
-    const cleanLine   = rawLine.replace(/[†*']/g, ' ').replace(/\s+/g, ' ').trim();
-    const langTokens  = plugin.syllabifyPhrase(cleanLine);
-    const wordMap     = langTokens.map(t => t.wordIdx);
-    const markedLine  = _buildMarkedLine(ast, wordMap);
+    const syllables = ast.filter(t => t.role !== 'flex' && t.role !== 'mediant').map(t => t.syl);
+    const cleanLine = rawLine.replace(/[†*']/g, ' ').replace(/\s+/g, ' ').trim();
+    const langTokens = plugin.syllabifyPhrase(cleanLine);
+    const wordMap = langTokens.map(t => t.wordIdx);
+    const markedLine = _buildMarkedLine(ast, wordMap);
     return { syllables, wordMap, notes, parsedNotes, rawLine: markedLine, ast };
   } catch (_e) {
     // Verse missing * marker or other pointing error — store syllables only.
     const cleanLine = rawLine.replace(/[†*']/g, ' ').replace(/\s+/g, ' ').trim();
-    const tokens    = plugin.syllabifyPhrase(cleanLine);
+    const tokens = plugin.syllabifyPhrase(cleanLine);
     return {
-      syllables:   tokens.map(t => t.syl),
-      wordMap:     tokens.map(t => t.wordIdx),
-      notes:       '',
+      syllables: tokens.map(t => t.syl),
+      wordMap: tokens.map(t => t.wordIdx),
+      notes: '',
       parsedNotes: [],
       rawLine,
-      ast:         null,
+      ast: null,
     };
   }
 }
@@ -510,7 +509,7 @@ function _renderStanzas(state) {
     stanzaEl.className = 'mb-4';
 
     const label = document.createElement('div');
-    label.className   = 'text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1';
+    label.className = 'text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1';
     label.textContent = `Verse ${si + 1}`;
     stanzaEl.appendChild(label);
 
@@ -524,17 +523,17 @@ function _buildLineRow(state, si, li, line) {
   row.className = 'mb-2';
 
   const input = document.createElement('input');
-  input.type          = 'text';
-  input.className     = 'editor-melody-input w-full font-mono text-xs border border-gray-300 rounded px-2 py-1 mb-1 focus:outline-none focus:ring-1 focus:ring-blue-400';
+  input.type = 'text';
+  input.className = 'editor-melody-input w-full font-mono text-xs border border-gray-300 rounded px-2 py-1 mb-1 focus:outline-none focus:ring-1 focus:ring-blue-400';
   input.dataset.stanza = si;
-  input.dataset.line   = li;
-  input.value          = line.notes ?? '';
-  input.placeholder    = 'Melody notes  e.g.  g g g k j.';
+  input.dataset.line = li;
+  input.value = line.notes ?? '';
+  input.placeholder = 'Melody notes  e.g.  g g g k j.';
 
   const track = document.createElement('div');
-  track.className      = 'editor-alignment-track';
+  track.className = 'editor-alignment-track';
   track.dataset.stanza = si;
-  track.dataset.line   = li;
+  track.dataset.line = li;
 
   _renderTrack(track, line.syllables ?? [], line.parsedNotes ?? [], line.wordMap ?? null);
   _updateInputOverflow(input, line.syllables ?? [], line.parsedNotes ?? []);
@@ -542,7 +541,7 @@ function _buildLineRow(state, si, li, line) {
   input.addEventListener('input', () => {
     const target = state.stanzas[si]?.lines[li];
     if (!target) return;
-    target.notes       = input.value;
+    target.notes = input.value;
     target.parsedNotes = tokenizeMelody(input.value);
     _renderTrack(track, target.syllables, target.parsedNotes, target.wordMap ?? null);
     _updateInputOverflow(input, target.syllables, target.parsedNotes);
@@ -552,11 +551,11 @@ function _buildLineRow(state, si, li, line) {
 
   // Cursor-position chip highlight
   const _onCursorMove = () => _highlightCursorChip(input, track);
-  const _onBlur       = () => _clearCursorHighlight(track);
-  input.addEventListener('focus',  _onCursorMove);
-  input.addEventListener('click',  _onCursorMove);
-  input.addEventListener('keyup',  _onCursorMove);
-  input.addEventListener('blur',   _onBlur);
+  const _onBlur = () => _clearCursorHighlight(track);
+  input.addEventListener('focus', _onCursorMove);
+  input.addEventListener('click', _onCursorMove);
+  input.addEventListener('keyup', _onCursorMove);
+  input.addEventListener('blur', _onBlur);
 
   row.appendChild(input);
   row.appendChild(track);
@@ -591,11 +590,11 @@ function _renderTrack(trackEl, syllables, parsedNotes, wordMap) {
       _flushGroup();
       trackEl.appendChild(_chip(token === '::' ? '‖' : '|', 'track-chip track-chip-barline'));
     } else {
-      const syl  = syllables[sylIdx];
+      const syl = syllables[sylIdx];
       const wIdx = wordMap?.[sylIdx] ?? sylIdx;
       sylIdx++;
       const group = _groupFor(wIdx);
-      const chip  = syl
+      const chip = syl
         ? _chip(`${syl}(${token})`, 'track-chip track-chip-matched')
         : _chip('—', 'track-chip track-chip-empty');
       chip.dataset.isMatched = syl ? '1' : '0';
@@ -611,7 +610,7 @@ function _renderTrack(trackEl, syllables, parsedNotes, wordMap) {
 
   if (!parsedNotes.length && !syllables.length) {
     const hint = document.createElement('span');
-    hint.className   = 'text-xs italic track-chip track-chip-empty';
+    hint.className = 'text-xs italic track-chip track-chip-empty';
     hint.textContent = 'enter notes above';
     trackEl.appendChild(hint);
   }
@@ -619,7 +618,7 @@ function _renderTrack(trackEl, syllables, parsedNotes, wordMap) {
 
 function _chip(text, cls) {
   const span = document.createElement('span');
-  span.className   = cls;
+  span.className = cls;
   span.textContent = text;
   return span;
 }
@@ -644,9 +643,9 @@ function _highlightCursorChip(input, track) {
   const idx = _cursorNoteIndex(input.value, input.selectionStart);
   track.querySelectorAll('.track-chip-matched, .track-chip-empty, .track-chip-cursor').forEach((chip, i) => {
     const active = i === idx;
-    chip.classList.toggle('track-chip-cursor',  active);
+    chip.classList.toggle('track-chip-cursor', active);
     chip.classList.toggle('track-chip-matched', !active && chip.dataset.isMatched === '1');
-    chip.classList.toggle('track-chip-empty',   !active && chip.dataset.isMatched === '0');
+    chip.classList.toggle('track-chip-empty', !active && chip.dataset.isMatched === '0');
   });
 }
 

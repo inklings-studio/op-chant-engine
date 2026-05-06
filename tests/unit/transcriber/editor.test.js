@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
-import { initEditor } from '../../../v2/js/transcriber/editor.js';
+import { initEditor, rebuildStanzas } from '../../../v2/js/transcriber/editor.js';
 import '../../../v2/js/languages/sk/index.js'; // registers SK plugin
 
 const SCAFFOLD = `<!DOCTYPE html><html><body>
@@ -222,4 +222,46 @@ test('editor Fit Text: new syllable count reflected in track chips', () => {
   // 'Pane Bože Rex' → ['Pa','ne','Bo','že','Rex'] = 5 syllables, 2 notes → 2 matched + 3 overflow
   assert.equal(document.querySelectorAll('.track-chip-matched').length, 2);
   assert.equal(document.querySelectorAll('.track-chip-overflow').length, 3);
+});
+
+// ── Syllabification | in textarea ─────────────────────────────────────────
+
+test('editor Build: injects | between syllables in textarea', () => {
+  setup();
+  document.getElementById('editorRawText').value = 'Kriste Rex';
+  fire(document.getElementById('editorBuildBtn'), 'click');
+  const textarea = document.getElementById('editorRawText').value;
+  // 'Kriste' syllabifies to Kris|te, Rex stays Rex
+  assert.ok(textarea.includes('|'), 'textarea should contain | separators');
+  assert.ok(!textarea.startsWith('|'), 'textarea should not start with |');
+});
+
+test('editor Re-Build: injects | without duplication on repeated clicks', () => {
+  setup();
+  document.getElementById('editorRawText').value = 'Kriste Rex';
+  fire(document.getElementById('editorRebuildBtn'), 'click');
+  const after1 = document.getElementById('editorRawText').value;
+  fire(document.getElementById('editorRebuildBtn'), 'click');
+  const after2 = document.getElementById('editorRawText').value;
+  assert.equal(after1, after2, 'second Re-Build produces identical textarea content');
+  assert.ok(!after2.includes('||'), 'no doubled pipes');
+});
+
+test('editor Fit Text: preserves textarea content unchanged (user | edits survive)', () => {
+  setup({ stanzas: [mkStanza([['Kris', 'te', 'Rex'], ['f', 'g', 'h']])] });
+  const userEdited = 'Kri|ste Rex';
+  document.getElementById('editorRawText').value = userEdited;
+  fire(document.getElementById('editorFitTextBtn'), 'click');
+  assert.equal(document.getElementById('editorRawText').value, userEdited,
+    'Fit Text must not overwrite textarea');
+});
+
+test('editor rebuildStanzas: injects | into textarea from existing stanza state', () => {
+  // wordMap [0,0,1] groups Kris+te into one word, Rex is separate → expect 'Kris|te Rex'
+  const line = { syllables: ['Kris', 'te', 'Rex'], wordMap: [0, 0, 1], notes: 'f g h', parsedNotes: ['f', 'g', 'h'] };
+  const { state } = setup({ stanzas: [{ lines: [line] }] });
+  document.getElementById('editorRawText').value = '';
+  rebuildStanzas(state);
+  const textarea = document.getElementById('editorRawText').value;
+  assert.equal(textarea, 'Kris|te Rex');
 });

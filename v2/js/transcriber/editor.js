@@ -59,6 +59,7 @@ export function rebuildStanzas(state) {
   _renderStanzas(state);
   _showStanzas();
   _syncBuildButtons(state);
+  _syncRawTextarea(state);
 }
 
 /**
@@ -70,6 +71,34 @@ export function triggerCompile(state, onGabcCompiled) {
   const s  = state          ?? _state;
   const cb = onGabcCompiled ?? _onGabcCompiled;
   cb?.(compileGabc(s));
+}
+
+// ─── Raw textarea sync ────────────────────────────────────────────────────────
+
+function _syllabifiedLine(line) {
+  const { syllables, wordMap } = line;
+  if (!syllables?.length) return '';
+  let text = '';
+  let prev = -1;
+  syllables.forEach((syl, i) => {
+    const wIdx = wordMap?.[i] ?? i;
+    if (prev !== -1) text += wIdx === prev ? '|' : ' ';
+    text += syl;
+    prev = wIdx;
+  });
+  return text;
+}
+
+function _syncRawTextarea(state) {
+  const parts = state.stanzas.map(stanza =>
+    stanza.lines.map(line => _syllabifiedLine(line)).filter(Boolean).join('\n')
+  );
+  if (state.coda) {
+    const codaText = _syllabifiedLine(state.coda);
+    if (parts.length > 0) parts[parts.length - 1] += '\n' + codaText;
+    else parts.push(codaText);
+  }
+  _rawText().value = parts.join('\n\n');
 }
 
 // ─── Static control wiring ────────────────────────────────────────────────────
@@ -105,6 +134,7 @@ function _wireStaticEvents(state) {
     const raw = _rawText().value.trim();
     if (raw) {
       parseText(raw, state, getLanguage(state.language));
+      _syncRawTextarea(state);
       _renderStanzas(state);
     }
     triggerCompile(state);
@@ -143,6 +173,7 @@ function _wireStaticEvents(state) {
     const raw = _rawText().value.trim();
     if (!raw) return;
     parseText(raw, state, getLanguage(state.language));
+    _syncRawTextarea(state);
     _renderStanzas(state);
     _showStanzas();
     _syncBuildButtons(state);
@@ -155,6 +186,7 @@ function _wireStaticEvents(state) {
     state.stanzas = [];
     state.coda    = null;
     parseText(raw, state, getLanguage(state.language));
+    _syncRawTextarea(state);
     _renderStanzas(state);
     _showStanzas();
     triggerCompile(state);
@@ -164,6 +196,7 @@ function _wireStaticEvents(state) {
     const raw = _rawText().value.trim();
     if (!raw) return;
     parseText(raw, state, getLanguage(state.language));
+    // Textarea not overwritten — user's | edits are preserved.
     _renderStanzas(state);
     _showStanzas();
     triggerCompile(state);
