@@ -25,7 +25,6 @@ const _largeInitChk    = () => document.getElementById('editorLargeInitial');
 const _annotationInput = () => document.getElementById('editorAnnotation');
 const _rawText         = () => document.getElementById('editorRawText');
 const _buildBtn        = () => document.getElementById('editorBuildBtn');
-const _rebuildBtn      = () => document.getElementById('editorRebuildBtn');
 const _fitTextBtn      = () => document.getElementById('editorFitTextBtn');
 const _editToggle      = () => document.getElementById('editorEditToggle');
 const _textArea        = () => document.getElementById('editorTextInputArea');
@@ -171,15 +170,6 @@ function _wireStaticEvents(state) {
     triggerCompile(state);
   });
 
-  _rebuildBtn().addEventListener('click', () => {
-    const raw = _rawText().value.trim();
-    if (!raw) return;
-    state.stanzas = [];
-    _parseAndPoint(raw, state);
-    _renderStanzas(state);
-    triggerCompile(state);
-  });
-
   _fitTextBtn().addEventListener('click', () => {
     const raw = _rawText().value.trim();
     if (!raw) return;
@@ -195,11 +185,10 @@ function _wireStaticEvents(state) {
   });
 }
 
-// Swap between Build (empty state) and Re-Point + Fit Text (has content).
+// Swap between Build (empty state) and Fit Text (has content).
 function _syncBuildButtons(state) {
   const hasContent = state.stanzas.length > 0;
   _buildBtn().classList.toggle('hidden', hasContent);
-  _rebuildBtn().classList.toggle('hidden', !hasContent);
   _fitTextBtn().classList.toggle('hidden', !hasContent);
 }
 
@@ -229,9 +218,8 @@ function _groupVerses(lines) {
 }
 
 /**
- * Reconstruct the verse text from the AST with accent markers (') and section
- * breaks (†, *) re-inserted. Used to update the raw textarea after pointing.
- * Each section is placed on its own line for multi-line display.
+ * Reconstruct the verse text from the AST with | injected between syllables
+ * of the same word, and section breaks (†, *) on separate lines.
  */
 function _buildMarkedLine(ast, wordMap) {
   let lines  = [''];
@@ -253,18 +241,10 @@ function _buildMarkedLine(ast, wordMap) {
     }
 
     const wIdx = wordMap[sylIdx] ?? sylIdx;
-    if (prevWordIdx !== -1 && wIdx !== prevWordIdx) {
-      lines[lines.length - 1] += ' ';
+    if (prevWordIdx !== -1) {
+      lines[lines.length - 1] += wIdx === prevWordIdx ? '|' : ' ';
     }
-    // Strip any leading ' that the syllabifier attached as leadPunct from a
-    // previous round-trip (e.g. "'pas" from re-reading "'pastier").
-    // We re-derive and prepend our own ' for acc tokens, so the old one must go.
-    const syl = token.syl.replace(/^'+/, '');
-    // ' placed BEFORE the acc syllable: for first syllables it becomes leadPunct
-    // on the next read (stripped, natural stress applies — stable); for non-first
-    // syllables it sits between letters and correctly overrides stress.
-    if (token.role === 'acc') lines[lines.length - 1] += "'";
-    lines[lines.length - 1] += syl;
+    lines[lines.length - 1] += token.syl;
 
     prevWordIdx = wIdx;
     sylIdx++;
@@ -323,21 +303,70 @@ function _repointAll(state) {
 /**
  * Re-syllabifies verse lines but keeps existing note strings.
  * Called by Fit Text — useful when verse text changes slightly (typo fix).
+ * Rebuilds rawLine with | injected to show updated syllabification.
  */
 function _resyllabify(rawText, state) {
   const plugin = getLanguage(state.language);
   const verses = _groupVerses(rawText.split('\n').map(l => l.trim()).filter(Boolean));
 
   state.stanzas = verses.map((rawLine, vi) => {
-    const existing  = state.stanzas[vi]?.lines[0];
-    const cleanLine = rawLine.replace(/[†*']/g, ' ').replace(/\s+/g, ' ').trim();
-    const tokens    = plugin.syllabifyPhrase(cleanLine);
-    const syllables = tokens.map(t => t.syl);
-    const wordMap   = tokens.map(t => t.wordIdx);
+    const existing                            = state.stanzas[vi]?.lines[0];
+    const { syllables, wordMap, markedLine }  = _syllabifyWithMarkers(rawLine, plugin);
     const notes       = existing?.notes       ?? '';
     const parsedNotes = existing?.parsedNotes ?? [];
-    return { lines: [{ syllables, wordMap, notes, parsedNotes, rawLine }] };
+    return { lines: [{ syllables, wordMap, notes, parsedNotes, rawLine: markedLine }] };
   });
+}
+
+/**
+ * Syllabifies a verse (which may contain † and * section markers on separate
+ * lines) and injects | between syllables of the same word.
+ * Returns global syllables, wordMap, and the rebuilt rawLine.
+ */
+function _syllabifyWithMarkers(rawLine, plugin) {
+  // Remove | without spaces so Hos|po|din rejoins into Hospodin before re-syllabifying.
+  // Section markers (†*) become spaces; ' is stripped as a safeguard.
+  const flatText = rawLine.replace(/[†*']/g, ' ').replace(/\|/g, '').replace(/\s+/g, ' ').trim();
+  const tokens   = plugin.syllabifyPhrase(flatText);
+
+  const sectionParts   = rawLine.split(/(†|\*)/);
+  let tokenOffset      = 0;
+  const markedSections = [];
+
+  for (const part of sectionParts) {
+    if (part === '†' || part === '*') { markedSections.push(part); continue; }
+    const stripped = part.replace(/[†*']/g, ' ').replace(/\|/g, '').replace(/\s+/g, ' ').trim();
+    if (!stripped) { markedSections.push(''); continue; }
+
+    const count        = plugin.syllabifyPhrase(stripped).length;
+    const sectionSlice = tokens.slice(tokenOffset, tokenOffset + count);
+    tokenOffset       += count;
+    markedSections.push(_buildSectionText(sectionSlice));
+  }
+
+  let result = '';
+  for (const part of markedSections) {
+    if (part === '†' || part === '*') result = result.trimEnd() + part + '\n';
+    else result += part;
+  }
+
+  return {
+    syllables:  tokens.map(t => t.syl),
+    wordMap:    tokens.map(t => t.wordIdx),
+    markedLine: result.trim(),
+  };
+}
+
+/** Joins syllable tokens into a string, using | within a word and space between words. */
+function _buildSectionText(tokens) {
+  let text        = '';
+  let prevWordIdx = -1;
+  for (const t of tokens) {
+    if (prevWordIdx !== -1) text += t.wordIdx === prevWordIdx ? '|' : ' ';
+    text        += t.syl;
+    prevWordIdx  = t.wordIdx;
+  }
+  return text;
 }
 
 /**

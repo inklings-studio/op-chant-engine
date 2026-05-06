@@ -17,7 +17,6 @@ const SCAFFOLD = `<!DOCTYPE html><html><body>
   <input type="checkbox" id="editorSolemn">
   <textarea id="editorRawText"></textarea>
   <button id="editorBuildBtn"></button>
-  <button id="editorRebuildBtn" class="hidden"></button>
   <button id="editorFitTextBtn" class="hidden"></button>
   <button id="editorEditToggle" class="hidden">Edit melody</button>
   <div id="editorTextInputArea"></div>
@@ -125,18 +124,16 @@ test('psalm editor toggle: second click restores textarea and hides stanzas', ()
 
 // ── Button state machine ───────────────────────────────────────────────────
 
-test('psalm editor buttons: Build visible, Re-Point and Fit Text hidden initially', () => {
+test('psalm editor buttons: Build visible, Fit Text hidden initially', () => {
   setup();
   assert.ok(!document.getElementById('editorBuildBtn').classList.contains('hidden'));
-  assert.ok(document.getElementById('editorRebuildBtn').classList.contains('hidden'));
   assert.ok(document.getElementById('editorFitTextBtn').classList.contains('hidden'));
 });
 
-test('psalm editor buttons: Build hidden, Re-Point and Fit Text visible after Build', () => {
+test('psalm editor buttons: Build hidden, Fit Text visible after Build', () => {
   setup();
   buildVerses();
   assert.ok(document.getElementById('editorBuildBtn').classList.contains('hidden'));
-  assert.ok(!document.getElementById('editorRebuildBtn').classList.contains('hidden'));
   assert.ok(!document.getElementById('editorFitTextBtn').classList.contains('hidden'));
 });
 
@@ -189,26 +186,6 @@ test('psalm editor solemn: toggling solemn re-points note inputs', () => {
   assert.ok(input.value.trim().length > 0, 'notes should remain non-empty after solemn toggle');
 });
 
-// ── Re-Point ──────────────────────────────────────────────────────────────
-
-test('psalm editor Re-Point: re-points from scratch, clearing manual edits', () => {
-  setup();
-  buildVerses([VERSE_1]);
-  const input = document.querySelector('.editor-melody-input');
-
-  // Manually change the notes
-  input.value = 'c c c c c c c';
-  fire(input, 'input');
-
-  // Re-Point replaces DOM via _renderStanzas, so capture state before and re-query after
-  document.getElementById('editorRawText').value = VERSE_1;
-  fire(document.getElementById('editorRebuildBtn'), 'click');
-
-  // Re-query — _renderStanzas replaced the old input element
-  const newInput = document.querySelector('.editor-melody-input');
-  assert.notEqual(newInput.value, 'c c c c c c c', 'Re-Point should overwrite manual edits');
-  assert.ok(newInput.value.trim().length > 0);
-});
 
 // ── Fit Text ──────────────────────────────────────────────────────────────
 
@@ -240,13 +217,25 @@ test('psalm editor Fit Text: new syllables reflected in track chips', () => {
     'track chips should reflect the new text syllables');
 });
 
-// ── Marked textarea (accent feedback) ────────────────────────────────────
+// ── Marked textarea (syllabification feedback) ────────────────────────────
 
-test("psalm editor build: textarea updated with ' accent markers after Build", () => {
+test('psalm editor build: textarea updated with | syllable markers after Build', () => {
   setup();
   buildVerses([VERSE_1]);
   const raw = document.getElementById('editorRawText').value;
-  assert.ok(raw.includes("'"), "textarea should contain ' accent markers after Build");
+  assert.ok(raw.includes('|'), 'textarea should contain | syllable-split markers after Build');
+});
+
+test('psalm editor Fit Text: | markers in textarea are stable (no duplication)', () => {
+  setup();
+  buildVerses([VERSE_1]);
+  const rawAfterBuild = document.getElementById('editorRawText').value;
+
+  // Clicking Fit Text with unchanged text should produce identical marked output
+  fire(document.getElementById('editorFitTextBtn'), 'click');
+  const rawAfterFit = document.getElementById('editorRawText').value;
+
+  assert.equal(rawAfterFit, rawAfterBuild, 'Fit Text on already-marked text should not duplicate | markers');
 });
 
 test('psalm editor build: textarea contains * mediant marker after Build', () => {
@@ -275,20 +264,6 @@ test('psalm editor build: multi-line verse input (split at *) is grouped into on
   assert.equal(inputs.length, 1, 'two lines forming one verse should produce one melody input');
 });
 
-test("psalm editor Re-Point: ' markers in textarea feed as stress overrides", () => {
-  setup();
-  // Build with a verse where the natural stress on "pastier" is on "pas"
-  buildVerses([VERSE_1]);
-  const notesNatural = document.querySelector('.editor-melody-input').value;
-
-  // Manually shift the accent marker from natural position to override it
-  // Use a verse where we can predictably override: force stress onto second syllable of "pastier"
-  document.getElementById('editorRawText').value = "Hospodin je môj pas'tier * a nič mi nechýba.";
-  fire(document.getElementById('editorRebuildBtn'), 'click');
-  const notesOverride = document.querySelector('.editor-melody-input').value;
-
-  assert.notEqual(notesOverride, notesNatural, "' override should shift accent and change notes");
-});
 
 // ── Note preservation on identical rawLine ────────────────────────────────
 
