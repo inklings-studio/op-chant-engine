@@ -13,35 +13,35 @@ const DEFAULT_DPI = 300;
 const RENDER_DEBOUNCE_MS = 300;
 
 // ─── DOM refs ────────────────────────────────────────────────────────────────
-const gabcEditor  = document.getElementById('gabcEditor');
+const gabcEditor = document.getElementById('gabcEditor');
 const chantPreview = document.getElementById('chantPreview');
-const placeholder  = document.getElementById('previewPlaceholder');
-const statusMsg    = document.getElementById('statusMessage');
-const btnPng       = document.getElementById('btnDownloadPng');
-const btnSvg       = document.getElementById('btnDownloadSvg');
+const placeholder = document.getElementById('previewPlaceholder');
+const statusMsg = document.getElementById('statusMessage');
+const btnPng = document.getElementById('btnDownloadPng');
+const btnSvg = document.getElementById('btnDownloadSvg');
 
-const previewControls    = document.getElementById('previewControls');
-const btnPlayFromStart   = document.getElementById('btnPlayFromStart');
-const btnHeaderPitchUp   = document.getElementById('btnHeaderPitchUp');
+const previewControls = document.getElementById('previewControls');
+const btnPlayFromStart = document.getElementById('btnPlayFromStart');
+const btnHeaderPitchUp = document.getElementById('btnHeaderPitchUp');
 const btnHeaderPitchDown = document.getElementById('btnHeaderPitchDown');
 const headerPitchDisplay = document.getElementById('headerPitchDisplay');
 
-const mediaControls  = document.getElementById('mediaControls');
+const mediaControls = document.getElementById('mediaControls');
 const btnPauseResume = document.getElementById('btnPauseResume');
-const btnBpmMinus    = document.getElementById('btnBpmMinus');
-const btnBpmPlus     = document.getElementById('btnBpmPlus');
-const bpmDisplay     = document.getElementById('bpmDisplay');
-const btnMediaStop   = document.getElementById('btnMediaStop');
+const btnBpmMinus = document.getElementById('btnBpmMinus');
+const btnBpmPlus = document.getElementById('btnBpmPlus');
+const bpmDisplay = document.getElementById('bpmDisplay');
+const btnMediaStop = document.getElementById('btnMediaStop');
 
 // ─── Tab refs ─────────────────────────────────────────────────────────────────
 const _editorTab = document.getElementById('editorTab');
-const _gabcTab   = document.getElementById('gabcTab');
+const _gabcTab = document.getElementById('gabcTab');
 const _editorBtn = document.getElementById('tabEditorBtn');
-const _gabcBtn   = document.getElementById('tabGabcBtn');
+const _gabcBtn = document.getElementById('tabGabcBtn');
 
 // ─── Module state ─────────────────────────────────────────────────────────────
-let ctxt    = null;
-let score   = null;
+let ctxt = null;
+let score = null;
 let _toolbar = null;
 let _lastCompiledGabc = '';
 let activeTab = 'editor';
@@ -56,9 +56,9 @@ function init() {
   }
 
   const state = getState();
-  state.largeInitial        = false;
+  state.largeInitial = true;
   state.strophicInheritance = false;
-  state.stanzaNumbers       = false;
+  state.stanzaNumbers = false;
 
   initEditor(state, onCompiledGabc);
 
@@ -85,15 +85,15 @@ function init() {
   btnSvg?.addEventListener('click', onExportSvg);
 
   _editorBtn.addEventListener('click', () => switchToTab('editor'));
-  _gabcBtn.addEventListener('click',   () => switchToTab('gabc'));
+  _gabcBtn.addEventListener('click', () => switchToTab('gabc'));
 
   setStatus(isAudioAvailable() ? 'Ready.' : 'Ready (audio unavailable).');
 }
 
 // ─── Compiled GABC callback ───────────────────────────────────────────────────
 function onCompiledGabc(gabcStr) {
-  gabcEditor.value    = gabcStr;
-  _lastCompiledGabc   = gabcStr;
+  gabcEditor.value = gabcStr;
+  _lastCompiledGabc = gabcStr;
   renderFromEditor();
 }
 
@@ -156,15 +156,15 @@ function removeToolbar() {
 
 function resolveClickedNote(el) {
   let noteEl = null;
-  let note   = null;
-  let group  = null;
+  let note = null;
+  let group = null;
 
   if (el.tagName.toLowerCase() === 'use' && el.source?.neume) {
     noteEl = el;
-    note   = el.source;
-    group  = el.parentElement;
+    note = el.source;
+    group = el.parentElement;
   } else if (el.tagName.toLowerCase() === 'text') {
-    group  = el.parentElement;
+    group = el.parentElement;
     noteEl = group?.querySelector('use[source-index]') ?? null;
     if (noteEl && noteEl.source?.neume) note = noteEl.source;
   }
@@ -239,7 +239,7 @@ function _getPitchData() {
   return {
     firstPitched,
     transpose: score.defaultStartPitch.toInt() - firstPitched.pitch.toInt(),
-    low:  Math.min(...allPitched.map(n => n.pitch.toInt())),
+    low: Math.min(...allPitched.map(n => n.pitch.toInt())),
     high: Math.max(...allPitched.map(n => n.pitch.toInt())),
   };
 }
@@ -274,23 +274,23 @@ function formatPitchName(tonesMapIdx) {
 function positionToolbar(toolbar, anchorEl) {
   if (!anchorEl) return;
   const anchorRect = anchorEl.getBoundingClientRect();
-  const toolbarH   = toolbar.offsetHeight;
-  const toolbarW   = toolbar.offsetWidth;
-  const scrollTop  = window.scrollY  || document.documentElement.scrollTop;
-  const scrollLeft = window.scrollX  || document.documentElement.scrollLeft;
+  const toolbarH = toolbar.offsetHeight;
+  const toolbarW = toolbar.offsetWidth;
+  const scrollTop = window.scrollY || document.documentElement.scrollTop;
+  const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
 
-  let top  = anchorRect.top  + scrollTop  - toolbarH - 6;
+  let top = anchorRect.top + scrollTop - toolbarH - 6;
   let left = anchorRect.left + scrollLeft + anchorRect.width / 2 - toolbarW / 2;
 
   if (top < scrollTop + 4) top = anchorRect.bottom + scrollTop + 6;
   left = Math.max(scrollLeft + 8, Math.min(left, scrollLeft + window.innerWidth - toolbarW - 8));
 
-  toolbar.style.top  = top  + 'px';
+  toolbar.style.top = top + 'px';
   toolbar.style.left = left + 'px';
 }
 
 function onPreviewClick(e) {
-  const useEl  = e.target.closest('use[source-index]');
+  const useEl = e.target.closest('use[source-index]');
   const textEl = !useEl && e.target.closest('text[source-index]');
 
   if (textEl && textEl.classList.contains('dropCap')) {
@@ -452,9 +452,9 @@ function setStatus(msg, level = 'info') {
   if (!statusMsg) return;
   statusMsg.textContent = msg;
   const classes = {
-    info:  'text-xs text-gray-400',
+    info: 'text-xs text-gray-400',
     error: 'text-xs text-red-500',
-    warn:  'text-xs text-yellow-600',
+    warn: 'text-xs text-yellow-600',
   };
   statusMsg.className = classes[level] || classes.info;
 }

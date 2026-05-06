@@ -165,7 +165,7 @@ test('pointVerse: barline sentinels emitted after flex and mediant sections', ()
   assert.ok(mediantBarlineIdx > flexBarlineIdx, 'mediant barline sentinel must follow flex barline');
   assert.equal(tokens[flexBarlineIdx].note,   ',', 'flex barline note is comma (small pause)');
   assert.equal(tokens[flexBarlineIdx].syl,    '',  'flex barline syl is empty');
-  assert.equal(tokens[mediantBarlineIdx].note, ';', 'mediant barline note is semicolon (medium pause)');
+  assert.equal(tokens[mediantBarlineIdx].note, ':', 'mediant barline note is colon (medium pause)');
   assert.equal(tokens[mediantBarlineIdx].syl,  '',  'mediant barline syl is empty');
 });
 

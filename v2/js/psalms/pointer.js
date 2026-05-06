@@ -40,7 +40,7 @@ export function pointVerse(rawVerseText, toneObject, cadenceKey, isSolemn, sylla
 
   const mediantTokens = syllabifierFn(mediantRaw.trim());
   result.push(...alignChunk(mediantTokens, cadenceSection.cadence, tenorNote, intonation));
-  result.push({ syl: '', note: ';', role: 'mediant' });
+  result.push({ syl: '', note: ':', role: 'mediant' });
 
   const termTokens = syllabifierFn(termRaw.trim());
   result.push(...alignChunk(termTokens, termCadence, tenorNote, []));

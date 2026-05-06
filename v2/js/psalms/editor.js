@@ -256,8 +256,15 @@ function _buildMarkedLine(ast, wordMap) {
     if (prevWordIdx !== -1 && wIdx !== prevWordIdx) {
       lines[lines.length - 1] += ' ';
     }
-    lines[lines.length - 1] += token.syl;
+    // Strip any leading ' that the syllabifier attached as leadPunct from a
+    // previous round-trip (e.g. "'pas" from re-reading "'pastier").
+    // We re-derive and prepend our own ' for acc tokens, so the old one must go.
+    const syl = token.syl.replace(/^'+/, '');
+    // ' placed BEFORE the acc syllable: for first syllables it becomes leadPunct
+    // on the next read (stripped, natural stress applies — stable); for non-first
+    // syllables it sits between letters and correctly overrides stress.
     if (token.role === 'acc') lines[lines.length - 1] += "'";
+    lines[lines.length - 1] += syl;
 
     prevWordIdx = wIdx;
     sylIdx++;
