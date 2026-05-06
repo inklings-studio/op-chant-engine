@@ -94,10 +94,14 @@ function _buildResult(state) {
 
 function _getWrappers() {
   return {
-    prepBegin: document.getElementById('editorPrepBegin')?.value ?? '<i>',
-    prepEnd:   document.getElementById('editorPrepEnd')?.value   ?? '</i>',
-    accBegin:  document.getElementById('editorAccBegin')?.value  ?? '<b>',
-    accEnd:    document.getElementById('editorAccEnd')?.value    ?? '</b>',
+    prepBegin:    document.getElementById('editorPrepBegin')?.value    ?? '<i>',
+    prepEnd:      document.getElementById('editorPrepEnd')?.value      ?? '</i>',
+    accBegin:     document.getElementById('editorAccBegin')?.value     ?? '<b>',
+    accEnd:       document.getElementById('editorAccEnd')?.value       ?? '</b>',
+    flexAccBegin: document.getElementById('editorFlexAccBegin')?.value ?? '',
+    flexAccEnd:   document.getElementById('editorFlexAccEnd')?.value   ?? '',
+    flexBegin:    document.getElementById('editorFlexBegin')?.value    ?? '<i>',
+    flexEnd:      document.getElementById('editorFlexEnd')?.value      ?? '</i>',
   };
 }
 
@@ -252,7 +256,8 @@ function _wireStaticEvents(state) {
     triggerCompile(state);
   });
 
-  ['editorPrepBegin', 'editorPrepEnd', 'editorAccBegin', 'editorAccEnd'].forEach(id => {
+  ['editorPrepBegin', 'editorPrepEnd', 'editorAccBegin', 'editorAccEnd',
+   'editorFlexAccBegin', 'editorFlexAccEnd', 'editorFlexBegin', 'editorFlexEnd'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', () => triggerCompile(state));
   });
 

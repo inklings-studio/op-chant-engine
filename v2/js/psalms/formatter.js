@@ -16,34 +16,43 @@ export function generateGabc(verseAst) {
 /**
  * Convert a verse AST to a breviary-style HTML string for verses 2+.
  * Intonation tokens are skipped (not sung on repeating verses).
- * flex → †, mediant → *, acc → wrapped in accBegin/End, prep → wrapped in prepBegin/End.
+ * flex → †, mediant → *, acc → wrapped in accBegin/End (flexAccBegin/End in flex phrase),
+ * prep → wrapped in prepBegin/End, ep/fin → wrapped in flexBegin/End.
  * Syllables of the same word are joined without space; different words get a space.
  * wordMap[sylIdx] provides the word-index for each non-barline syllable.
  *
  * @param {Array<{syl:string, note:string, role:string}>} verseAst
  * @param {number[]} [wordMap]
- * @param {{ prepBegin?:string, prepEnd?:string, accBegin?:string, accEnd?:string }} [wrappers]
+ * @param {{ prepBegin?:string, prepEnd?:string, accBegin?:string, accEnd?:string,
+ *           flexAccBegin?:string, flexAccEnd?:string, flexBegin?:string, flexEnd?:string }} [wrappers]
  * @returns {string}
  */
 export function generateBreviaryHtml(verseAst, wordMap, wrappers = {}) {
-  const pb = wrappers.prepBegin ?? '<i>';
-  const pe = wrappers.prepEnd   ?? '</i>';
-  const ab = wrappers.accBegin  ?? '<b>';
-  const ae = wrappers.accEnd    ?? '</b>';
+  const pb  = wrappers.prepBegin    ?? '<i>';
+  const pe  = wrappers.prepEnd      ?? '</i>';
+  const ab  = wrappers.accBegin     ?? '<b>';
+  const ae  = wrappers.accEnd       ?? '</b>';
+  const fab = wrappers.flexAccBegin ?? '';
+  const fae = wrappers.flexAccEnd   ?? '';
+  const fb  = wrappers.flexBegin    ?? '<i>';
+  const fe  = wrappers.flexEnd      ?? '</i>';
 
   let result = '';
   let sylIdx = 0;
   let prevWordIdx = null;
+  let inFlexPhrase = true;
 
   for (const t of verseAst) {
     if (t.role === 'flex') {
       result += ' <span class="verse-mark">†</span>';
       prevWordIdx = null;
+      inFlexPhrase = false;
       continue;
     }
     if (t.role === 'mediant') {
       result += ' <span class="verse-mark">*</span>';
       prevWordIdx = null;
+      inFlexPhrase = false;
       continue;
     }
     if (t.role === 'intonation') {
@@ -55,9 +64,11 @@ export function generateBreviaryHtml(verseAst, wordMap, wrappers = {}) {
     const sameWord = prevWordIdx !== null && wIdx === prevWordIdx;
     if (!sameWord && result !== '') result += ' ';
 
-    if (t.role === 'acc')       result += `${ab}${t.syl}${ae}`;
-    else if (t.role === 'prep') result += `${pb}${t.syl}${pe}`;
-    else                        result += t.syl;
+    if (t.role === 'acc' && inFlexPhrase)              result += `${fab}${t.syl}${fae}`;
+    else if (t.role === 'acc')                         result += `${ab}${t.syl}${ae}`;
+    else if (t.role === 'prep')                        result += `${pb}${t.syl}${pe}`;
+    else if ((t.role === 'ep' || t.role === 'fin') && inFlexPhrase) result += `${fb}${t.syl}${fe}`;
+    else                                               result += t.syl;
 
     prevWordIdx = wIdx;
     sylIdx++;
@@ -71,7 +82,8 @@ export function generateBreviaryHtml(verseAst, wordMap, wrappers = {}) {
  * Each stanza must have an `ast` and `wordMap` at the stanza level.
  * Returns an HTML string of <p class="verse-line"> elements with verse numbers.
  * @param {object} state
- * @param {{ prepBegin?:string, prepEnd?:string, accBegin?:string, accEnd?:string }} [wrappers]
+ * @param {{ prepBegin?:string, prepEnd?:string, accBegin?:string, accEnd?:string,
+ *           flexAccBegin?:string, flexAccEnd?:string, flexBegin?:string, flexEnd?:string }} [wrappers]
  * @returns {string}
  */
 export function compileBreviaryHtml(state, wrappers = {}) {
