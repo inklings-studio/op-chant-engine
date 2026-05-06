@@ -25,105 +25,156 @@
 export const tone1 = {
   clef: "c4",
   tenor: "h",
-  flex: [{ acc: "g" }, { ep: "g" }, { fin: "g." }],
+  flex: [{ acc: "h" }, { ep: "f" }, { fin: "f." }],
   mediant: {
-    intonation: ["f", "g"],
-    // source: "f gh hr 'ixi hr 'g hr h" → 2 accents: ixi neume, g; ep h (hr), fin h
-    cadence: [{ acc: "ixi" }, { acc: "g" }, { ep: "h" }, { fin: "h." }],
+    intonation: ["f", "gh"],
+    cadence: [{ acc: "ixi" }, { ep: "h" }, { acc: "g" }, { ep: "h" }, { fin: "h." }],
   },
   solemn: {
-    intonation: ["f", "g"],
-    // source: "f gh hr hg ixgi h hr 'hg gh" → acc hg neume, fin gh neume
-    cadence: [{ acc: "hg" }, { fin: "gh." }],
+    intonation: ["f", "gh"],
+    cadence: [{ prep: "hg" }, { prep: "ixgi" }, { prep: "h" }, { prep: "h" }, { acc: "hg" }, { fin: "gh." }],
   },
   terminations: {
-    // source: "hr g f 'gh gr gvFED" → prep g, prep f, acc gh neume, ep g (gr), fin gvFED neume
-    D: [{ prep: "g" }, { prep: "f" }, { acc: "gh" }, { ep: "g" }, { fin: "gvFED." }],
-    // source: "hr g f 'gh gr g" → prep g, prep f, acc gh neume, ep g (gr), fin g
-    g: [{ prep: "g" }, { prep: "f" }, { acc: "gh" }, { ep: "g" }, { fin: "g." }],
-    // source: "hr g f 'g hr h" → prep g, prep f, acc g, ep h (hr), fin h
-    a: [{ prep: "g" }, { prep: "f" }, { acc: "g" }, { ep: "h" }, { fin: "h." }],
+    "D": [{ prep: "g" }, { prep: "f" }, { acc: "gh" }, { ep: "g" }, { fin: "gvFED." }],
+    "D-": [{ prep: "g" }, { prep: "f" }, { acc: "g" }, { ep: "g" }, { fin: "gvFED." }],
+    "D2": [{ prep: "g" }, { prep: "f" }, { prep: "g" }, { acc: "gf" }, { fin: "d." }],
+    "f": [{ prep: "g" }, { prep: "f" }, { acc: "gh" }, { ep: "g" }, { fin: "gf." }],
+    "g": [{ prep: "g" }, { prep: "f" }, { acc: "gh" }, { ep: "g" }, { fin: "g." }],
+    "g2": [{ prep: "g" }, { prep: "f" }, { acc: "g" }, { ep: "g" }, { fin: "ghg." }],
+    "g3": [{ prep: "g" }, { prep: "f" }, { acc: "g" }, { ep: "g" }, { fin: "g." }],
+    "a": [{ prep: "g" }, { prep: "f" }, { acc: "g" }, { ep: "h" }, { fin: "h." }],
+    "a2": [{ prep: "g" }, { prep: "f" }, { acc: "g" }, { ep: "g" }, { fin: "gh." }],
+    "a3": [{ prep: "g" }, { prep: "f" }, { acc: "gh" }, { ep: "g" }, { fin: "gh." }]
   },
 };
 
 export const tone2 = {
   clef: "f3",
   tenor: "h",
-  flex: [{ acc: "f" }, { ep: "f" }, { fin: "f." }],
+  flex: [{ acc: "h" }, { ep: "f" }, { fin: "f." }],
   mediant: {
     intonation: ["e", "f"],
-    // source: "e f hr 'i hr h" → acc i, ep h (hr), fin h
     cadence: [{ acc: "i" }, { ep: "h" }, { fin: "h." }],
   },
   solemn: {
-    intonation: ["e", "f"],
-    // source: "e fe eh hr hg hi i 'hi hr h" → acc hi neume, ep h (hr), fin h
-    cadence: [{ acc: "hi" }, { ep: "h" }, { fin: "h." }],
+    intonation: ["e", "fe", "eh"],
+    cadence: [{ prep: "hg" }, { prep: "hi" }, { prep: "i" }, { acc: "hi" }, { ep: "h" }, { fin: "h." }],
   },
-  // source: "hr g 'e fr f" → prep g, acc e, ep f (fr), fin f
   termination: [{ prep: "g" }, { acc: "e" }, { ep: "f" }, { fin: "f." }],
+};
+
+export const tone2monasticus = {
+  clef: "f3",
+  tenor: "h",
+  flex: [{ acc: "h" }, { ep: "f" }, { fin: "f." }],
+  mediant: tone2.mediant,
+  solemn: tone2.solemn,
+  termination: [{ prep: "g" }, { prep: "e" }, { acc: "ef" }, { fin: "f." }],
 };
 
 export const tone3 = {
   clef: "c4",
   tenor: "j",
-  flex: [{ acc: "h" }, { ep: "h" }, { fin: "h." }],
+  flex: [{ acc: "j" }, { ep: "h" }, { fin: "h." }],
   mediant: {
-    intonation: ["g", "h"],
-    // source: "g hj jr 'k jr jr 'ih j" → 2 accents: k (left), ih (right); ep j, fin j
-    cadence: [{ acc: "k" }, { ep: "j" }, { acc: "ih" }, { fin: "j." }],
+    intonation: ["g", "hj"],
+    cadence: [{ acc: "k" }, { ep: "j" }, { prep: "j" }, { acc: "ih" }, { fin: "j." }],
   },
   solemn: {
-    intonation: ["g", "h"],
-    // source: "g hj jr 'jk jr jr 'ih hj" → acc jk neume, acc ih, fin hj neume
-    cadence: [{ acc: "jk" }, { ep: "j" }, { acc: "ih" }, { fin: "hj." }],
+    intonation: ["g", "hj"],
+    cadence: [{ acc: "jk" }, { ep: "j" }, { prep: "j" }, { acc: "ih" }, { fin: "hj." }],
   },
   terminations: {
-    // source: "jr h 'j jr ih" → prep h, acc j, ep j (jr), fin ih
-    a: [{ prep: "h" }, { acc: "j" }, { ep: "j" }, { fin: "ih." }],
-    // source: "jr ji hi 'h gr gh" → prep ji neume, prep hi neume, acc h, ep g (gr), fin gh neume
-    a2: [{ prep: "ji" }, { prep: "hi" }, { acc: "h" }, { ep: "g" }, { fin: "gh." }],
+    "b": [{ prep: "h" }, { acc: "j" }, { ep: "j" }, { fin: "i." }],
+    "a": [{ prep: "h" }, { acc: "j" }, { ep: "j" }, { fin: "ih." }],
+    "a2": [{ prep: "ji" }, { prep: "hi" }, { acc: "h" }, { ep: "g" }, { fin: "gh." }],
+    "g": [{ prep: "ji" }, { prep: "hi" }, { acc: "h" }, { ep: "g" }, { fin: "g." }],
+    "g2": [{ prep: "h" }, { prep: "j" }, { prep: "i" }, { acc: "h" }, { ep: "g" }, { fin: "g." }]
+  },
+};
+
+export const tone3antiquo = {
+  clef: "c4",
+  tenor: "i",
+  flex: [{ acc: "i" }, { ep: "h" }, { fin: "h." }],
+  mediant: {
+    intonation: ["g", "hi"],
+    cadence: [{ acc: "k" }, { ep: "j" }, { prep: "j" }, { acc: "ih" }, { fin: "j." }],
+  },
+  solemn: {
+    intonation: ["g", "hi"],
+    cadence: [{ acc: "jk" }, { ep: "j" }, { prep: "j" }, { acc: "ih" }, { fin: "hj." }],
+  },
+  terminations: {
+    "b": [{ acc: "j" }, { ep: "h" }, { acc: "j" }, { ep: "j" }, { fin: "i." }],
+    "a": [{ acc: "j" }, { ep: "h" }, { acc: "j" }, { ep: "j" }, { fin: "ih." }],
+    "a2": [{ acc: "j" }, { ep: "h" }, { prep: "hi" }, { acc: "h" }, { ep: "g" }, { fin: "gh." }],
+    "a3": [{ acc: "ji" }, { ep: "h" }, { prep: "hi" }, { acc: "h" }, { ep: "g" }, { fin: "gh." }],
+    "g": [{ acc: "j" }, { ep: "h" }, { prep: "hi" }, { acc: "h" }, { ep: "g" }, { fin: "g." }],
+    "g2": [{ acc: "ji" }, { ep: "h" }, { prep: "hi" }, { acc: "h" }, { ep: "g" }, { fin: "g." }]
   },
 };
 
 export const tone4 = {
   clef: "c4",
   tenor: "h",
-  flex: [{ acc: "g" }, { ep: "g" }, { fin: "g." }],
+  flex: [{ acc: "h" }, { ep: "g" }, { fin: "g." }],
   mediant: {
-    intonation: ["h", "g"],
-    // source: "h gh hr g h 'i hr h" → acc i, ep h (hr), fin h
-    cadence: [{ acc: "i" }, { ep: "h" }, { fin: "h." }],
+    intonation: ["h", "gh"],
+    cadence: [{ prep: "g" }, { prep: "h" }, { acc: "i" }, { ep: "h" }, { fin: "h." }],
   },
   solemn: {
-    intonation: ["h", "g"],
-    // source: "h gh hr hg gi i 'hi hr h" → acc hi neume, ep h (hr), fin h
-    cadence: [{ acc: "hi" }, { ep: "h" }, { fin: "h." }],
+    intonation: ["h", "gh"],
+    cadence: [{ prep: "hg" }, { prep: "gi" }, { prep: "i" }, { acc: "hi" }, { ep: "h" }, { fin: "h." }],
   },
   terminations: {
-    // source: "hr g h ih gr 'gf e" → prep g, prep h, prep ih neume, acc gf neume, fin e
-    E: [{ prep: "g" }, { prep: "h" }, { prep: "ih" }, { acc: "gf" }, { fin: "e." }],
+    "g": [{ acc: "h" }, { ep: "g" }, { fin: "g." }],
+    "E": [{ prep: "g" }, { prep: "h" }, { prep: "ih" }, { prep: "g" }, { acc: "gf" }, { fin: "e." }]
   },
+};
+
+export const tone4antiquo = {
+  clef: "c4",
+  tenor: "h",
+  flex: [{ acc: "h" }, { ep: "g" }, { fin: "g." }],
+  mediant: {
+    intonation: ["e", "gh"],
+    cadence: tone4.mediant.cadence,
+  },
+  solemn: tone4.solemn,
+  terminations: tone4.terminations,
 };
 
 export const tone4alt = {
   clef: "c3",
   tenor: "i",
-  flex: [{ acc: "h" }, { ep: "h" }, { fin: "h." }],
+  flex: [{ acc: "i" }, { ep: "h" }, { fin: "h." }],
   mediant: {
-    intonation: ["i", "h"],
-    // source: "i hi ir h i 'j ir i" → acc j, ep i (ir), fin i
-    cadence: [{ acc: "j" }, { ep: "i" }, { fin: "i." }],
+    intonation: ["i", "hi"],
+    cadence: [{ prep: "h" }, { prep: "i" }, { acc: "j" }, { ep: "i" }, { fin: "i." }],
   },
   solemn: {
-    intonation: ["i", "h"],
-    // source: "i hi ir ih hj j 'ij ir i" → acc ij neume, ep i (ir), fin i
-    cadence: [{ acc: "ij" }, { ep: "i" }, { fin: "i." }],
+    intonation: ["i", "hi"],
+    cadence: [{ prep: "ih" }, { prep: "hj" }, { prep: "j" }, { acc: "ij" }, { ep: "i" }, { fin: "i." }],
   },
   terminations: {
-    // source: "ir h i j 'h fr f" → prep h, prep i, prep j, acc h, ep f (fr), fin f
-    A: [{ prep: "h" }, { prep: "i" }, { prep: "j" }, { acc: "h" }, { ep: "f" }, { fin: "f." }],
+    "c": [{ acc: "i" }, { ep: "h" }, { fin: "h." }],
+    "A": [{ prep: "h" }, { prep: "i" }, { prep: "j" }, { acc: "h" }, { ep: "f" }, { fin: "f." }],
+    "A*": [{ prep: "h" }, { prep: "i" }, { prep: "j" }, { acc: "h" }, { ep: "f" }, { fin: "fg." }],
+    "d": [{ prep: "h" }, { prep: "i" }, { prep: "j" }, { acc: "h" }, { ep: "i" }, { fin: "i." }]
   },
+};
+
+export const tone4antiquoAlt = {
+  clef: "c3",
+  tenor: "i",
+  flex: [{ acc: "i" }, { ep: "h" }, { fin: "h." }],
+  mediant: {
+    intonation: ["f", "hi"],
+    cadence: tone4alt.mediant.cadence,
+  },
+  solemn: tone4alt.solemn,
+  terminations: tone4alt.terminations,
 };
 
 export const tone5 = {
@@ -132,99 +183,99 @@ export const tone5 = {
   flex: [{ acc: "h" }, { ep: "f" }, { fin: "f." }],
   mediant: {
     intonation: ["d", "f"],
-    // source: "d f hr 'i hr h" → acc i, ep h (hr), fin h
     cadence: [{ acc: "i" }, { ep: "h" }, { fin: "h." }],
   },
   solemn: {
     intonation: ["d", "f"],
-    // source: "d f hr i 'i hr h" → acc i, ep h (hr), fin h
-    cadence: [{ acc: "i" }, { ep: "h" }, { fin: "h." }],
+    cadence: [{ prep: "i" }, { acc: "i" }, { ep: "h" }, { fin: "h." }],
   },
-  // source: "hr 'i gr 'h fr f" → acc i, acc h, ep f (fr), fin f
   termination: [{ acc: "i" }, { ep: "g" }, { acc: "h" }, { ep: "f" }, { fin: "f." }],
 };
 
 export const tone6 = {
   clef: "c4",
   tenor: "h",
-  flex: [{ acc: "g" }, { ep: "g" }, { fin: "g." }],
+  flex: [{ acc: "h" }, { ep: "f" }, { fin: "f." }],
   mediant: {
-    intonation: ["f", "g"],
-    // source: "f gh hr 'ixi hr 'g hr h" → 2 accents: ixi neume, g; ep h (hr), fin h
-    cadence: [{ acc: "ixi" }, { acc: "g" }, { ep: "h" }, { fin: "h." }],
+    intonation: ["f", "gh"],
+    cadence: [{ acc: "ixi" }, { ep: "h" }, { acc: "g" }, { ep: "h" }, { fin: "h." }],
   },
   solemn: {
-    intonation: ["f", "g"],
-    // source: "f gh hr hg ixgi h hr 'hg gh" → acc hg neume, fin gh neume
-    cadence: [{ acc: "hg" }, { fin: "gh." }],
+    intonation: ["f", "gh"],
+    cadence: [{ prep: "hg" }, { prep: "ixgi" }, { prep: "h" }, { prep: "h" }, { acc: "hg" }, { fin: "gh." }],
   },
-  // source: "hr f gh 'g fr f" → prep f, prep gh neume, acc g, ep f (fr), fin f
   termination: [{ prep: "f" }, { prep: "gh" }, { acc: "g" }, { ep: "f" }, { fin: "f." }],
+};
+
+export const tone6alt = {
+  clef: "c4",
+  tenor: "h",
+  flex: [{ acc: "h" }, { ep: "f" }, { fin: "f." }],
+  mediant: {
+    intonation: ["f", "gh"],
+    cadence: [{ prep: "g" }, { acc: "h" }, { ep: "f" }, { fin: "f." }],
+  },
+  termination: tone6.termination,
 };
 
 export const tone7 = {
   clef: "c3",
-  tenor: "j",
-  flex: [{ acc: "i" }, { ep: "i" }, { fin: "i." }],
+  tenor: "i",
+  flex: [{ acc: "i" }, { ep: "h" }, { fin: "h." }],
   mediant: {
-    intonation: ["h", "h"],
-    // source: "hg hi ir 'k jr 'i jr j" → acc k, acc i, ep j (jr), fin j
-    cadence: [{ acc: "k" }, { acc: "i" }, { ep: "j" }, { fin: "j." }],
+    intonation: ["hg", "hi"],
+    cadence: [{ acc: "k" }, { ep: "j" }, { acc: "i" }, { ep: "j" }, { fin: "j." }],
   },
   shortMediant: {
-    intonation: ["h", "h"],
-    // source: "hg hi ir" → intonation only, no cadence
-    cadence: [],
+    intonation: ["hg", "hi"],
+    cadence: [{ fin: "i." }],
   },
   solemn: {
-    intonation: ["e", "h"],
-    // source: "ehg hi ir 'ik jr jr 'ji ij" → acc ik neume, acc ji neume, fin ij neume
-    cadence: [{ acc: "ik" }, { acc: "ji" }, { fin: "ij." }],
+    intonation: ["ehg", "hi"],
+    cadence: [{ acc: "ik" }, { ep: "j" }, { prep: "j" }, { acc: "ji" }, { fin: "ij." }],
   },
   shortSolemn: {
-    intonation: ["e", "h"],
-    // source: "ehg hi ir i" → fin i only
+    intonation: ["ehg", "hi"],
     cadence: [{ fin: "i." }],
   },
   terminations: {
-    // source: "ir 'j ir 'h hr gf" → acc j, acc h, ep h (hr), fin gf neume
-    a: [{ acc: "j" }, { acc: "h" }, { ep: "h" }, { fin: "gf." }],
-    // source: "ir 'j ir 'h hr gi" → acc j, acc h, ep h (hr), fin gi neume
-    d: [{ acc: "j" }, { acc: "h" }, { ep: "h" }, { fin: "gi." }],
+    "a": [{ acc: "j" }, { ep: "i" }, { acc: "h" }, { ep: "h" }, { fin: "gf." }],
+    "b": [{ acc: "j" }, { ep: "i" }, { acc: "h" }, { ep: "h" }, { fin: "g." }],
+    "c": [{ acc: "j" }, { ep: "i" }, { acc: "h" }, { ep: "h" }, { fin: "gh." }],
+    "c2": [{ acc: "j" }, { ep: "i" }, { acc: "h" }, { ep: "h" }, { fin: "ih." }],
+    "d": [{ acc: "j" }, { ep: "i" }, { acc: "h" }, { ep: "h" }, { fin: "gi." }]
   },
 };
 
 export const tone8 = {
   clef: "c4",
   tenor: "j",
-  flex: [{ acc: "h" }, { ep: "h" }, { fin: "h." }],
+  flex: [{ acc: "j" }, { ep: "h" }, { fin: "h." }],
   mediant: {
     intonation: ["g", "h"],
-    // source: "g h jr 'k jr j" → acc k, ep j (jr), fin j
     cadence: [{ acc: "k" }, { ep: "j" }, { fin: "j." }],
   },
   solemn: {
-    intonation: ["g", "h"],
-    // source: "g hg gj jr ji jk k 'jk jr j" → acc jk neume, ep j (jr), acc k, fin j
-    cadence: [{ acc: "jk" }, { ep: "j" }, { acc: "k" }, { fin: "j." }],
+    intonation: ["g", "hg", "gj"],
+    cadence: [{ prep: "ji" }, { prep: "jk" }, { prep: "k" }, { acc: "jk" }, { ep: "j" }, { fin: "j." }],
   },
   terminations: {
-    // source: "jr i j 'h gr g" → prep i, acc j, ep h (gr), fin g
-    G: [{ prep: "i" }, { acc: "j" }, { ep: "h" }, { fin: "g." }],
-    // source: "jr h j 'k jr j" → acc k, ep j (jr), fin j
-    c: [{ acc: "k" }, { ep: "j" }, { fin: "j." }],
+    "G": [{ prep: "i" }, { prep: "j" }, { acc: "h" }, { ep: "g" }, { fin: "g." }],
+    "G*": [{ prep: "i" }, { prep: "j" }, { acc: "h" }, { ep: "g" }, { fin: "gh." }],
+    "c": [{ prep: "h" }, { prep: "j" }, { acc: "k" }, { ep: "j" }, { fin: "j." }]
   },
 };
 
 export const per = {
   clef: "c4",
   tenor: "h",
-  flex: [{ acc: "g" }, { ep: "g" }, { fin: "g." }],
+  flex: [{ acc: "h" }, { ep: "g" }, { fin: "g." }],
   mediant: {
     intonation: ["ixhi"],
-    // source: "ixhi hr ixi h 'g fr f" → acc g, ep f (fr), fin f
-    cadence: [{ acc: "g" }, { ep: "f" }, { fin: "f." }],
+    cadence: [{ prep: "g" }, { prep: "ixi" }, { prep: "h" }, { acc: "g" }, { ep: "f" }, { fin: "f." }],
   },
-  // source: "gr d 'f fr ed" → prep d, acc f, ep f (fr), fin ed neume
+  // Note: The tenor for the second half of Peregrinus drops to 'g'. 
+  // The 'pointer.js' algorithm currently inherits the global tenor 'h'. 
+  // This may require an override in the caller for true Peregrinus rendering.
   termination: [{ prep: "d" }, { acc: "f" }, { ep: "f" }, { fin: "ed." }],
 };

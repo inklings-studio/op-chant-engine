@@ -54,18 +54,18 @@ test('pointVerse: tone8 flex – acc lands on primary stress of last flex word (
 
   const flexTokens = tokens.slice(0, 4);
   assert.deepEqual(flexTokens.map(t => t.role), ['tenor', 'tenor', 'acc', 'fin']);
-  assert.deepEqual(flexTokens.map(t => t.note), ['j', 'j', 'h', 'h.']);
+  assert.deepEqual(flexTokens.map(t => t.note), ['j', 'j', 'j', 'h.']);
 });
 
 // ── Proparoxytone: ep IS used ──────────────────────────────────────────────────
 
 // When the last word is proparoxytone (stress on antepenultimate), ep is used correctly.
 // "a nič mi nechýba" termination: ne(★) chý ba
-// Term G: [{prep:"i"},{acc:"j"},{ep:"h"},{fin:"g."}]
+// Term G: [{prep:"i"},{prep:"j"},{acc:"h"},{ep:"g"},{fin:"g."}]
 //   fin: ba
 //   ep:  chý — NOT stressed → ep assigned (no skip)
-//   acc: ne(★) → acc(j)
-//   prep: no tokens left → skipped
+//   acc: ne(★) → acc(h)
+//   prep(j): mi (unstressed) → prep; prep(i): nič → prep
 test('pointVerse: proparoxytone last word — ep correctly used (nechýba)', () => {
   const tokens = pointVerse('* a nič mi nechýba', tone8, 'G', false, syllabifyPhrase);
   const acc = tokens.find(t => t.role === 'acc');
@@ -80,11 +80,12 @@ test('pointVerse: proparoxytone last word — ep correctly used (nechýba)', () 
 
 // When the last word is paroxytone (stress on penultimate), ep is skipped.
 // "a nič mi čakám" termination: ča(★) kám
-// Term G: [{prep:"i"},{acc:"j"},{ep:"h"},{fin:"g."}]
+// Term G: [{prep:"i"},{prep:"j"},{acc:"h"},{ep:"g"},{fin:"g."}]
 //   fin: kám
 //   ep:  ča — stressed → skip (acc slot remains)
-//   acc: ča(★) → acc(j)
-//   prep: mi → prep(i)
+//   acc: ča(★) → acc(h)
+//   prep(j): mi (unstressed) → prep
+//   prep(i): nič (stressed, no acc left) → prep
 test('pointVerse: paroxytone last word — ep skipped, acc on stressed penultimate (čakám)', () => {
   const tokens = pointVerse('* a nič mi čakám', tone8, 'G', false, syllabifyPhrase);
   const acc  = tokens.find(t => t.role === 'acc');
@@ -94,7 +95,7 @@ test('pointVerse: paroxytone last word — ep skipped, acc on stressed penultima
   assert.equal(acc?.syl,  'ča',  'acc on "ča" (primary stress of čakám)');
   assert.ok(!ep,                 'ep slot skipped for paroxytone word');
   assert.equal(fin?.syl,  'kám', 'fin on "kám"');
-  assert.equal(prep?.syl, 'mi',  'prep on "mi"');
+  assert.equal(prep?.syl, 'nič', 'first prep on "nič"');
 });
 
 // ── Secondary stress ───────────────────────────────────────────────────────────
