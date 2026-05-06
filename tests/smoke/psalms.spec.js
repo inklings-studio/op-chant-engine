@@ -71,7 +71,7 @@ test('build: Build button hidden and Fit Text visible after Build', async ({ pag
   await page.goto(URL);
   await buildVerses(page);
   await expect(page.locator('#editorBuildBtn')).toBeHidden();
-  await expect(page.locator('#editorFitTextBtn')).toBeVisible();
+  await expect(page.locator('#editorRebuildBtn')).toBeVisible();
 });
 
 // ── Edit melody toggle ─────────────────────────────────────────────────────────

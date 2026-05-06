@@ -31,7 +31,7 @@ const _largeInitChk   = () => document.getElementById('editorLargeInitial');
 const _annotationInput= () => document.getElementById('editorAnnotation');
 const _rawText        = () => document.getElementById('editorRawText');
 const _buildBtn       = () => document.getElementById('editorBuildBtn');
-const _fitTextBtn     = () => document.getElementById('editorFitTextBtn');
+const _rebuildBtn     = () => document.getElementById('editorRebuildBtn');
 const _editToggle     = () => document.getElementById('editorEditToggle');
 const _textArea       = () => document.getElementById('editorTextInputArea');
 const _stanzasEl      = () => document.getElementById('editorStanzas');
@@ -233,7 +233,7 @@ function _wireStaticEvents(state) {
     }
   });
 
-  _fitTextBtn().addEventListener('click', () => {
+  _rebuildBtn().addEventListener('click', () => {
     const raw = _rawText().value.trim();
     if (!raw) return;
     _parseAndPoint(raw, state);
@@ -271,11 +271,11 @@ function _showStanzas() {
   _editToggle().textContent = 'Edit text';
 }
 
-// Swap between Build (empty state) and Fit Text (has content).
+// Swap between Build (empty state) and Re-Build (has content).
 function _syncBuildButtons(state) {
   const hasContent = state.stanzas.length > 0;
   _buildBtn().classList.toggle('hidden', hasContent);
-  _fitTextBtn().classList.toggle('hidden', !hasContent);
+  _rebuildBtn().classList.toggle('hidden', !hasContent);
 }
 
 // ─── Build helper ─────────────────────────────────────────────────────────────
@@ -448,6 +448,8 @@ function _repointAll(state) {
     const newStanza = _buildStanza(stanza.rawLine, tone, plugin, si === 0);
     stanza.lines   = newStanza.lines;
     stanza.rawLine = newStanza.rawLine;
+    stanza.ast     = newStanza.ast;
+    stanza.wordMap = newStanza.wordMap;
   });
 
   state.clef = tone.clef;

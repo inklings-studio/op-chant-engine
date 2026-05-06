@@ -19,7 +19,7 @@ const SCAFFOLD = `<!DOCTYPE html><html><body>
   <input type="checkbox" id="editorSolemn">
   <textarea id="editorRawText"></textarea>
   <button id="editorBuildBtn"></button>
-  <button id="editorFitTextBtn" class="hidden"></button>
+  <button id="editorRebuildBtn" class="hidden"></button>
   <button id="editorEditToggle" class="hidden">Edit melody</button>
   <div id="editorTextInputArea"></div>
   <div id="editorStanzas" class="hidden"></div>
@@ -134,14 +134,14 @@ test('psalm editor toggle: second click returns to melody view', () => {
 test('psalm editor buttons: Build visible, Fit Text hidden initially', () => {
   setup();
   assert.ok(!document.getElementById('editorBuildBtn').classList.contains('hidden'));
-  assert.ok(document.getElementById('editorFitTextBtn').classList.contains('hidden'));
+  assert.ok(document.getElementById('editorRebuildBtn').classList.contains('hidden'));
 });
 
 test('psalm editor buttons: Build hidden, Fit Text visible after Build', () => {
   setup();
   buildVerses();
   assert.ok(document.getElementById('editorBuildBtn').classList.contains('hidden'));
-  assert.ok(!document.getElementById('editorFitTextBtn').classList.contains('hidden'));
+  assert.ok(!document.getElementById('editorRebuildBtn').classList.contains('hidden'));
 });
 
 // ── Tone change re-pointing ────────────────────────────────────────────────
@@ -203,7 +203,7 @@ test('psalm editor Fit Text: re-points notes when text changes', () => {
 
   // Change raw text to a different verse
   document.getElementById('editorRawText').value = 'Pane Bože uslyš * naše modlitby.';
-  fire(document.getElementById('editorFitTextBtn'), 'click');
+  fire(document.getElementById('editorRebuildBtn'), 'click');
 
   // Re-query — _renderStanzas replaced the old input element
   const notesAfter = document.querySelector('.editor-melody-input').value;
@@ -216,7 +216,7 @@ test('psalm editor Fit Text: new syllables reflected in track chips', () => {
   buildVerses([VERSE_1]);
 
   document.getElementById('editorRawText').value = 'Pane Bože * chvála.';
-  fire(document.getElementById('editorFitTextBtn'), 'click');
+  fire(document.getElementById('editorRebuildBtn'), 'click');
 
   // Track chips now show new syllables ("Pa", "ne", "Bo", "že", "chvá", "la")
   const chips = [...document.querySelectorAll('.track-chip-matched, .track-chip-overflow')];
@@ -240,7 +240,7 @@ test('psalm editor Fit Text: | markers in textarea are stable (no duplication)',
   const rawAfterBuild = document.getElementById('editorRawText').value;
 
   // Clicking Fit Text with unchanged text should produce identical marked output
-  fire(document.getElementById('editorFitTextBtn'), 'click');
+  fire(document.getElementById('editorRebuildBtn'), 'click');
   const rawAfterFit = document.getElementById('editorRawText').value;
 
   assert.equal(rawAfterFit, rawAfterBuild, 'Fit Text on already-marked text should not duplicate | markers');
