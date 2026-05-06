@@ -80,7 +80,7 @@ export const tone3 = {
   },
   terminations: {
     // source: "jr h 'j jr ih" → prep h, acc j, ep j (jr), fin ih
-    a:  [{ prep: "h" }, { acc: "j" }, { ep: "j" }, { fin: "ih." }],
+    a: [{ prep: "h" }, { acc: "j" }, { ep: "j" }, { fin: "ih." }],
     // source: "jr ji hi 'h gr gh" → prep ji neume, prep hi neume, acc h, ep g (gr), fin gh neume
     a2: [{ prep: "ji" }, { prep: "hi" }, { acc: "h" }, { ep: "g" }, { fin: "gh." }],
   },
@@ -129,7 +129,7 @@ export const tone4alt = {
 export const tone5 = {
   clef: "c3",
   tenor: "h",
-  flex: [{ acc: "f" }, { ep: "f" }, { fin: "f." }],
+  flex: [{ acc: "h" }, { ep: "f" }, { fin: "f." }],
   mediant: {
     intonation: ["d", "f"],
     // source: "d f hr 'i hr h" → acc i, ep h (hr), fin h
@@ -141,7 +141,7 @@ export const tone5 = {
     cadence: [{ acc: "i" }, { ep: "h" }, { fin: "h." }],
   },
   // source: "hr 'i gr 'h fr f" → acc i, acc h, ep f (fr), fin f
-  termination: [{ acc: "i" }, { acc: "h" }, { ep: "f" }, { fin: "f." }],
+  termination: [{ acc: "i" }, { ep: "g" }, { acc: "h" }, { ep: "f" }, { fin: "f." }],
 };
 
 export const tone6 = {

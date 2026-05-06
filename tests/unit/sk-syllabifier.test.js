@@ -76,20 +76,6 @@ test("isStressed: default across two words (Pane Bože)", () => {
   ]);
 });
 
-// isStressed — ' override shifts stress to marked syllable
-test("isStressed: ' override shifts stress to second syllable (Bo'že)", () => {
-  const tokens = syllabifyPhrase("Bo'že");
-  assert.deepEqual(tokens.map(t => ({ syl: t.syl, isStressed: t.isStressed })), [
-    { syl: 'Bo', isStressed: false },
-    { syl: 'že', isStressed: true },
-  ]);
-});
-
-test("isStressed: ' stripped from syl output (Bo'že)", () => {
-  const tokens = syllabifyPhrase("Bo'že");
-  assert.deepEqual(tokens.map(t => t.syl), ['Bo', 'že']);
-});
-
 // | in-word split: two chips, same wordIdx → no GABC space between them
 test("control char |: dnes|ka produces two chips with the same wordIdx (no GABC space)", () => {
   const tokens = syllabifyPhrase('dnes|ka');
@@ -104,6 +90,26 @@ test("control char |: Slo|ven|sku produces three chips all with the same wordIdx
   assert.equal(tokens.length, 3);
   assert.ok(tokens.every(t => t.wordIdx === tokens[0].wordIdx), 'all share wordIdx');
   assert.deepEqual(tokens.map(t => t.syl), ['Slo', 'ven', 'sku']);
+});
+
+// | secondary stress: same rule as syllabifyWord — first syl + even indices for words ≥ 4 parts.
+// This matters because _buildStanza round-trips through marked rawLines (with | injected),
+// so on re-point the PIPE path must produce the same stress pattern as the original algorithm.
+test("control char |: 2-part word — only first part is stressed (dnes|ka)", () => {
+  const tokens = syllabifyPhrase('dnes|ka');
+  assert.deepEqual(tokens.map(t => t.isStressed), [true, false]);
+});
+
+test("control char |: 3-part word — only first part is stressed (Slo|ven|sku)", () => {
+  const tokens = syllabifyPhrase('Slo|ven|sku');
+  assert.deepEqual(tokens.map(t => t.isStressed), [true, false, false]);
+});
+
+test("control char |: 5-part word — secondary stress on even indices (spra|vod|li|vé|ho)", () => {
+  // Mirrors automatic stress for 'spravodlivého' → [T,F,T,F,T]
+  // so that round-tripping through a marked rawLine preserves accent placement.
+  const tokens = syllabifyPhrase('spra|vod|li|vé|ho');
+  assert.deepEqual(tokens.map(t => t.isStressed), [true, false, true, false, true]);
 });
 
 // _ semantic tie: ALL joined fragments collapse into ONE chip / ONE melody note.
@@ -147,18 +153,113 @@ test("isStressed: 5-syllable word stressed on syllables 0, 2, 4 (demokraticky)",
   assert.deepEqual(tokens.map(t => t.isStressed), [true, false, true, false, true]);
 });
 
-test("isStressed: ' override suppresses secondary stress in the same word", () => {
-  // Without override: "demokracia" → [T,F,T,F]
-  // With "de'mokracia": apostrophe at pos 2, lands in syllable 1 ("mok") → only syl 1 stressed
-  const tokens = syllabifyPhrase("de'mokracia");
-  assert.deepEqual(tokens.map(t => t.isStressed), [false, true, false, false]);
+// ── UNSTRESSED_MONOSYLLABLES ──────────────────────────────────────────────────
+
+// Conjunctions
+test("isStressed: conjunction 'a' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('a').at(0).isStressed, false);
+});
+test("isStressed: conjunction 'i' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('i').at(0).isStressed, false);
+});
+test("isStressed: conjunction 'aj' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('aj').at(0).isStressed, false);
+});
+test("isStressed: conjunction 'že' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('že').at(0).isStressed, false);
 });
 
-test("isStressed: ' override on one word does not suppress secondary stress of adjacent words", () => {
-  // First word overridden → only marked syl stressed; second word gets automatic secondary
-  const tokens = syllabifyPhrase("de'mokracia demokracia");
-  const firstWord = tokens.filter(t => t.wordIdx === 0).map(t => t.isStressed);
-  const secondWord = tokens.filter(t => t.wordIdx === 1).map(t => t.isStressed);
-  assert.deepEqual(firstWord, [false, true, false, false]);
-  assert.deepEqual(secondWord, [true, false, true, false]);
+// Short pronouns / auxiliary verbs
+test("isStressed: pronoun 'sa' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('sa').at(0).isStressed, false);
+});
+test("isStressed: pronoun/aux 'si' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('si').at(0).isStressed, false);
+});
+test("isStressed: pronoun 'mi' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('mi').at(0).isStressed, false);
+});
+test("isStressed: pronoun 'ti' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('ti').at(0).isStressed, false);
+});
+test("isStressed: pronoun 'ho' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('ho').at(0).isStressed, false);
+});
+test("isStressed: pronoun 'mu' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('mu').at(0).isStressed, false);
+});
+test("isStressed: pronoun 'ju' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('ju').at(0).isStressed, false);
+});
+test("isStressed: pronoun 'ich' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('ich').at(0).isStressed, false);
+});
+test("isStressed: aux 'som' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('som').at(0).isStressed, false);
+});
+test("isStressed: aux 'je' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('je').at(0).isStressed, false);
+});
+test("isStressed: aux 'by' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('by').at(0).isStressed, false);
+});
+
+// Syllabic prepositions
+test("isStressed: preposition 'o' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('o').at(0).isStressed, false);
+});
+test("isStressed: preposition 'u' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('u').at(0).isStressed, false);
+});
+test("isStressed: preposition 'do' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('do').at(0).isStressed, false);
+});
+test("isStressed: preposition 'na' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('na').at(0).isStressed, false);
+});
+test("isStressed: preposition 'za' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('za').at(0).isStressed, false);
+});
+test("isStressed: preposition 'pri' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('pri').at(0).isStressed, false);
+});
+test("isStressed: preposition 'po' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('po').at(0).isStressed, false);
+});
+test("isStressed: preposition 'vo' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('vo').at(0).isStressed, false);
+});
+test("isStressed: preposition 'zo' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('zo').at(0).isStressed, false);
+});
+test("isStressed: preposition 'so' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('so').at(0).isStressed, false);
+});
+test("isStressed: preposition 'ku' is always unstressed", () => {
+  assert.equal(syllabifyPhrase('ku').at(0).isStressed, false);
+});
+
+// Capitalised forms also match (case-insensitive lookup)
+test("isStressed: capitalised 'Na' (sentence-initial preposition) is still unstressed", () => {
+  assert.equal(syllabifyPhrase('Na').at(0).isStressed, false);
+});
+test("isStressed: capitalised 'Je' (sentence-initial aux) is still unstressed", () => {
+  assert.equal(syllabifyPhrase('Je').at(0).isStressed, false);
+});
+
+// Multi-syllable words starting with these character sequences are NOT affected
+test("isStressed: 'naozaj' (starts with 'na') remains stressed on first syllable", () => {
+  // naozaj → na-o-zaj (3 syllables); only the monosyllabic standalone 'na' is suppressed
+  const tokens = syllabifyPhrase('naozaj');
+  assert.equal(tokens[0].isStressed, true, 'first syllable of polysyllabic word is still stressed');
+});
+
+// Unstressed function word in context: does not disrupt adjacent word stress
+test("isStressed: 'kráľ a Boh' — a is unstressed, kráľ and Boh remain stressed", () => {
+  const tokens = syllabifyPhrase('kráľ a Boh');
+  assert.deepEqual(tokens.map(t => ({ syl: t.syl, isStressed: t.isStressed })), [
+    { syl: 'kráľ', isStressed: true  },
+    { syl: 'a',    isStressed: false },
+    { syl: 'Boh',  isStressed: true  },
+  ]);
 });

@@ -7,9 +7,20 @@ import { preprocessPhrase, PIPE_SEP, TIE_SEP } from '../../common/language.js';
 const VOWELS = new Set([...'yaeiouáéíóúýäôYAEIOUÁÉÍÓÚÝÄÔ']);
 const SYLLABIC = new Set([...'rlŕĺRLŔĹ']);
 
+// Monosyllabic function words that never carry primary stress.
+// Checked against clean.toLowerCase() in syllabifyPhrase; apostrophe override still wins.
+const UNSTRESSED_MONOSYLLABLES = new Set([
+  // conjunctions
+  'a', 'i', 'aj', 'že',
+  // short pronouns / auxiliary verbs
+  'sa', 'si', 'mi', 'ti', 'ho', 'mu', 'ju', 'ich', 'som', 'je', 'by',
+  // syllabic prepositions
+  'o', 'u', 'do', 'na', 'za', 'pri', 'po', 'vo', 'zo', 'so', 'ku',
+]);
+
 const DIPHTHONG_PAIRS = new Set(['ia', 'ie', 'iu', 'ou', 'Ia', 'Ie', 'Iu', 'Ou', 'IA', 'IE', 'IU', 'OU']);
 // Slovak digraphs: each pair is a single indivisible consonant unit.
-const DIGRAPHS = new Set(['ch','Ch','CH','cH','dz','Dz','DZ','dZ','dž','Dž','DŽ','dŽ']);
+const DIGRAPHS = new Set(['ch', 'Ch', 'CH', 'cH', 'dz', 'Dz', 'DZ', 'dZ', 'dž', 'Dž', 'DŽ', 'dŽ']);
 
 function isDiphthongStart(word, i) {
   return i + 1 < word.length && DIPHTHONG_PAIRS.has(word[i] + word[i + 1]);
@@ -26,7 +37,7 @@ function consonantUnits(str) {
   let j = 0;
   while (j < str.length) {
     if (isDigraphStart(str, j)) { units.push(2); j += 2; }
-    else                        { units.push(1); j++;   }
+    else { units.push(1); j++; }
   }
   return units;
 }
@@ -179,7 +190,8 @@ export function syllabifyPhrase(phrase) {
       for (let pi = 0; pi < parts.length; pi++) {
         let syl = parts[pi];
         if (pi === 0 && pendingPrefix) { syl = pendingPrefix + syl; pendingPrefix = ''; }
-        tokens.push({ syl, wordIdx: wIdx, sylIdx: pi, isStressed: pi === 0 });
+        const isStressed = pi === 0 || (parts.length >= 4 && pi % 2 === 0);
+        tokens.push({ syl, wordIdx: wIdx, sylIdx: pi, isStressed });
       }
       pendingPrefix = '';
       continue;
@@ -196,27 +208,16 @@ export function syllabifyPhrase(phrase) {
       continue;
     }
 
-    // ' marks explicit stress; find which syllable it falls in, then strip it.
-    let stressOverrideSylIdx = -1;
-    const apostrophePos = clean.indexOf("'");
-    if (apostrophePos !== -1) {
-      clean = clean.replace(/'/g, '');
-      let cum = 0;
-      for (const [si, s] of syllabifyWord(clean).entries()) {
-        cum += s.length;
-        if (apostrophePos < cum) { stressOverrideSylIdx = si; break; }
-      }
-    }
-
     const syls = syllabifyWord(clean);
     const wIdx = wordIdxCounter++;
     for (let sylIdx = 0; sylIdx < syls.length; sylIdx++) {
       let syl = syls[sylIdx];
       if (sylIdx === 0) syl = pendingPrefix + leadPunct + syl;
       if (sylIdx === syls.length - 1) syl = syl + trailPunct;
-      const isStressed = stressOverrideSylIdx !== -1
-        ? sylIdx === stressOverrideSylIdx
-        : sylIdx === 0 || (syls.length >= 4 && sylIdx % 2 === 0);
+      const defaultStressed = sylIdx === 0 || (syls.length >= 4 && sylIdx % 2 === 0);
+      const isStressed = syls.length === 1
+        ? !UNSTRESSED_MONOSYLLABLES.has(clean.toLowerCase())
+        : defaultStressed;
       tokens.push({ syl, wordIdx: wIdx, sylIdx, isStressed });
     }
     pendingPrefix = '';

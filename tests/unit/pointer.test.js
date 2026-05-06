@@ -97,20 +97,6 @@ test('pointVerse: paroxytone last word — ep skipped, acc on stressed penultima
   assert.equal(prep?.syl, 'mi',  'prep on "mi"');
 });
 
-// ── Stress override (' character) ─────────────────────────────────────────────
-
-// ' override shifts isStressed to the marked syllable, which changes where acc lands.
-// Natural "nechýba": ne(★) chý ba → ep=chý (unstressed, no skip), acc=ne
-// Override "ne'chýba": ne chý(★) ba → ep skipped (chý stressed), acc=chý, prep=ne
-test("pointVerse: ' override shifts acc within the last word", () => {
-  const natural  = pointVerse('* nechýba',  tone8, 'G', false, syllabifyPhrase);
-  const override = pointVerse("* ne'chýba", tone8, 'G', false, syllabifyPhrase);
-
-  assert.equal(natural.find(t => t.role === 'acc')?.syl,  'ne',  'natural: acc on "ne"');
-  assert.equal(override.find(t => t.role === 'acc')?.syl, 'chý', "override: acc shifts to \"chý\"");
-  assert.equal(override.find(t => t.role === 'prep')?.syl, 'ne', "override: ne becomes prep");
-});
-
 // ── Secondary stress ───────────────────────────────────────────────────────────
 
 // "demokraticky *" mediant: de(★) mok ra(★) tic ky(★) — 5 syllables with secondary stress
@@ -167,6 +153,55 @@ test('pointVerse: barline sentinels emitted after flex and mediant sections', ()
   assert.equal(tokens[flexBarlineIdx].syl,    '',  'flex barline syl is empty');
   assert.equal(tokens[mediantBarlineIdx].note, ':', 'mediant barline note is colon (medium pause)');
   assert.equal(tokens[mediantBarlineIdx].syl,  '',  'mediant barline syl is empty');
+});
+
+// ── Unstressed monosyllables: conjunction 'a' does not steal acc ──────────────
+
+// "kráľ a Boh" termination G: kráľ(★) a(✗) Boh(★)
+// Term G: [{prep:"i"},{acc:"j"},{ep:"h"},{fin:"g."}]
+//
+// Before fix: 'a' was stressed → ep saw stress and skipped → acc landed on 'a' (WRONG)
+// After fix:  'a' is unstressed → ep claims 'a' → acc scans left and lands on 'kráľ' (CORRECT)
+//
+// Right-to-left:
+//   fin:  Boh
+//   ep:   a (unstressed → ep takes it, no skip)
+//   acc:  kráľ (stressed → anchor)
+//   prep: no tokens left → dropped
+test('pointVerse: tone8 termG – unstressed "a" does not steal acc; acc lands on kráľ', () => {
+  const tokens = pointVerse('* kráľ a Boh', tone8, 'G', false, syllabifyPhrase);
+  assert.equal(tokens.find(t => t.role === 'acc')?.syl,  'kráľ', 'acc on "kráľ"');
+  assert.equal(tokens.find(t => t.role === 'ep')?.syl,   'a',    'ep on "a" (unstressed bridge)');
+  assert.equal(tokens.find(t => t.role === 'fin')?.syl,  'Boh',  'fin on "Boh"');
+});
+
+// Pipe-split round-trip: after _buildStanza injects | markers, re-pointing must produce
+// the same acc placement as the original point.  Secondary stress must fire in the PIPE path.
+//
+// 'spra|vod|li|vé|ho,' — 5 parts → stress [T,F,T,F,T]; li is stressed.
+// Term G: [{prep:"i"},{acc:"j"},{ep:"h"},{fin:"g."}]
+//   fin:  ho,
+//   ep:   vé (unstressed → no skip)
+//   acc:  li  (stressed — secondary stress applied)  ← was landing on spra before fix
+test('pointVerse: tone8 termG – pipe-split 5-syllable word places acc on secondary stress (li), not first syllable (spra)', () => {
+  const tokens = pointVerse('* spra|vod|li|vé|ho,', tone8, 'G', false, syllabifyPhrase);
+  assert.equal(tokens.find(t => t.role === 'acc')?.syl,  'li',   'acc on "li" (secondary stress at pi=2)');
+  assert.equal(tokens.find(t => t.role === 'ep')?.syl,   'vé',   'ep on "vé"');
+  assert.equal(tokens.find(t => t.role === 'fin')?.syl,  'ho,',  'fin on "ho,"');
+});
+
+// "mi nechýba" — 'mi' is unstressed; acc still lands on 'ne' (primary stress of nechýba)
+// Term G: [{prep:"i"},{acc:"j"},{ep:"h"},{fin:"g."}]
+//   fin:  ba
+//   ep:   chý (unstressed → no skip)
+//   acc:  ne (stressed)
+//   prep: mi (unstressed function word)
+test('pointVerse: tone8 termG – unstressed "mi" fills prep slot; acc on "ne" (nechýba)', () => {
+  const tokens = pointVerse('* mi nechýba', tone8, 'G', false, syllabifyPhrase);
+  assert.equal(tokens.find(t => t.role === 'acc')?.syl,  'ne',  'acc on "ne"');
+  assert.equal(tokens.find(t => t.role === 'ep')?.syl,   'chý', 'ep on "chý"');
+  assert.equal(tokens.find(t => t.role === 'fin')?.syl,  'ba',  'fin on "ba"');
+  assert.equal(tokens.find(t => t.role === 'prep')?.syl, 'mi',  'prep on "mi"');
 });
 
 // Verse with no flex: only mediant barline appears.
