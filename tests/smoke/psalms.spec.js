@@ -67,11 +67,10 @@ test('build: note inputs are auto-filled by pointing algorithm', async ({ page }
   notes.forEach(v => expect(v.trim().length).toBeGreaterThan(0));
 });
 
-test('build: Build button hidden, Re-Point and Fit Text visible after Build', async ({ page }) => {
+test('build: Build button hidden and Fit Text visible after Build', async ({ page }) => {
   await page.goto(URL);
   await buildVerses(page);
   await expect(page.locator('#editorBuildBtn')).toBeHidden();
-  await expect(page.locator('#editorRebuildBtn')).toBeVisible();
   await expect(page.locator('#editorFitTextBtn')).toBeVisible();
 });
 
@@ -239,4 +238,45 @@ test('preview: Exsurge SVG is rendered after Build', async ({ page }) => {
 test('preview: play button is hidden before Build', async ({ page }) => {
   await page.goto(URL);
   await expect(page.locator('#previewControls')).toBeHidden();
+});
+
+// ── Psalm selector ────────────────────────────────────────────────────────────
+
+test('psalm selector: visible and populated for Slovak language', async ({ page }) => {
+  await page.goto(URL);
+  await expect(page.locator('#psalmSelect')).toBeVisible();
+  const options = page.locator('#psalmSelect option');
+  const count = await options.count();
+  expect(count).toBeGreaterThan(1); // blank sentinel + at least one psalm
+});
+
+test('psalm selector: selecting psalm loads text into textarea', async ({ page }) => {
+  await page.goto(URL);
+  await page.selectOption('#psalmSelect', '5');
+  // Wait for the async fetch + build cycle
+  await page.waitForSelector('#editorEditToggle:not(.hidden)');
+  const raw = await page.inputValue('#editorRawText');
+  expect(raw.trim().length).toBeGreaterThan(0);
+});
+
+test('psalm selector: selecting psalm sets annotation to psalm label', async ({ page }) => {
+  await page.goto(URL);
+  await page.selectOption('#psalmSelect', '5');
+  await page.waitForSelector('#editorEditToggle:not(.hidden)');
+  const annotation = await page.inputValue('#editorAnnotation');
+  expect(annotation).toBe('Ž. 5');
+});
+
+test('psalm selector: selecting psalm renders preview', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', err => errors.push(err.message));
+
+  await page.goto(URL);
+  await page.selectOption('#psalmSelect', '5');
+  await page.waitForSelector('#editorEditToggle:not(.hidden)');
+  await page.waitForTimeout(400); // render debounce
+
+  const svgCount = await page.locator('#chantPreview svg, #chantPreview canvas').count();
+  expect(svgCount).toBeGreaterThan(0);
+  expect(errors).toHaveLength(0);
 });

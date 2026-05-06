@@ -10,6 +10,8 @@ const VERSE_2 = 'V zelených pastvinách ma ukladá * k tichým vodám ma privá
 
 const SCAFFOLD = `<!DOCTYPE html><html><body>
   <select id="editorLang"></select>
+  <span id="psalmSelectLabel" class="hidden"></span>
+  <select id="psalmSelect" class="hidden"><option value="">— select —</option></select>
   <input type="text" id="editorAnnotation">
   <input type="checkbox" id="editorLargeInitial">
   <select id="editorTone"></select>
@@ -44,6 +46,9 @@ function setup(stateOverrides = {}) {
 function fire(el, type) {
   const Ev = type === 'keyup' ? 'KeyboardEvent' : type === 'blur' ? 'FocusEvent' : 'Event';
   el.dispatchEvent(new document.defaultView[Ev](type, { bubbles: true }));
+  // Return a promise that settles after the current microtask queue drains,
+  // so async event handlers (e.g. the psalm-select change handler) have time to run.
+  return Promise.resolve().then(() => Promise.resolve());
 }
 
 function buildVerses(verses = [VERSE_1, VERSE_2]) {
@@ -264,6 +269,69 @@ test('psalm editor build: multi-line verse input (split at *) is grouped into on
   assert.equal(inputs.length, 1, 'two lines forming one verse should produce one melody input');
 });
 
+
+// ── Note preservation on identical rawLine ────────────────────────────────
+
+// ── Psalm selector ────────────────────────────────────────────────────────────
+
+test('psalm selector: shown for Slovak (has psalms registered)', () => {
+  setup();
+  const sel   = document.getElementById('psalmSelect');
+  const label = document.getElementById('psalmSelectLabel');
+  assert.ok(!sel.classList.contains('hidden'),   'select should be visible for sk');
+  assert.ok(!label.classList.contains('hidden'), 'label should be visible for sk');
+});
+
+test('psalm selector: options include registered psalm entries', () => {
+  setup();
+  const options = [...document.getElementById('psalmSelect').options];
+  // First option is the blank sentinel
+  assert.equal(options[0].value, '', 'first option should be blank sentinel');
+  // At least one psalm entry follows
+  const psalmOpts = options.filter(o => o.value !== '');
+  assert.ok(psalmOpts.length > 0, 'psalm options should be present');
+  assert.equal(psalmOpts[0].value, '5', 'first psalm option value should be "5"');
+  assert.equal(psalmOpts[0].textContent, 'Ž. 5');
+});
+
+test('psalm selector: annotation field is updated on psalm select', async () => {
+  setup();
+  // Mock fetch so the async handler can complete
+  globalThis.fetch = async () => ({ ok: true, text: async () => VERSE_1 });
+
+  const sel = document.getElementById('psalmSelect');
+  sel.value = '5';
+  await fire(sel, 'change');
+
+  assert.equal(document.getElementById('editorAnnotation').value, 'Ž. 5');
+});
+
+test('psalm selector: textarea is populated and Build runs after psalm select', async () => {
+  setup();
+  globalThis.fetch = async () => ({ ok: true, text: async () => VERSE_1 });
+
+  const sel = document.getElementById('psalmSelect');
+  sel.value = '5';
+  await fire(sel, 'change');
+
+  const raw = document.getElementById('editorRawText').value;
+  assert.ok(raw.length > 0, 'textarea should be populated after psalm select');
+  // Build must have run: Edit melody toggle should be revealed
+  const toggle = document.getElementById('editorEditToggle');
+  assert.ok(!toggle.classList.contains('hidden'), 'Edit melody toggle should appear after psalm load');
+});
+
+test('psalm selector: no-op when blank sentinel option is selected', async () => {
+  setup();
+  let fetchCalled = false;
+  globalThis.fetch = async () => { fetchCalled = true; return { ok: true, text: async () => '' }; };
+
+  const sel = document.getElementById('psalmSelect');
+  sel.value = '';
+  await fire(sel, 'change');
+
+  assert.ok(!fetchCalled, 'fetch should not be called when blank option is selected');
+});
 
 // ── Note preservation on identical rawLine ────────────────────────────────
 

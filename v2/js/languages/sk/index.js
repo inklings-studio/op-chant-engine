@@ -9,4 +9,7 @@ registerLanguage({
   codaPattern,
   syllabifyWord,
   syllabifyPhrase,
+  psalms: [
+    { num: 5, label: 'Ž. 5' },
+  ],
 });

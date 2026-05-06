@@ -60,7 +60,7 @@ function init() {
   state.strophicInheritance = false;
   state.stanzaNumbers = false;
 
-  initEditor(state, onCompiledGabc);
+  initEditor(state, onCompiledGabc, { onStatus: setStatus });
 
   btnPlayFromStart?.addEventListener('click', () => {
     if (score && isAudioAvailable()) { clearCurrentNote(); startPlayback(null); }

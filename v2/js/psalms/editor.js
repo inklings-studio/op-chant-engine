@@ -2,6 +2,7 @@ import { listLanguages, getLanguage } from '../common/language.js';
 import { compileGabc } from '../common/compiler.js';
 import { BARLINES, tokenizeMelody } from '../common/melody.js';
 import { pointVerse } from './pointer.js';
+import { loadPsalm } from './loader.js';
 import {
   tone1, tone2, tone3, tone4, tone4alt, tone5, tone6, tone7, tone8, per,
 } from '../tones/dominican.js';
@@ -15,12 +16,15 @@ const TONE_LABELS = {
 
 let _state          = null;
 let _onGabcCompiled = null;
+let _onStatus       = null;
 let _toneKey        = 'tone8';
 let _cadenceKey     = null;
 let _isSolemn       = false;
 
 // ─── DOM refs (all static — exist in psalms.html) ────────────────────────────
 const _langSel         = () => document.getElementById('editorLang');
+const _psalmSel        = () => document.getElementById('psalmSelect');
+const _psalmLabel      = () => document.getElementById('psalmSelectLabel');
 const _largeInitChk    = () => document.getElementById('editorLargeInitial');
 const _annotationInput = () => document.getElementById('editorAnnotation');
 const _rawText         = () => document.getElementById('editorRawText');
@@ -40,12 +44,15 @@ const _solemnChk       = () => document.getElementById('editorSolemn');
  * Call once on page load.
  * @param {object} state
  * @param {function(string): void} onGabcCompiled
+ * @param {{ onStatus?: function(string, string=): void }} [options]
  */
-export function initEditor(state, onGabcCompiled) {
+export function initEditor(state, onGabcCompiled, options = {}) {
   _state          = state;
   _onGabcCompiled = onGabcCompiled;
+  _onStatus       = options.onStatus ?? null;
 
   _populateLangSelect(state);
+  _populatePsalmSelect(getLanguage(state.language));
   _populateToneSelect();
   _populateTermSelect();
   _syncControlsToState(state);
@@ -103,6 +110,22 @@ function _populateLangSelect(state) {
   });
 }
 
+function _populatePsalmSelect(lang) {
+  const hasPsalms = Array.isArray(lang?.psalms) && lang.psalms.length > 0;
+  _psalmLabel().classList.toggle('hidden', !hasPsalms);
+  _psalmSel().classList.toggle('hidden', !hasPsalms);
+  if (!hasPsalms) return;
+
+  const sel = _psalmSel();
+  sel.innerHTML = '<option value="">— select —</option>';
+  lang.psalms.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value       = String(p.num);
+    opt.textContent = p.label;
+    sel.appendChild(opt);
+  });
+}
+
 function _syncControlsToState(state) {
   _langSel().value         = state.language;
   _largeInitChk().checked  = state.largeInitial;
@@ -114,6 +137,7 @@ function _syncControlsToState(state) {
 function _wireStaticEvents(state) {
   _langSel().addEventListener('change', () => {
     state.language = _langSel().value;
+    _populatePsalmSelect(getLanguage(state.language));
     if (state.stanzas.length) {
       _repointAll(state);
       _renderStanzas(state);
@@ -162,12 +186,28 @@ function _wireStaticEvents(state) {
   _buildBtn().addEventListener('click', () => {
     const raw = _rawText().value.trim();
     if (!raw) return;
-    _parseAndPoint(raw, state);
-    _renderStanzas(state);
-    _syncBuildButtons(state);
-    _editToggle().classList.remove('hidden');
-    _editToggle().textContent = 'Edit melody';
-    triggerCompile(state);
+    _doBuild(raw, state);
+  });
+
+  _psalmSel().addEventListener('change', async () => {
+    const val = _psalmSel().value;
+    if (!val) return;
+    const lang = getLanguage(state.language);
+    const entry = lang?.psalms?.find(p => String(p.num) === val);
+    if (!entry) return;
+
+    _annotationInput().value = entry.label;
+    state.annotation = entry.label;
+
+    _onStatus?.('Loading psalm…');
+    try {
+      const text = await loadPsalm(state.language, entry.num);
+      _rawText().value = text;
+      _doBuild(text, state);
+      _onStatus?.('');
+    } catch (err) {
+      _onStatus?.('Failed to load psalm: ' + err.message, 'error');
+    }
   });
 
   _fitTextBtn().addEventListener('click', () => {
@@ -190,6 +230,17 @@ function _syncBuildButtons(state) {
   const hasContent = state.stanzas.length > 0;
   _buildBtn().classList.toggle('hidden', hasContent);
   _fitTextBtn().classList.toggle('hidden', !hasContent);
+}
+
+// ─── Build helper ─────────────────────────────────────────────────────────────
+
+function _doBuild(rawText, state) {
+  _parseAndPoint(rawText, state);
+  _renderStanzas(state);
+  _syncBuildButtons(state);
+  _editToggle().classList.remove('hidden');
+  _editToggle().textContent = 'Edit melody';
+  triggerCompile(state);
 }
 
 // ─── Verse parsing & pointing ─────────────────────────────────────────────────

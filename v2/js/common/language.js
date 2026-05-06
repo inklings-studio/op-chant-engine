@@ -11,6 +11,10 @@
  * @property {string}  code          - ISO 639-1 code: 'sk', 'cs', 'en', 'fr'
  * @property {string}  label         - Display name: 'Slovak', 'Czech', etc.
  * @property {RegExp}  [codaPattern] - Regex to detect a coda word (e.g. /^amen$/i)
+ * @property {Array<{num: number, label: string}>} [psalms]
+ *   Ordered list of available psalm texts for this language.
+ *   `num` is the psalm number (used to construct the file path);
+ *   `label` is the display string shown in the selector and written to the annotation field.
  * @property {(word: string) => string[]} syllabifyWord
  *   Syllabify a single word (no spaces, no punctuation). Returns syllable strings.
  * @property {(phrase: string) => SyllableToken[]} syllabifyPhrase
