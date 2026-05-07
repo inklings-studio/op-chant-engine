@@ -38,7 +38,8 @@ jobs:
       - name: Prepare artifact
         run: |
           mkdir artifact
-          cp -R ./* artifact/
+          shopt -s extglob
+          cp -R !(artifact) artifact/
           rm -rf artifact/node_modules
           rm -rf artifact/src
           rm -rf artifact/tests
@@ -46,6 +47,7 @@ jobs:
           rm -f  artifact/tailwind.config.js
           rm -f  artifact/package.json
           rm -f  artifact/package-lock.json
+        shell: bash
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
