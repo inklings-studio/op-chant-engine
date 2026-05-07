@@ -74,3 +74,102 @@ export function getLanguage(code) {
 export function listLanguages() {
   return [..._registry.values()].sort((a, b) => a.label.localeCompare(b.label));
 }
+
+/**
+ * Creates a `syllabifyPhrase` function tailored to a specific language.
+ * This factory encapsulates all the generic, language-agnostic logic for parsing a line of text,
+ * handling special characters, punctuation, and stress patterns.
+ *
+ * @param {object} langConfig - Language-specific implementation details.
+ * @param {function(string): string[]} langConfig.syllabifyWord - Function to syllabify a single clean word.
+ * @param {function(string): boolean} langConfig.hasNucleus - Function to check if a word has a vowel/syllabic nucleus.
+ * @param {Set<string>} langConfig.unstressedMonosyllables - A set of lowercase monosyllabic words that don't receive stress.
+ *
+ * @returns {function(string): SyllableToken[]} A complete `syllabifyPhrase` function.
+ */
+export function createPhraseSyllabifier(langConfig) {
+  const { syllabifyWord, hasNucleus, unstressedMonosyllables } = langConfig;
+
+  return function syllabifyPhrase(phrase) {
+    const tokens = [];
+    phrase = preprocessPhrase(phrase);
+
+    const words = phrase.trim().split(/\s+/).filter(Boolean);
+    let pendingPrefix = '';
+    let wordIdxCounter = 0;
+
+    for (let wi = 0; wi < words.length; wi++) {
+      const raw = words[wi];
+
+      // ── TIE (_): all syllables from every tied fragment collapse into ONE token ──
+      if (raw.includes(TIE_SEP)) {
+        const parts = raw.split(TIE_SEP).filter(Boolean);
+        const allSyls = [];
+        for (const part of parts) {
+          const lp = part.match(/^[^\p{L}]*/u)?.[0] ?? '';
+          const tp = part.match(/[^\p{L}]*$/u)?.[0] ?? '';
+          const clean = part.slice(lp.length, part.length - tp.length);
+          const syls = clean ? syllabifyWord(clean) : [];
+          if (syls.length) {
+            syls[0] = lp + syls[0];
+            syls[syls.length - 1] += tp;
+          } else {
+            allSyls.push(lp + tp);
+            continue;
+          }
+          allSyls.push(...syls);
+        }
+        const combinedSyl = (pendingPrefix + allSyls.join(' ')).trim();
+        pendingPrefix = '';
+        tokens.push({ syl: combinedSyl, wordIdx: wordIdxCounter++, sylIdx: 0, isStressed: true });
+        continue;
+      }
+
+      // ── PIPE (|): explicit in-word split — parts share the same wordIdx ──
+      if (raw.includes(PIPE_SEP)) {
+        const parts = raw.split(PIPE_SEP).filter(Boolean);
+        const wIdx = wordIdxCounter++;
+        for (let pi = 0; pi < parts.length; pi++) {
+          let syl = parts[pi];
+          if (pi === 0 && pendingPrefix) { syl = pendingPrefix + syl; pendingPrefix = ''; }
+          const isStressed = pi === 0 || (parts.length >= 4 && pi % 2 === 0);
+          tokens.push({ syl, wordIdx: wIdx, sylIdx: pi, isStressed });
+        }
+        pendingPrefix = '';
+        continue;
+      }
+
+      // ── Standard word ──
+      const leadPunct = raw.match(/^[^\p{L}]*/u)?.[0] ?? '';
+      const trailPunct = raw.match(/[^\p{L}]*$/u)?.[0] ?? '';
+      let clean = raw.slice(leadPunct.length, raw.length - trailPunct.length); // FIXED BUG
+
+      // Consonant-only word before another word → defer as prefix onto next syllable.
+      if (clean && !hasNucleus(clean) && wi < words.length - 1) {
+        pendingPrefix += leadPunct + clean + trailPunct + ' ';
+        continue;
+      }
+
+      const syls = syllabifyWord(clean);
+      const wIdx = wordIdxCounter++;
+      for (let sylIdx = 0; sylIdx < syls.length; sylIdx++) {
+        let syl = syls[sylIdx];
+        if (sylIdx === 0) syl = pendingPrefix + leadPunct + syl;
+        if (sylIdx === syls.length - 1) syl = syl + trailPunct;
+        const defaultStressed = sylIdx === 0 || (syls.length >= 4 && sylIdx % 2 === 0);
+        const isStressed = syls.length === 1
+          ? !unstressedMonosyllables.has(clean.toLowerCase())
+          : defaultStressed;
+        tokens.push({ syl, wordIdx: wIdx, sylIdx, isStressed });
+      }
+      pendingPrefix = '';
+    }
+
+    // Leftover consonant-only word at end of phrase — emit as-is.
+    if (pendingPrefix) {
+      tokens.push({ syl: pendingPrefix.trim(), wordIdx: wordIdxCounter, sylIdx: 0, isStressed: true });
+    }
+
+    return tokens;
+  }
+}

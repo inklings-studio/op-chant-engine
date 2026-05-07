@@ -8,6 +8,7 @@ import {
   getScoreNotes, getTranspose, changePitch, getBpm, setBpm,
   EXSURGE_TO_TONES_OFFSET,
 } from '../core/audio.js';
+import { formatPitch, formatPitchName, positionToolbar } from '../common/ui-helpers.js';
 
 // Language plugins — self-register via side-effect import
 import '../languages/sk/index.js';
@@ -54,9 +55,9 @@ const pdfFontSizeInput = document.getElementById('pdfFontSize');
 const pdfFontInput = document.getElementById('pdfFont');
 
 // Preview header controls
-const previewControls    = document.getElementById('previewControls');
-const btnPlayFromStart   = document.getElementById('btnPlayFromStart');
-const btnHeaderPitchUp   = document.getElementById('btnHeaderPitchUp');
+const previewControls = document.getElementById('previewControls');
+const btnPlayFromStart = document.getElementById('btnPlayFromStart');
+const btnHeaderPitchUp = document.getElementById('btnHeaderPitchUp');
 const btnHeaderPitchDown = document.getElementById('btnHeaderPitchDown');
 const headerPitchDisplay = document.getElementById('headerPitchDisplay');
 
@@ -123,7 +124,6 @@ function init() {
   // Tab switching
   document.getElementById('tabEditorBtn').addEventListener('click', () => switchToTab('editor'));
   document.getElementById('tabGabcBtn').addEventListener('click', () => switchToTab('gabc'));
-
 }
 
 // ─── Rendering ────────────────────────────────────────────────────────────────
@@ -149,24 +149,6 @@ const _gabcBtn = document.getElementById('tabGabcBtn');
 
 function switchToTab(tab) {
   const toEditor = tab === 'editor';
-
-  // Dirty-flag sync: Tab 2 was manually edited, parse it back into Tab 1.
-  // Compare against the last programmatically compiled value so spurious
-  // browser events (autocorrect, autofill) don't clobber the editor state.
-  if (toEditor && gabcEditor.value !== _lastCompiledGabc) {
-    const parsed = parseGabc(gabcEditor.value.trim());
-    const state = getState();
-    state.clef = parsed.clef;
-    state.stanzas = parsed.stanzas;
-    state.coda = parsed.coda;
-    state.font = parsed.font;
-    state.fontSizePt = parsed.fontSizePt;
-    state.pageWidthIn = parsed.pageWidthIn;
-    state.pageHeightIn = parsed.pageHeightIn;
-    state.strophicInheritance = false;
-    rebuildStanzas(state);
-    _lastCompiledGabc = gabcEditor.value;
-  }
 
   _editorTab.classList.toggle('hidden', !toEditor);
   _gabcTab.classList.toggle('hidden', toEditor);
@@ -370,7 +352,7 @@ function _getPitchData() {
   return {
     firstPitched,
     transpose,
-    low:  Math.min(...allPitched.map(n => n.pitch.toInt())),
+    low: Math.min(...allPitched.map(n => n.pitch.toInt())),
     high: Math.max(...allPitched.map(n => n.pitch.toInt())),
   };
 }
@@ -388,39 +370,6 @@ function updatePitchDisplay(pitchCenter, note, doLabel) {
   if (doLabel) {
     doLabel.textContent = 'Do = ' + formatPitchName(score.defaultStartPitch.toInt() + transpose + OFF);
   }
-}
-
-function formatPitch(tonesMapIdx) {
-  const noteNames = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
-  const octave = Math.floor(tonesMapIdx / 12);
-  const name = noteNames[((tonesMapIdx % 12) + 12) % 12];
-  return name + '<sub>' + octave + '</sub>';
-}
-
-function formatPitchName(tonesMapIdx) {
-  const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-  return noteNames[((tonesMapIdx % 12) + 12) % 12];
-}
-
-function positionToolbar(toolbar, anchorEl) {
-  if (!anchorEl) return;
-  const anchorRect = anchorEl.getBoundingClientRect();
-  const toolbarH = toolbar.offsetHeight;
-  const toolbarW = toolbar.offsetWidth;
-  const scrollTop = window.scrollY || document.documentElement.scrollTop;
-  const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
-
-  let top = anchorRect.top + scrollTop - toolbarH - 6;
-  let left = anchorRect.left + scrollLeft + anchorRect.width / 2 - toolbarW / 2;
-
-  // If toolbar would go above the document, flip below
-  if (top < scrollTop + 4) top = anchorRect.bottom + scrollTop + 6;
-
-  // Clamp horizontally
-  left = Math.max(scrollLeft + 8, Math.min(left, scrollLeft + window.innerWidth - toolbarW - 8));
-
-  toolbar.style.top = top + 'px';
-  toolbar.style.left = left + 'px';
 }
 
 function onPreviewClick(e) {
@@ -495,7 +444,7 @@ function onPauseResume(e) {
     setPlayPauseIcon(false);
     if (btnPlayFromStart) btnPlayFromStart.disabled = false;
   } else {
-    startPlayback(null);
+    startPlayback(getCurrentNote());  // null = from start if not paused mid-song
     setPlayPauseIcon(true);
   }
 }

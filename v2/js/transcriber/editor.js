@@ -1,29 +1,17 @@
 import { listLanguages, getLanguage } from '../common/language.js';
 import { parseText } from '../common/parser.js';
 import { compileGabc } from '../common/compiler.js';
-import { BARLINES, tokenizeMelody } from '../common/melody.js';
+import { tokenizeMelody } from '../common/melody.js';
+import { createMelodyInputRow, renderTrack, updateInputOverflow } from '../common/editor.js';
 
-let _state          = null;
+let _state = null;
 let _onGabcCompiled = null;
 
-// ─── DOM refs (all static — exist in transcriber.html) ───────────────────────
-const _langSel        = () => document.getElementById('editorLang');
-const _clefSel        = () => document.getElementById('editorClef');
-const _strophicChk    = () => document.getElementById('editorStrophic');
-const _largeInitChk   = () => document.getElementById('editorLargeInitial');
-const _stanzaNumChk   = () => document.getElementById('editorStanzaNumbers');
-const _annotationInput= () => document.getElementById('editorAnnotation');
-const _rawText        = () => document.getElementById('editorRawText');
-const _buildBtn       = () => document.getElementById('editorBuildBtn');
-const _rebuildBtn     = () => document.getElementById('editorRebuildBtn');
-const _fitTextBtn     = () => document.getElementById('editorFitTextBtn');
-const _editToggle     = () => document.getElementById('editorEditToggle');
-const _fontSel        = () => document.getElementById('editorFont');
-const _fontSizeInput  = () => document.getElementById('editorFontSize');
-const _pageWidthInput = () => document.getElementById('editorPageWidth');
-const _pageHeightInput= () => document.getElementById('editorPageHeight');
-const _textArea       = () => document.getElementById('editorTextInputArea');
-const _stanzasEl      = () => document.getElementById('editorStanzas');
+// ─── DOM refs (initialised in initEditor to allow Node.js test imports) ───────
+let _langSel, _clefSel, _strophicChk, _largeInitChk, _stanzaNumChk,
+    _annotationInput, _rawText, _buildBtn, _rebuildBtn, _fitTextBtn,
+    _editToggle, _fontSel, _fontSizeInput, _pageWidthInput, _pageHeightInput,
+    _textArea, _stanzasEl;
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
@@ -34,7 +22,25 @@ const _stanzasEl      = () => document.getElementById('editorStanzas');
  * @param {function(string): void} onGabcCompiled
  */
 export function initEditor(state, onGabcCompiled) {
-  _state          = state;
+  _langSel        = document.getElementById('editorLang');
+  _clefSel        = document.getElementById('editorClef');
+  _strophicChk    = document.getElementById('editorStrophic');
+  _largeInitChk   = document.getElementById('editorLargeInitial');
+  _stanzaNumChk   = document.getElementById('editorStanzaNumbers');
+  _annotationInput= document.getElementById('editorAnnotation');
+  _rawText        = document.getElementById('editorRawText');
+  _buildBtn       = document.getElementById('editorBuildBtn');
+  _rebuildBtn     = document.getElementById('editorRebuildBtn');
+  _fitTextBtn     = document.getElementById('editorFitTextBtn');
+  _editToggle     = document.getElementById('editorEditToggle');
+  _fontSel        = document.getElementById('editorFont');
+  _fontSizeInput  = document.getElementById('editorFontSize');
+  _pageWidthInput = document.getElementById('editorPageWidth');
+  _pageHeightInput= document.getElementById('editorPageHeight');
+  _textArea       = document.getElementById('editorTextInputArea');
+  _stanzasEl      = document.getElementById('editorStanzas');
+
+  _state = state;
   _onGabcCompiled = onGabcCompiled;
 
   _populateLangSelect(state);
@@ -68,7 +74,7 @@ export function rebuildStanzas(state) {
  * @param {function(string): void} [onGabcCompiled]
  */
 export function triggerCompile(state, onGabcCompiled) {
-  const s  = state          ?? _state;
+  const s = state ?? _state;
   const cb = onGabcCompiled ?? _onGabcCompiled;
   cb?.(compileGabc(s));
 }
@@ -98,17 +104,17 @@ function _syncRawTextarea(state) {
     if (parts.length > 0) parts[parts.length - 1] += '\n' + codaText;
     else parts.push(codaText);
   }
-  _rawText().value = parts.join('\n\n');
+  _rawText.value = parts.join('\n\n');
 }
 
 // ─── Static control wiring ────────────────────────────────────────────────────
 
 function _populateLangSelect(state) {
-  const sel = _langSel();
+  const sel = _langSel;
   sel.innerHTML = '';
   listLanguages().forEach(p => {
     const opt = document.createElement('option');
-    opt.value    = p.code;
+    opt.value = p.code;
     opt.textContent = p.label;
     opt.selected = p.code === state.language;
     sel.appendChild(opt);
@@ -116,22 +122,22 @@ function _populateLangSelect(state) {
 }
 
 function _syncControlsToState(state) {
-  _langSel().value            = state.language;
-  _clefSel().value            = state.clef;
-  _strophicChk().checked      = state.strophicInheritance;
-  _largeInitChk().checked     = state.largeInitial;
-  _stanzaNumChk().checked     = state.stanzaNumbers;
-  _annotationInput().value    = state.annotation ?? '';
-  _fontSel().value            = state.font         ?? '';
-  _fontSizeInput().value      = state.fontSizePt   ?? '';
-  _pageWidthInput().value     = state.pageWidthIn  ?? '';
-  _pageHeightInput().value    = state.pageHeightIn ?? '';
+  _langSel.value = state.language;
+  _clefSel.value = state.clef;
+  _strophicChk.checked = state.strophicInheritance;
+  _largeInitChk.checked = state.largeInitial;
+  _stanzaNumChk.checked = state.stanzaNumbers;
+  _annotationInput.value = state.annotation ?? '';
+  _fontSel.value = state.font ?? '';
+  _fontSizeInput.value = state.fontSizePt ?? '';
+  _pageWidthInput.value = state.pageWidthIn ?? '';
+  _pageHeightInput.value = state.pageHeightIn ?? '';
 }
 
 function _wireStaticEvents(state) {
-  _langSel().addEventListener('change', () => {
-    state.language = _langSel().value;
-    const raw = _rawText().value.trim();
+  _langSel.addEventListener('change', () => {
+    state.language = _langSel.value;
+    const raw = _rawText.value.trim();
     if (raw) {
       parseText(raw, state, getLanguage(state.language));
       _syncRawTextarea(state);
@@ -140,13 +146,13 @@ function _wireStaticEvents(state) {
     triggerCompile(state);
   });
 
-  _clefSel().addEventListener('change', () => {
-    state.clef = _clefSel().value;
+  _clefSel.addEventListener('change', () => {
+    state.clef = _clefSel.value;
     triggerCompile(state);
   });
 
-  _strophicChk().addEventListener('change', () => {
-    state.strophicInheritance = _strophicChk().checked;
+  _strophicChk.addEventListener('change', () => {
+    state.strophicInheritance = _strophicChk.checked;
     if (state.strophicInheritance) {
       state.stanzas[0]?.lines.forEach((_, li) => _propagateStrophicLine(state, li));
     }
@@ -154,23 +160,23 @@ function _wireStaticEvents(state) {
     triggerCompile(state);
   });
 
-  _largeInitChk().addEventListener('change', () => {
-    state.largeInitial = _largeInitChk().checked;
+  _largeInitChk.addEventListener('change', () => {
+    state.largeInitial = _largeInitChk.checked;
     triggerCompile(state);
   });
 
-  _stanzaNumChk().addEventListener('change', () => {
-    state.stanzaNumbers = _stanzaNumChk().checked;
+  _stanzaNumChk.addEventListener('change', () => {
+    state.stanzaNumbers = _stanzaNumChk.checked;
     triggerCompile(state);
   });
 
-  _annotationInput().addEventListener('input', () => {
-    state.annotation = _annotationInput().value;
+  _annotationInput.addEventListener('input', () => {
+    state.annotation = _annotationInput.value;
     triggerCompile(state);
   });
 
-  _buildBtn().addEventListener('click', () => {
-    const raw = _rawText().value.trim();
+  _buildBtn.addEventListener('click', () => {
+    const raw = _rawText.value.trim();
     if (!raw) return;
     parseText(raw, state, getLanguage(state.language));
     _syncRawTextarea(state);
@@ -180,11 +186,11 @@ function _wireStaticEvents(state) {
     triggerCompile(state);
   });
 
-  _rebuildBtn().addEventListener('click', () => {
-    const raw = _rawText().value.trim();
+  _rebuildBtn.addEventListener('click', () => {
+    const raw = _rawText.value.trim();
     if (!raw) return;
     state.stanzas = [];
-    state.coda    = null;
+    state.coda = null;
     parseText(raw, state, getLanguage(state.language));
     _syncRawTextarea(state);
     _renderStanzas(state);
@@ -192,8 +198,8 @@ function _wireStaticEvents(state) {
     triggerCompile(state);
   });
 
-  _fitTextBtn().addEventListener('click', () => {
-    const raw = _rawText().value.trim();
+  _fitTextBtn.addEventListener('click', () => {
+    const raw = _rawText.value.trim();
     if (!raw) return;
     parseText(raw, state, getLanguage(state.language));
     // Textarea not overwritten — user's | edits are preserved.
@@ -202,55 +208,70 @@ function _wireStaticEvents(state) {
     triggerCompile(state);
   });
 
-  _editToggle().addEventListener('click', () => {
-    const hidden = _textArea().classList.toggle('hidden');
-    _editToggle().textContent = hidden ? 'Edit text' : 'Hide';
+  _editToggle.addEventListener('click', () => {
+    const hidden = _textArea.classList.toggle('hidden');
+    _editToggle.textContent = hidden ? 'Edit text' : 'Hide';
     // Hide stanza container while textarea is visible so it gets full flex-1 height.
-    _stanzasEl().classList.toggle('hidden', !hidden);
+    _stanzasEl.classList.toggle('hidden', !hidden);
   });
 
-  _fontSel().addEventListener('change', () => {
-    state.font = _fontSel().value || null;
+  _fontSel.addEventListener('change', () => {
+    state.font = _fontSel.value || null;
     triggerCompile(state);
   });
 
   const _parsePosNum = (el) => { const v = parseFloat(el.value); return (v > 0) ? v : null; };
 
-  _fontSizeInput().addEventListener('input', () => {
-    state.fontSizePt = _parsePosNum(_fontSizeInput());
+  _fontSizeInput.addEventListener('input', () => {
+    state.fontSizePt = _parsePosNum(_fontSizeInput);
     triggerCompile(state);
   });
 
-  _pageWidthInput().addEventListener('input', () => {
-    state.pageWidthIn = _parsePosNum(_pageWidthInput());
+  _pageWidthInput.addEventListener('input', () => {
+    state.pageWidthIn = _parsePosNum(_pageWidthInput);
     triggerCompile(state);
   });
 
-  _pageHeightInput().addEventListener('input', () => {
-    state.pageHeightIn = _parsePosNum(_pageHeightInput());
+  _pageHeightInput.addEventListener('input', () => {
+    state.pageHeightIn = _parsePosNum(_pageHeightInput);
     triggerCompile(state);
   });
 }
 
 function _showStanzas() {
-  _textArea().classList.add('hidden');
-  _stanzasEl().classList.remove('hidden');
-  _editToggle().classList.remove('hidden');
-  _editToggle().textContent = 'Edit text';
+  _textArea.classList.add('hidden');
+  _stanzasEl.classList.remove('hidden');
+  _editToggle.classList.remove('hidden');
+  _editToggle.textContent = 'Edit text';
 }
 
 // Swap between Build (empty state) and Re-Build + Fit Text (has content).
 function _syncBuildButtons(state) {
   const hasContent = state.stanzas.length > 0 || !!state.coda;
-  _buildBtn().classList.toggle('hidden', hasContent);
-  _rebuildBtn().classList.toggle('hidden', !hasContent);
-  _fitTextBtn().classList.toggle('hidden', !hasContent);
+  _buildBtn.classList.toggle('hidden', hasContent);
+  _rebuildBtn.classList.toggle('hidden', !hasContent);
+  _fitTextBtn.classList.toggle('hidden', !hasContent);
 }
 
 // ─── Dynamic stanza rows ──────────────────────────────────────────────────────
 
+function _handleLineUpdate({ si, li, notes, parsedNotes }) {
+  const target = si === 'coda' ? _state.coda : _state.stanzas[si]?.lines[li];
+  if (!target) return null;
+
+  target.notes = notes;
+  target.parsedNotes = parsedNotes;
+
+  if (si === 0 && _state.strophicInheritance) {
+    _propagateStrophicLine(_state, li);
+  }
+
+  triggerCompile(_state);
+  return target;
+}
+
 function _renderStanzas(state) {
-  const container = _stanzasEl();
+  const container = _stanzasEl;
   container.innerHTML = '';
 
   state.stanzas.forEach((stanza, si) => {
@@ -262,7 +283,10 @@ function _renderStanzas(state) {
     label.textContent = `Stanza ${si + 1}`;
     stanzaEl.appendChild(label);
 
-    stanza.lines.forEach((line, li) => stanzaEl.appendChild(_buildLineRow(state, si, li, line)));
+    stanza.lines.forEach((line, li) => {
+      const row = createMelodyInputRow(line, si, li, { onUpdate: _handleLineUpdate });
+      stanzaEl.appendChild(row);
+    });
     container.appendChild(stanzaEl);
   });
 
@@ -273,164 +297,15 @@ function _renderStanzas(state) {
     label.className = 'text-xs font-semibold uppercase tracking-wide text-op-ink-faint mb-1';
     label.textContent = 'Coda';
     codaEl.appendChild(label);
-    codaEl.appendChild(_buildLineRow(state, 'coda', 0, state.coda));
+    const row = createMelodyInputRow(state.coda, 'coda', 0, { onUpdate: _handleLineUpdate });
+    codaEl.appendChild(row);
     container.appendChild(codaEl);
   }
 
   _applyStrophicStyling(state);
 }
 
-function _buildLineRow(state, si, li, line) {
-  const row = document.createElement('div');
-  row.className = 'mb-2';
-
-  const input = document.createElement('input');
-  input.type        = 'text';
-  input.className   = 'editor-melody-input w-full font-mono text-xs border border-op-tan rounded px-2 py-1 mb-1 focus:outline-none focus:ring-1 focus:ring-op-gold';
-  input.dataset.stanza = si;
-  input.dataset.line   = li;
-  input.value          = line.notes ?? '';
-  input.placeholder    = 'Melody notes  e.g.  e f g ; h';
-
-  const track = document.createElement('div');
-  track.className      = 'editor-alignment-track';
-  track.dataset.stanza = si;
-  track.dataset.line   = li;
-
-  _renderTrack(track, line.syllables ?? [], line.parsedNotes ?? [], line.wordMap ?? null);
-  _updateInputOverflow(input, line.syllables ?? [], line.parsedNotes ?? []);
-
-  input.addEventListener('input', () => {
-    const target = si === 'coda' ? state.coda : state.stanzas[si]?.lines[li];
-    if (!target) return;
-    target.notes       = input.value;
-    target.parsedNotes = tokenizeMelody(input.value);
-    _renderTrack(track, target.syllables, target.parsedNotes, target.wordMap ?? null);
-    _updateInputOverflow(input, target.syllables, target.parsedNotes);
-    if (document.activeElement === input) _highlightCursorChip(input, track);
-    if (si === 0 && state.strophicInheritance) _propagateStrophicLine(state, li);
-    triggerCompile(state);
-  });
-
-  // Cursor-position chip highlight
-  const _onCursorMove = () => _highlightCursorChip(input, track);
-  const _onBlur       = () => _clearCursorHighlight(track);
-  input.addEventListener('focus',     _onCursorMove);
-  input.addEventListener('click',     _onCursorMove);
-  input.addEventListener('keyup',     _onCursorMove);
-  input.addEventListener('blur',      _onBlur);
-
-  row.appendChild(input);
-  row.appendChild(track);
-  return row;
-}
-
-// ─── Alignment track ──────────────────────────────────────────────────────────
-
-function _renderTrack(trackEl, syllables, parsedNotes, wordMap) {
-  trackEl.innerHTML = '';
-  let sylIdx = 0;
-
-  // Word-group helpers — same-wordIdx chips get wrapped in a .track-word-group
-  // so they appear visually connected in the editor.
-  let curWordIdx  = null;
-  let curGroupEl  = null;
-
-  function _flushGroup() {
-    if (curGroupEl) { trackEl.appendChild(curGroupEl); curGroupEl = null; curWordIdx = null; }
-  }
-
-  function _groupFor(wIdx) {
-    if (wIdx !== curWordIdx) {
-      _flushGroup();
-      curGroupEl  = document.createElement('span');
-      curGroupEl.className = 'track-word-group';
-      curWordIdx  = wIdx;
-    }
-    return curGroupEl;
-  }
-
-  for (const token of parsedNotes) {
-    if (BARLINES.has(token)) {
-      _flushGroup();
-      trackEl.appendChild(_chip(token === '::' ? '‖' : '|', 'track-chip track-chip-barline'));
-    } else {
-      const syl  = syllables[sylIdx];
-      const wIdx = wordMap?.[sylIdx] ?? sylIdx;
-      sylIdx++;
-      const group = _groupFor(wIdx);
-      const chip = syl
-        ? _chip(`${syl}(${token})`, 'track-chip track-chip-matched')
-        : _chip('—', 'track-chip track-chip-empty');
-      chip.dataset.isMatched = syl ? '1' : '0';
-      group.appendChild(chip);
-    }
-  }
-
-  _flushGroup();
-
-  while (sylIdx < syllables.length) {
-    trackEl.appendChild(_chip(syllables[sylIdx++], 'track-chip track-chip-overflow'));
-  }
-
-  if (!parsedNotes.length && !syllables.length) {
-    const hint = document.createElement('span');
-    hint.className   = 'text-xs italic track-chip track-chip-empty';
-    hint.textContent = 'enter notes above';
-    trackEl.appendChild(hint);
-  }
-}
-
-function _chip(text, cls) {
-  const span = document.createElement('span');
-  span.className   = cls;
-  span.textContent = text;
-  return span;
-}
-
-// ─── Cursor-position chip highlight ──────────────────────────────────────────
-
-function _cursorNoteIndex(notes, cursorPos) {
-  // Returns the 0-based index among note-chips (non-barlines) at the cursor position.
-  // Returns -1 if the cursor is over a barline token or past all tokens.
-  const tokenRe = /\S+/g;
-  let noteIdx = -1;
-  let match;
-  while ((match = tokenRe.exec(notes)) !== null) {
-    const isNote = !BARLINES.has(match[0]);
-    if (isNote) noteIdx++;
-    if (cursorPos >= match.index && cursorPos <= match.index + match[0].length) {
-      return isNote ? noteIdx : -1;
-    }
-  }
-  return -1;
-}
-
-function _highlightCursorChip(input, track) {
-  const idx = _cursorNoteIndex(input.value, input.selectionStart);
-  track.querySelectorAll('.track-chip-matched, .track-chip-empty, .track-chip-cursor').forEach((chip, i) => {
-    const active = i === idx;
-    chip.classList.toggle('track-chip-cursor',   active);
-    chip.classList.toggle('track-chip-matched',  !active && chip.dataset.isMatched === '1');
-    chip.classList.toggle('track-chip-empty',    !active && chip.dataset.isMatched === '0');
-  });
-}
-
-function _clearCursorHighlight(track) {
-  track.querySelectorAll('.track-chip-cursor').forEach(chip => {
-    chip.classList.remove('track-chip-cursor');
-    chip.classList.add(chip.dataset.isMatched === '1' ? 'track-chip-matched' : 'track-chip-empty');
-  });
-}
-
-// ─── Overflow detection ───────────────────────────────────────────────────────
-
-function _updateInputOverflow(input, syllables, parsedNotes) {
-  const noteCount = parsedNotes.filter(t => !BARLINES.has(t)).length;
-  input.classList.toggle('editor-melody-input-overflow', noteCount > syllables.length);
-}
-
-// ─── Strophic copy ────────────────────────────────────────────────────────────
+// ─── Strophic helpers ─────────────────────────────────────────────────────────
 
 function _applyStrophicStyling(state) {
   document.querySelectorAll('.editor-melody-input[data-stanza]').forEach(input => {
@@ -452,7 +327,9 @@ function _propagateStrophicLine(state, li) {
     target.parsedNotes = src.parsedNotes;
     input.value = src.notes;
     const track = input.nextElementSibling;
-    _renderTrack(track, target.syllables, target.parsedNotes, target.wordMap ?? null);
-    _updateInputOverflow(input, target.syllables, target.parsedNotes);
+    if (track) {
+      renderTrack(track, target.syllables, target.parsedNotes, target.wordMap ?? null);
+      updateInputOverflow(input, target.syllables, target.parsedNotes);
+    }
   });
 }

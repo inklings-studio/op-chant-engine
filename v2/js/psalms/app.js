@@ -7,17 +7,18 @@ import {
 import { getState } from '../common/state.js';
 import '../languages/sk/index.js';
 import { initEditor } from './editor.js';
+import { formatPitch, formatPitchName, positionToolbar } from '../common/ui-helpers.js';
 
 const DEFAULT_EXPORT_WIDTH = 7.5 * 96;
 const DEFAULT_DPI = 300;
 const RENDER_DEBOUNCE_MS = 300;
 
 // ─── DOM refs ────────────────────────────────────────────────────────────────
-const gabcEditor    = document.getElementById('gabcEditor');
-const chantPreview  = document.getElementById('chantPreview');
+const gabcEditor = document.getElementById('gabcEditor');
+const chantPreview = document.getElementById('chantPreview');
 const versesPreview = document.getElementById('versesPreview');
-const placeholder   = document.getElementById('previewPlaceholder');
-const statusMsg     = document.getElementById('statusMessage');
+const placeholder = document.getElementById('previewPlaceholder');
+const statusMsg = document.getElementById('statusMessage');
 const btnPng = document.getElementById('btnDownloadPng');
 const btnSvg = document.getElementById('btnDownloadSvg');
 
@@ -107,9 +108,9 @@ function init() {
 
 // ─── Compiled output callback ─────────────────────────────────────────────────
 function onCompiled(result) {
-  _currentMode     = result.mode;
+  _currentMode = result.mode;
   _lastCompiledGabc = result.gabcFull;
-  gabcEditor.value  = result.gabcFull;   // GABC tab always shows full GABC
+  gabcEditor.value = result.gabcFull;   // GABC tab always shows full GABC
 
   if (result.mode === 'html') {
     // Verse 1 renders visually; full GABC renders into hidden container for audio.
@@ -293,36 +294,6 @@ function updatePitchDisplay(pitchCenter, note, doLabel) {
   if (doLabel) {
     doLabel.textContent = 'Do = ' + formatPitchName(score.defaultStartPitch.toInt() + transpose + OFF);
   }
-}
-
-function formatPitch(tonesMapIdx) {
-  const noteNames = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
-  const octave = Math.floor(tonesMapIdx / 12);
-  const name = noteNames[((tonesMapIdx % 12) + 12) % 12];
-  return name + '<sub>' + octave + '</sub>';
-}
-
-function formatPitchName(tonesMapIdx) {
-  const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-  return noteNames[((tonesMapIdx % 12) + 12) % 12];
-}
-
-function positionToolbar(toolbar, anchorEl) {
-  if (!anchorEl) return;
-  const anchorRect = anchorEl.getBoundingClientRect();
-  const toolbarH = toolbar.offsetHeight;
-  const toolbarW = toolbar.offsetWidth;
-  const scrollTop = window.scrollY || document.documentElement.scrollTop;
-  const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
-
-  let top = anchorRect.top + scrollTop - toolbarH - 6;
-  let left = anchorRect.left + scrollLeft + anchorRect.width / 2 - toolbarW / 2;
-
-  if (top < scrollTop + 4) top = anchorRect.bottom + scrollTop + 6;
-  left = Math.max(scrollLeft + 8, Math.min(left, scrollLeft + window.innerWidth - toolbarW - 8));
-
-  toolbar.style.top = top + 'px';
-  toolbar.style.left = left + 'px';
 }
 
 function onPreviewClick(e) {

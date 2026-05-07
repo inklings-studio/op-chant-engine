@@ -1,4 +1,4 @@
-import { preprocessPhrase, PIPE_SEP, TIE_SEP } from '../../common/language.js';
+import { createPhraseSyllabifier } from '../../common/language.js';
 
 // Slovak syllabification — cursor-advance FSM.
 // Nucleus priority: diphthong (ia/ie/iu) > vowel > syllabic consonant (r/l/ŕ/ĺ).
@@ -127,106 +127,15 @@ export function syllabifyWord(word) {
   return syllables.filter(Boolean);
 }
 
-function _hasNucleus(word) {
+function hasNucleus(word) {
   for (const ch of word) {
     if (isVowel(ch) || isSyllabic(ch)) return true;
   }
   return false;
 }
 
-/**
- * Tokenize a full phrase into syllable tokens with position metadata.
- * Strips punctuation from words before syllabifying; preserves it in the token.
- *
- * Control characters (handled via {@link preprocessPhrase} before this is called):
- *   TIE_SEP (from _) — all fragments joined by this become ONE token / ONE melody note.
- *   PIPE_SEP (from |) — explicit in-word split; parts share the same wordIdx (no GABC space).
- *
- * Consonant-only words (no vowel/syllabic nucleus) — Slovak prepositions v, s, k, z —
- * are prepended to the first syllable of the following word ("s tebou" → "s te" + "bou").
- * Vowel prepositions (o, a, u…) keep their own syllable slot.
- * @param {string} phrase
- * @returns {import('../../common/language.js').SyllableToken[]}
- */
-export function syllabifyPhrase(phrase) {
-  const tokens = [];
-  phrase = preprocessPhrase(phrase);
-
-  const words = phrase.trim().split(/\s+/).filter(Boolean);
-  let pendingPrefix = '';
-  let wordIdxCounter = 0;
-
-  for (let wi = 0; wi < words.length; wi++) {
-    const raw = words[wi];
-
-    // ── TIE (_): all syllables from every tied fragment collapse into ONE token ──
-    if (raw.includes(TIE_SEP)) {
-      const parts = raw.split(TIE_SEP).filter(Boolean);
-      const allSyls = [];
-      for (const part of parts) {
-        const lp = part.match(/^[^\p{L}]*/u)?.[0] ?? '';
-        const tp = part.match(/[^\p{L}]*$/u)?.[0] ?? '';
-        const clean = part.slice(lp.length, part.length - tp.length);
-        const syls = clean ? syllabifyWord(clean) : [];
-        if (syls.length) {
-          syls[0] = lp + syls[0];
-          syls[syls.length - 1] += tp;
-        } else {
-          allSyls.push(lp + tp);
-          continue;
-        }
-        allSyls.push(...syls);
-      }
-      const combinedSyl = (pendingPrefix + allSyls.join(' ')).trim();
-      pendingPrefix = '';
-      tokens.push({ syl: combinedSyl, wordIdx: wordIdxCounter++, sylIdx: 0, isStressed: true });
-      continue;
-    }
-
-    // ── PIPE (|): explicit in-word split — parts share the same wordIdx ──
-    if (raw.includes(PIPE_SEP)) {
-      const parts = raw.split(PIPE_SEP).filter(Boolean);
-      const wIdx = wordIdxCounter++;
-      for (let pi = 0; pi < parts.length; pi++) {
-        let syl = parts[pi];
-        if (pi === 0 && pendingPrefix) { syl = pendingPrefix + syl; pendingPrefix = ''; }
-        const isStressed = pi === 0 || (parts.length >= 4 && pi % 2 === 0);
-        tokens.push({ syl, wordIdx: wIdx, sylIdx: pi, isStressed });
-      }
-      pendingPrefix = '';
-      continue;
-    }
-
-    // ── Standard word ──
-    const leadPunct = raw.match(/^[^\p{L}]*/u)?.[0] ?? '';
-    const trailPunct = raw.match(/[^\p{L}]*$/u)?.[0] ?? '';
-    let clean = raw.slice(leadPunct.length, raw.length - trailPunct.length);
-
-    // Consonant-only word before another word → defer as prefix onto next syllable.
-    if (clean && !_hasNucleus(clean) && wi < words.length - 1) {
-      pendingPrefix += leadPunct + clean + trailPunct + ' ';
-      continue;
-    }
-
-    const syls = syllabifyWord(clean);
-    const wIdx = wordIdxCounter++;
-    for (let sylIdx = 0; sylIdx < syls.length; sylIdx++) {
-      let syl = syls[sylIdx];
-      if (sylIdx === 0) syl = pendingPrefix + leadPunct + syl;
-      if (sylIdx === syls.length - 1) syl = syl + trailPunct;
-      const defaultStressed = sylIdx === 0 || (syls.length >= 4 && sylIdx % 2 === 0);
-      const isStressed = syls.length === 1
-        ? !UNSTRESSED_MONOSYLLABLES.has(clean.toLowerCase())
-        : defaultStressed;
-      tokens.push({ syl, wordIdx: wIdx, sylIdx, isStressed });
-    }
-    pendingPrefix = '';
-  }
-
-  // Leftover consonant-only word at end of phrase — emit as-is.
-  if (pendingPrefix) {
-    tokens.push({ syl: pendingPrefix.trim(), wordIdx: wordIdxCounter, sylIdx: 0, isStressed: true });
-  }
-
-  return tokens;
-}
+export const syllabifyPhrase = createPhraseSyllabifier({
+  syllabifyWord,
+  hasNucleus,
+  unstressedMonosyllables: UNSTRESSED_MONOSYLLABLES,
+});

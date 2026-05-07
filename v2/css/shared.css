@@ -226,43 +226,6 @@
   border-right: none;
 }
 
-/* ── Breviary HTML verse output ──────────────────────────────────────────── */
-#versesPreview {
-  font-family: 'Crimson Text', Georgia, serif;
-  font-size: 18px;
-  line-height: 1.5;
-  color: #3d2b1f;
-}
-
-#versesPreview .verse-line {
-  display: flex;
-  gap: 0.4em;
-  margin: 0 0 0.3em;
-}
-
-#versesPreview .verse-line:last-child {
-  margin-bottom: 0;
-}
-
-#versesPreview .verse-num {
-  min-width: 1.5em;
-  text-align: right;
-  flex-shrink: 0;
-  font-style: normal;
-  font-weight: normal;
-  color: #c00;
-  font-size: 1em;
-}
-
-#versesPreview .verse-mark {
-  color: #c00;
-}
-
-#versesPreview .verse-text {
-  flex: 1;
-  min-width: 0;
-}
-
 /* ── Dominican site header ───────────────────────────────────────────────── */
 .op-tool-nav-link {
   padding: 4px 12px;
