@@ -102,8 +102,10 @@ export function alignChunk(tokens, cadence, tenorNote, intonationNotes) {
   }
 
   // Fill remaining left positions: intonation for first N, tenor for the rest.
+  // Only apply intonation when at least one tenor note would survive after it.
+  const applyIntonation = intonationNotes.length > 0 && (ti + 1) > intonationNotes.length;
   for (let i = 0; i <= ti; i++) {
-    result[i] = i < intonationNotes.length
+    result[i] = (applyIntonation && i < intonationNotes.length)
       ? { syl: tokens[i].syl, note: intonationNotes[i], role: 'intonation' }
       : { syl: tokens[i].syl, note: tenorNote, role: 'tenor' };
   }

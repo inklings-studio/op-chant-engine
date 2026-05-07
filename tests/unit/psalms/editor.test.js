@@ -13,7 +13,13 @@ const SCAFFOLD = `<!DOCTYPE html><html><body>
   <span id="psalmSelectLabel" class="hidden"></span>
   <select id="psalmSelect" class="hidden"><option value="">— select —</option></select>
   <input type="text" id="editorAnnotation">
-  <input type="checkbox" id="editorLargeInitial">
+  <select id="editorOutputMode"><option value="gabc">GABC</option><option value="html">HTML</option></select>
+  <div id="editorGabcOptions">
+    <input type="checkbox" id="editorLargeInitial">
+    <input type="checkbox" id="editorRepeatIntonation">
+  </div>
+  <div id="editorHtmlLeft" style="display:none;"></div>
+  <div id="editorHtmlRight" style="display:none;"></div>
   <select id="editorTone"></select>
   <select id="editorTerm"></select>
   <input type="checkbox" id="editorSolemn">
@@ -357,4 +363,143 @@ test('psalm editor build: unchanged verse preserves manually-edited notes', () =
   const newInput = document.querySelector('.editor-melody-input');
   assert.equal(newInput.value, 'z z z z z z z',
     'notes should be preserved when verse text is unchanged on subsequent Build');
+});
+
+// ── Repeat Intonation checkbox ────────────────────────────────────────────────
+
+test('psalm editor repeat intonation: checkbox is initially unchecked', () => {
+  setup();
+  const chk = document.getElementById('editorRepeatIntonation');
+  assert.ok(!chk.checked, 'Repeat Intonation checkbox should be unchecked by default');
+});
+
+// VERSE_2 is long: its mediant phrase has many syllables → >>2 leftover after cadence
+// → guard passes → intonation fires when isFirstVerse=true (repeat intonation on).
+test('psalm editor repeat intonation: checking on long verse adds intonation role to verse 2 AST', () => {
+  const { state } = setup();
+  buildVerses([VERSE_1, VERSE_2]);
+
+  // Verse 2 (stanzas[1]) should have no intonation tokens initially
+  assert.ok(!state.stanzas[1].ast.some(t => t.role === 'intonation'),
+    'verse 2 AST should contain no intonation tokens before checkbox is checked');
+
+  const chk = document.getElementById('editorRepeatIntonation');
+  chk.checked = true;
+  fire(chk, 'change');
+
+  assert.ok(state.stanzas[1].ast.some(t => t.role === 'intonation'),
+    'verse 2 AST should contain intonation tokens after Repeat Intonation is checked (long verse)');
+});
+
+// Unchecking removes intonation from the AST.
+test('psalm editor repeat intonation: unchecking removes intonation from verse 2 AST', () => {
+  const { state } = setup();
+  buildVerses([VERSE_1, VERSE_2]);
+
+  const chk = document.getElementById('editorRepeatIntonation');
+  chk.checked = true;
+  fire(chk, 'change');
+
+  chk.checked = false;
+  fire(chk, 'change');
+
+  assert.ok(!state.stanzas[1].ast.some(t => t.role === 'intonation'),
+    'verse 2 AST should have no intonation tokens after unchecking Repeat Intonation');
+});
+
+// Verse 1 pointing is driven by isFirstVerse=true unconditionally (si===0).
+// Toggling the Repeat Intonation checkbox therefore has no effect on verse 1's AST.
+test('psalm editor repeat intonation: verse 1 AST is unaffected by checkbox toggle', () => {
+  const { state } = setup();
+  buildVerses([VERSE_1, VERSE_2]);
+
+  const v1NotesBefore = state.stanzas[0].ast.map(t => t.note).join(' ');
+
+  const chk = document.getElementById('editorRepeatIntonation');
+  chk.checked = true;
+  fire(chk, 'change');
+
+  const v1NotesAfter = state.stanzas[0].ast.map(t => t.note).join(' ');
+
+  assert.equal(v1NotesAfter, v1NotesBefore,
+    'verse 1 AST notes should be identical before and after toggling Repeat Intonation');
+});
+
+// ── AST sync on melody edit ───────────────────────────────────────────────────
+//
+// When the user edits a melody note input, _syncAstFromLine must patch stanza.ast
+// so that compileBreviaryHtml (which reads ast.note) sees the updated values.
+
+test('psalm editor AST sync: editing melody input for verse 2 updates stanza.ast note values', () => {
+  const { state } = setup();
+  buildVerses([VERSE_1, VERSE_2]);
+
+  const originalNote = state.stanzas[1].ast[0].note;
+
+  // Edit the first melody input of verse 2 (stanza index 1, line index 0)
+  const input = document.querySelector('.editor-melody-input[data-stanza="1"][data-line="0"]');
+  assert.ok(input, 'melody input for verse 2, line 0 should exist');
+
+  input.value = 'z z z z z z z z z z z';
+  fire(input, 'input');
+
+  assert.equal(state.stanzas[1].ast[0].note, 'z',
+    'first AST token note should be updated to the first note from the edited input');
+  assert.notEqual(state.stanzas[1].ast[0].note, originalNote,
+    'AST note should differ from its pre-edit value');
+});
+
+test('psalm editor AST sync: entering all non-cadence notes resets mediant phrase roles to tenor', () => {
+  const { state } = setup();
+  buildVerses([VERSE_1, VERSE_2]);
+
+  const input = document.querySelector('.editor-melody-input[data-stanza="1"][data-line="0"]');
+  input.value = 'z z z z z z z z z z z';
+  fire(input, 'input');
+
+  // Only the mediant phrase (li=0) AST tokens are affected; barlines are untouched.
+  // With all 'z' notes (not in any cadence map), every non-intonation syllable role → tenor.
+  const mediantAst = state.stanzas[1].ast.slice(
+    0,
+    state.stanzas[1].ast.findIndex(t => t.role === 'mediant') + 1,
+  );
+  const sylTokens = mediantAst.filter(t => t.role !== 'mediant' && t.role !== 'intonation');
+  assert.ok(sylTokens.every(t => t.role === 'tenor'),
+    'all mediant syllable tokens should have tenor role when only non-cadence notes are entered');
+});
+
+test('psalm editor AST sync: placing the cadence accent note moves the acc role to that syllable', () => {
+  const { state } = setup();
+  buildVerses([VERSE_1, VERSE_2]);
+
+  // VERSE_2 mediant phrase has 11 syllables for tone8; put k on position 8 (0-indexed).
+  // Any syllable with note 'k' should get role 'acc'; note 'j.' should get 'fin'.
+  const input = document.querySelector('.editor-melody-input[data-stanza="1"][data-line="0"]');
+  input.value = 'j j j j j j j j k j. :';
+  fire(input, 'input');
+
+  const mediantEnd = state.stanzas[1].ast.findIndex(t => t.role === 'mediant');
+  const sylTokens = state.stanzas[1].ast.slice(0, mediantEnd).filter(t => t.role !== 'intonation');
+
+  const accToken = sylTokens.find(t => t.note === 'k');
+  const finToken = sylTokens.find(t => t.note === 'j.');
+  assert.ok(accToken, 'there should be a token with note k');
+  assert.equal(accToken.role, 'acc', 'token with note k should have role acc');
+  assert.ok(finToken, 'there should be a token with note j.');
+  assert.equal(finToken.role, 'fin', 'token with note j. should have role fin');
+});
+
+test('psalm editor AST sync: editing melody for verse 1 does not affect verse 2 AST', () => {
+  const { state } = setup();
+  buildVerses([VERSE_1, VERSE_2]);
+
+  const v2NotesBefore = state.stanzas[1].ast.map(t => t.note);
+
+  const input = document.querySelector('.editor-melody-input[data-stanza="0"][data-line="0"]');
+  input.value = 'z z z z z z z z';
+  fire(input, 'input');
+
+  const v2NotesAfter = state.stanzas[1].ast.map(t => t.note);
+  assert.deepEqual(v2NotesAfter, v2NotesBefore,
+    'editing verse 1 melody should not affect verse 2 AST');
 });

@@ -1,6 +1,6 @@
 import { listLanguages, getLanguage } from '../common/language.js';
 import { compileGabc, compileGabc1 } from '../common/compiler.js';
-import { tokenizeMelody } from '../common/melody.js';
+import { BARLINES, tokenizeMelody } from '../common/melody.js';
 import { pointVerse } from './pointer.js';
 import { loadPsalm } from './loader.js';
 import { compileBreviaryHtml } from './formatter.js';
@@ -22,10 +22,11 @@ let _onStatus = null;
 let _toneKey = 'tone8';
 let _cadenceKey = null;
 let _isSolemn = false;
+let _repeatIntonation = false;
 let _outputMode = 'gabc';
 
 // ─── DOM refs (initialised in initEditor to allow Node.js test imports) ───────
-let _langSel, _psalmSel, _psalmLabel, _largeInitChk, _annotationInput,
+let _langSel, _psalmSel, _psalmLabel, _largeInitChk, _repeatIntonChk, _annotationInput,
     _rawText, _buildBtn, _rebuildBtn, _editToggle, _textArea, _stanzasEl,
     _toneSelect, _termSelect, _solemnChk, _gabcOptions, _htmlLeft, _htmlRight;
 
@@ -39,11 +40,19 @@ let _langSel, _psalmSel, _psalmLabel, _largeInitChk, _annotationInput,
  * @param {{ onStatus?: function(string, string=): void }} [options]
  */
 export function initEditor(state, onGabcCompiled, options = {}) {
+  // Reset ephemeral module state so each initEditor call starts from known defaults.
+  _toneKey          = 'tone8';
+  _cadenceKey       = null;
+  _isSolemn         = false;
+  _repeatIntonation = false;
+  _outputMode       = 'gabc';
+
   _langSel        = document.getElementById('editorLang');
   _psalmSel       = document.getElementById('psalmSelect');
   _psalmLabel     = document.getElementById('psalmSelectLabel');
-  _largeInitChk   = document.getElementById('editorLargeInitial');
-  _annotationInput= document.getElementById('editorAnnotation');
+  _largeInitChk      = document.getElementById('editorLargeInitial');
+  _repeatIntonChk    = document.getElementById('editorRepeatIntonation');
+  _annotationInput   = document.getElementById('editorAnnotation');
   _rawText        = document.getElementById('editorRawText');
   _buildBtn       = document.getElementById('editorBuildBtn');
   _rebuildBtn     = document.getElementById('editorRebuildBtn');
@@ -161,6 +170,7 @@ function _populatePsalmSelect(lang) {
 function _syncControlsToState(state) {
   _langSel.value = state.language;
   _largeInitChk.checked = state.largeInitial;
+  _repeatIntonChk.checked = _repeatIntonation;
   _annotationInput.value = state.annotation ?? '';
   _toneSelect.value = _toneKey;
   _solemnChk.checked = _isSolemn;
@@ -208,6 +218,15 @@ function _wireStaticEvents(state) {
 
   _solemnChk.addEventListener('change', () => {
     _isSolemn = _solemnChk.checked;
+    if (state.stanzas.length) {
+      _repointAll(state);
+      _renderStanzas(state);
+    }
+    triggerCompile(state);
+  });
+
+  _repeatIntonChk.addEventListener('change', () => {
+    _repeatIntonation = _repeatIntonChk.checked;
     if (state.stanzas.length) {
       _repointAll(state);
       _renderStanzas(state);
@@ -404,8 +423,8 @@ function _buildStanza(rawLine, tone, plugin, isFirstVerse) {
     const wordMap = langTokens.map(t => t.wordIdx);
     const markedLine = _buildMarkedLine(ast, wordMap);
     const lines = _splitAstToLines(ast, wordMap);
-    // ast and wordMap stored at stanza level for HTML formatter
-    return { rawLine: markedLine, ast, wordMap, lines };
+    // ast, wordMap, and tone snapshot stored at stanza level for HTML formatter and role re-derivation
+    return { rawLine: markedLine, ast, wordMap, lines, toneKey: _toneKey, cadenceKey: _cadenceKey, isSolemn: _isSolemn };
   } catch (_e) {
     const cleanLine = rawLine.replace(/[†*]/g, ' ').replace(/\s+/g, ' ').trim();
     const tokens = plugin.syllabifyPhrase(cleanLine);
@@ -438,7 +457,7 @@ function _parseAndPoint(rawText, state) {
     if (existing?.rawLine === rawLine && existing?.lines[0]?.notes) {
       return existing;
     }
-    return _buildStanza(rawLine, tone, plugin, vi === 0);
+    return _buildStanza(rawLine, tone, plugin, vi === 0 || _repeatIntonation);
   });
   state.clef = tone.clef;
   state.coda = null;
@@ -455,11 +474,14 @@ function _repointAll(state) {
 
   state.stanzas.forEach((stanza, si) => {
     if (!stanza.rawLine) return;
-    const newStanza = _buildStanza(stanza.rawLine, tone, plugin, si === 0);
+    const newStanza = _buildStanza(stanza.rawLine, tone, plugin, si === 0 || _repeatIntonation);
     stanza.lines = newStanza.lines;
     stanza.rawLine = newStanza.rawLine;
     stanza.ast = newStanza.ast;
     stanza.wordMap = newStanza.wordMap;
+    stanza.toneKey = newStanza.toneKey;
+    stanza.cadenceKey = newStanza.cadenceKey;
+    stanza.isSolemn = newStanza.isSolemn;
   });
 
   state.clef = tone.clef;
@@ -478,11 +500,75 @@ function _syncRawTextarea(state) {
 
 // ─── Dynamic verse rows ───────────────────────────────────────────────────────
 
+/**
+ * Returns the cadence array for the given phrase (detected from its trailing barline token).
+ * Uses the stanza-level tone snapshot so that role re-derivation is stable even if the
+ * user subsequently changes the tone selector.
+ */
+function _phraseCadence(phraseTokens, tone, cadenceKey, isSolemn) {
+  const last = phraseTokens[phraseTokens.length - 1];
+  if (last?.role === 'flex') return tone.flex;
+  if (last?.role === 'mediant') return (isSolemn ? tone.solemn : tone.mediant)?.cadence ?? null;
+  return tone.terminations?.[cadenceKey] ?? tone.termination ?? null;
+}
+
+/**
+ * Patches note values and re-derives roles for stanza.ast phrase li from parsedNotes.
+ * Roles are identified by matching note values to cadence slots whose note differs from
+ * the tenor note (unambiguous). Intonation tokens are preserved. All other tokens default
+ * to tenor. This keeps the HTML breviary formatting in sync when the user moves accent
+ * notes to different syllables.
+ */
+function _syncAstFromLine(stanza, li, parsedNotes) {
+  if (!stanza.ast) return;
+
+  const phrases = [];
+  let current = [];
+  for (const token of stanza.ast) {
+    current.push(token);
+    if (token.role === 'flex' || token.role === 'mediant') {
+      phrases.push(current);
+      current = [];
+    }
+  }
+  if (current.length) phrases.push(current);
+
+  const phrase = phrases[li];
+  if (!phrase) return;
+
+  const astSylTokens = phrase.filter(t => t.role !== 'flex' && t.role !== 'mediant');
+  const noteStrings  = parsedNotes.filter(n => !BARLINES.has(n));
+  const len = Math.min(astSylTokens.length, noteStrings.length);
+
+  for (let i = 0; i < len; i++) astSylTokens[i].note = noteStrings[i];
+
+  const tone = TONES[stanza.toneKey ?? _toneKey];
+  const cadence = _phraseCadence(phrase, tone, stanza.cadenceKey ?? _cadenceKey, stanza.isSolemn ?? _isSolemn);
+  if (!cadence) return;
+
+  // Map unique note values (those that differ from the tenor) to their cadence role.
+  // Ambiguous notes (note === tenor) are left as tenor — they cannot be distinguished
+  // from a tenor note by value alone, and they render identically in the HTML breviary.
+  const noteRoleMap = new Map();
+  for (const slot of cadence) {
+    const role = Object.keys(slot)[0];
+    const note = slot[role];
+    if (note !== tone.tenor && !noteRoleMap.has(note)) noteRoleMap.set(note, role);
+  }
+
+  for (let i = 0; i < len; i++) {
+    if (astSylTokens[i].role === 'intonation') continue;
+    astSylTokens[i].role = noteRoleMap.get(noteStrings[i]) ?? 'tenor';
+  }
+}
+
 function _handleLineUpdate({ si, li, notes, parsedNotes }) {
-  const target = _state.stanzas[si]?.lines[li];
+  const stanza = _state.stanzas[si];
+  const target = stanza?.lines[li];
   if (!target) return null;
   target.notes = notes;
   target.parsedNotes = parsedNotes;
+  _syncAstFromLine(stanza, li, parsedNotes);
   triggerCompile(_state);
   return target;
 }

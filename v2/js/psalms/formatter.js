@@ -40,7 +40,7 @@ export function generateBreviaryHtml(verseAst, wordMap, wrappers = {}) {
   let result = '';
   let sylIdx = 0;
   let prevWordIdx = null;
-  let inFlexPhrase = true;
+  let inFlexPhrase = verseAst.some(t => t.role === 'flex');
 
   for (const t of verseAst) {
     if (t.role === 'flex') {

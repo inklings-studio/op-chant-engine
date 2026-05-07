@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pointVerse } from '../../v2/js/psalms/pointer.js';
+import { pointVerse, alignChunk } from '../../v2/js/psalms/pointer.js';
 import { tone8 } from '../../v2/js/tones/dominican.js';
 import { syllabifyPhrase } from '../../v2/js/languages/sk/syllabifier.js';
 
@@ -217,4 +217,80 @@ test('pointVerse: mediant-only verse emits only mediant barline sentinel', () =>
 
   assert.equal(flexCount,    0, 'no flex barline for a verse without †');
   assert.equal(mediantCount, 1, 'exactly one mediant barline sentinel');
+});
+
+// ── Intonation guard: requires leftover > intonation.length ──────────────────
+//
+// The guard prevents intonation from swallowing all remaining positions when
+// there is no tenor note left after intonation would be placed.
+// Rule: apply intonation only when (leftover positions) > intonation.length.
+
+// cadence = [{acc:'k'},{fin:'j.'}], 4 tokens → fin=D, acc=C★ → 2 leftover (A, B)
+// intonation = ['x','y'] (2 notes) → 2 > 2 is FALSE → no intonation; all tenor.
+test('alignChunk: 2-note intonation with exactly 2 leftover positions → all tenor (guard prevents intonation)', () => {
+  const tokens = [
+    { syl: 'A', isStressed: true  },
+    { syl: 'B', isStressed: false },
+    { syl: 'C', isStressed: true  },
+    { syl: 'D', isStressed: false },
+  ];
+  const result = alignChunk(tokens, [{ acc: 'k' }, { fin: 'j.' }], 'g', ['x', 'y']);
+
+  assert.equal(result[0].role, 'tenor',    'A: 1st leftover must be tenor when guard blocks intonation');
+  assert.equal(result[0].note, 'g',        'A note must be tenor note');
+  assert.equal(result[1].role, 'tenor',    'B: 2nd leftover must be tenor (not intonation[1])');
+  assert.equal(result[2].role, 'acc',      'C: accent slot filled correctly');
+  assert.equal(result[3].role, 'fin',      'D: fin slot filled correctly');
+  assert.ok(!result.some(t => t.role === 'intonation'), 'no intonation tokens should appear');
+});
+
+// cadence = [{acc:'k'},{fin:'j.'}], 5 tokens → fin=E, acc=D★ → 3 leftover (A, B, C)
+// intonation = ['x','y'] (2 notes) → 3 > 2 is TRUE → intonation applied; C becomes the lone tenor.
+test('alignChunk: 2-note intonation with exactly 3 leftover positions → intonation applied, 1 tenor survives', () => {
+  const tokens = [
+    { syl: 'A', isStressed: true  },
+    { syl: 'B', isStressed: false },
+    { syl: 'C', isStressed: false },
+    { syl: 'D', isStressed: true  },
+    { syl: 'E', isStressed: false },
+  ];
+  const result = alignChunk(tokens, [{ acc: 'k' }, { fin: 'j.' }], 'g', ['x', 'y']);
+
+  assert.equal(result[0].role, 'intonation', 'A: 1st leftover gets intonation[0]');
+  assert.equal(result[0].note, 'x',          'A note must be intonation[0]');
+  assert.equal(result[1].role, 'intonation', 'B: 2nd leftover gets intonation[1]');
+  assert.equal(result[1].note, 'y',          'B note must be intonation[1]');
+  assert.equal(result[2].role, 'tenor',      'C: surviving tenor after intonation');
+  assert.equal(result[3].role, 'acc',        'D: accent slot');
+  assert.equal(result[4].role, 'fin',        'E: fin slot');
+});
+
+// Integration: short verse mediant (2 leftover) with isFirstVerse=true (repeat-intonation path).
+// "lebo dobrý Pán *": mediant → le★ bo dob★ rý Pán★ = 5 syllables
+//   fin: Pán(4), ep: rý(3) unstressed→ep, acc: dob★(2), leftover: le(0) bo(1) = 2 positions
+//   guard: 2 > 2 = false → all tenor even though isFirstVerse=true passes intonation array.
+test('pointVerse: short mediant with isFirstVerse=true → guard prevents intonation (all tenor)', () => {
+  const verse = 'lebo dobrý Pán * a nič mi nechýba';
+  const tokens = pointVerse(verse, tone8, 'G', false, syllabifyPhrase, true);
+  const mediantEnd = tokens.findIndex(t => t.role === 'mediant');
+  const mediantPhrase = tokens.slice(0, mediantEnd);
+
+  assert.ok(!mediantPhrase.some(t => t.role === 'intonation'),
+    'no intonation tokens: 2 leftover is not enough for 2-note intonation to fire');
+  assert.ok(mediantPhrase.every(t => t.role === 'tenor' || t.role === 'acc' || t.role === 'ep' || t.role === 'fin'),
+    'all mediant tokens should be tenor/acc/ep/fin');
+});
+
+// Integration: long verse mediant (5 leftover) with isFirstVerse=true (repeat-intonation path).
+// "Hospodin je môj pastier *" → 7 syllables, 5 leftover → 5 > 2 → intonation fires.
+// The first two tokens of the mediant get the tone8 intonation notes ("g", "h").
+test('pointVerse: long mediant with isFirstVerse=true → intonation applied on first 2 syllables', () => {
+  const verse = 'Hospodin je môj pastier * a nič mi nechýba';
+  const tokens = pointVerse(verse, tone8, 'G', false, syllabifyPhrase, true);
+
+  assert.equal(tokens[0].role, 'intonation', '1st syllable: intonation role');
+  assert.equal(tokens[0].note, 'g',          '1st syllable: tone8 intonation note g');
+  assert.equal(tokens[1].role, 'intonation', '2nd syllable: intonation role');
+  assert.equal(tokens[1].note, 'h',          '2nd syllable: tone8 intonation note h');
+  assert.equal(tokens[2].role, 'tenor',      '3rd syllable: tenor (survives after 2-note intonation)');
 });
