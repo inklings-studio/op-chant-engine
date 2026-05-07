@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const URL = '/v2/transcriber.html';
+const URL = '/transcriber.html';
 const SAMPLE_TEXT = 'Kriste Rex\nsláva Bohu';
 
 async function buildHymn(page, text = SAMPLE_TEXT) {
@@ -180,7 +180,7 @@ test('GABC import: raw text textarea populated with reconstructed syllables', as
   await page.click('#editorEditToggle');
   const val = await page.inputValue('#editorRawText');
   expect(val).toContain('O lux');
-  expect(val).toContain('Trínitas.');
+  expect(val).toContain('Trí|ni|tas.');
 });
 
 test('GABC import: mid-line barlines preserved in melody inputs', async ({ page }) => {

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const URL = '/v2/psalms.html';
+const URL = '/psalms.html';
 const VERSE_1 = 'Hospodin je môj pastier * a nič mi nechýba.';
 const VERSE_2 = 'V zelených pastvinách ma ukladá * k tichým vodám ma privádza.';
 
@@ -37,23 +37,23 @@ test('controls: termination dropdown is populated on load', async ({ page }) => 
 
 // ── Build default view ─────────────────────────────────────────────────────────
 
-test('build: textarea stays visible after Build (not hidden like transcriber)', async ({ page }) => {
+test('build: textarea stays hidden after Build', async ({ page }) => {
   await page.goto(URL);
   await buildVerses(page);
-  await expect(page.locator('#editorTextInputArea')).toBeVisible();
+  await expect(page.locator('#editorTextInputArea')).toBeHidden();
 });
 
-test('build: stanzas are hidden after Build', async ({ page }) => {
+test('build: stanzas are visible after Build', async ({ page }) => {
   await page.goto(URL);
   await buildVerses(page);
-  await expect(page.locator('#editorStanzas')).toBeHidden();
+  await expect(page.locator('#editorStanzas')).toBeVisible();
 });
 
-test('build: Edit melody toggle is revealed with correct label', async ({ page }) => {
+test('build: Edit text toggle is revealed with correct label', async ({ page }) => {
   await page.goto(URL);
   await buildVerses(page);
   await expect(page.locator('#editorEditToggle')).toBeVisible();
-  expect(await page.textContent('#editorEditToggle')).toBe('Edit melody');
+  expect(await page.textContent('#editorEditToggle')).toBe('Edit text');
 });
 
 test('build: note inputs are auto-filled by pointing algorithm', async ({ page }) => {
@@ -63,27 +63,28 @@ test('build: note inputs are auto-filled by pointing algorithm', async ({ page }
   const notes = await page.evaluate(() =>
     [...document.querySelectorAll('.editor-melody-input')].map(i => i.value)
   );
-  expect(notes).toHaveLength(2);
+  expect(notes).toHaveLength(4);
   notes.forEach(v => expect(v.trim().length).toBeGreaterThan(0));
 });
 
 test('build: Build button hidden and Fit Text visible after Build', async ({ page }) => {
   await page.goto(URL);
-  await buildVerses(page);
+  await page.fill('#editorRawText', [VERSE_1, VERSE_2].join('\n'));
+  await page.click('#editorBuildBtn');
   await expect(page.locator('#editorBuildBtn')).toBeHidden();
-  await expect(page.locator('#editorRebuildBtn')).toBeVisible();
+  await expect(page.locator('#editorRebuildBtn')).not.toHaveClass(/hidden/);
 });
 
 // ── Edit melody toggle ─────────────────────────────────────────────────────────
 
-test('toggle: click reveals melody editor and hides textarea', async ({ page }) => {
+test('toggle: click reveals textarea and hides melody editor', async ({ page }) => {
   await page.goto(URL);
   await buildVerses(page);
   await page.click('#editorEditToggle');
 
-  await expect(page.locator('#editorTextInputArea')).toBeHidden();
-  await expect(page.locator('#editorStanzas')).toBeVisible();
-  expect(await page.textContent('#editorEditToggle')).toBe('Edit text');
+  await expect(page.locator('#editorTextInputArea')).toBeVisible();
+  await expect(page.locator('#editorStanzas')).toBeHidden();
+  expect(await page.textContent('#editorEditToggle')).toBe('Hide');
 });
 
 test('toggle: alignment track chips are rendered when melody view is open', async ({ page }) => {
@@ -96,15 +97,15 @@ test('toggle: alignment track chips are rendered when melody view is open', asyn
   expect(count).toBeGreaterThan(0);
 });
 
-test('toggle: second click restores textarea and hides melody editor', async ({ page }) => {
+test('toggle: second click restores melody editor and hides textarea', async ({ page }) => {
   await page.goto(URL);
   await buildVerses(page);
-  await page.click('#editorEditToggle'); // open melody view
-  await page.click('#editorEditToggle'); // back to text view
+  await page.click('#editorEditToggle'); // open text view
+  await page.click('#editorEditToggle'); // back to melody view
 
-  await expect(page.locator('#editorTextInputArea')).toBeVisible();
-  await expect(page.locator('#editorStanzas')).toBeHidden();
-  expect(await page.textContent('#editorEditToggle')).toBe('Edit melody');
+  await expect(page.locator('#editorTextInputArea')).toBeHidden();
+  await expect(page.locator('#editorStanzas')).toBeVisible();
+  expect(await page.textContent('#editorEditToggle')).toBe('Edit text');
 });
 
 // ── GABC tab ──────────────────────────────────────────────────────────────────

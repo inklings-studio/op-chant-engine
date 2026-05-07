@@ -1,19 +1,17 @@
 {
-  "name": "jgabc",
-  "version": "1.10.2",
-  "description": "Chant Tools",
-  "homepage": "https://github.com/bbloomf/jgabc#readme",
+  "name": "op-chant-engine",
+  "version": "0.1.0",
+  "description": "Dominican Chant Engine — tools for editing, pointing, and rendering Gregorian chant",
+  "homepage": "https://github.com/dedocibula/op-chant-engine#readme",
   "bugs": {
-    "url": "https://github.com/bbloomf/jgabc/issues"
+    "url": "https://github.com/dedocibula/op-chant-engine/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bbloomf/jgabc.git"
+    "url": "git+https://github.com/dedocibula/op-chant-engine.git"
   },
-  "license": "SEE LICENSE IN LICENSE",
-  "author": "Benjamin Bloomfield",
-  "type": "commonjs",
-  "main": "index.js",
+  "author": "dedocibula",
+  "type": "module",
   "directories": {
     "test": "tests"
   },
@@ -21,8 +19,8 @@
     "test": "node --test tests/unit/*.test.js tests/unit/transcriber/*.test.js tests/unit/psalms/*.test.js",
     "test:unit": "node --test tests/unit/*.test.js tests/unit/transcriber/*.test.js tests/unit/psalms/*.test.js",
     "test:smoke": "npx playwright test",
-    "build:css": "tailwindcss -i ./v2/src/input.css -o ./v2/css/output.css --minify",
-    "watch:css": "tailwindcss -i ./v2/src/input.css -o ./v2/css/output.css --watch"
+    "build:css": "tailwindcss -i ./src/input.css -o ./css/output.css --minify",
+    "watch:css": "tailwindcss -i ./src/input.css -o ./css/output.css --watch"
   },
   "dependencies": {
     "@prettier/sync": "^0.6.1",

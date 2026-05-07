@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pointVerse, alignChunk } from '../../v2/js/psalms/pointer.js';
-import { tone8 } from '../../v2/js/tones/dominican.js';
-import { syllabifyPhrase } from '../../v2/js/languages/sk/syllabifier.js';
+import { pointVerse, alignChunk } from '../../js/psalms/pointer.js';
+import { tone8 } from '../../js/tones/dominican.js';
+import { syllabifyPhrase } from '../../js/languages/sk/syllabifier.js';
 
 // ── Mediant accent placement ───────────────────────────────────────────────────
 

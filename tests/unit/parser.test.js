@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseText } from '../../v2/js/common/parser.js';
-import { parseGabc, reconstructText } from '../../v2/js/common/gabc-parser.js';
-import { syllabifyWord, syllabifyPhrase } from '../../v2/js/languages/sk/syllabifier.js';
-import { codaPattern } from '../../v2/js/languages/sk/index.js';
+import { parseText } from '../../js/common/parser.js';
+import { parseGabc, reconstructText } from '../../js/common/gabc-parser.js';
+import { syllabifyWord, syllabifyPhrase } from '../../js/languages/sk/syllabifier.js';
+import { codaPattern } from '../../js/languages/sk/index.js';
 
 const skPlugin = { codaPattern, syllabifyWord, syllabifyPhrase };
 

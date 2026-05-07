@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
-import { initEditor } from '../../../v2/js/psalms/editor.js';
-import '../../../v2/js/languages/sk/index.js'; // registers SK plugin
+import { initEditor } from '../../../js/psalms/editor.js';
+import '../../../js/languages/sk/index.js'; // registers SK plugin
 
 // Psalm verse with mediant marker (*) — required by pointVerse
 const VERSE_1 = 'Hospodin je môj pastier * a nič mi nechýba.';

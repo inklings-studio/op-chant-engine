@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadPsalm } from '../../../v2/js/psalms/loader.js';
+import { loadPsalm } from '../../../js/psalms/loader.js';
 
 function mockFetch(responseText, ok = true) {
   globalThis.fetch = async (url) => ({

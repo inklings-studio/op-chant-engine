@@ -150,6 +150,24 @@ const _gabcBtn = document.getElementById('tabGabcBtn');
 function switchToTab(tab) {
   const toEditor = tab === 'editor';
 
+  // Dirty-flag sync: Tab 2 was manually edited, parse it back into Tab 1.
+  // Compare against the last programmatically compiled value so spurious
+  // browser events (autocorrect, autofill) don't clobber the editor state.
+  if (toEditor && gabcEditor.value !== _lastCompiledGabc) {
+    const parsed = parseGabc(gabcEditor.value.trim());
+    const state = getState();
+    state.clef = parsed.clef;
+    state.stanzas = parsed.stanzas;
+    state.coda = parsed.coda;
+    state.font = parsed.font;
+    state.fontSizePt = parsed.fontSizePt;
+    state.pageWidthIn = parsed.pageWidthIn;
+    state.pageHeightIn = parsed.pageHeightIn;
+    state.strophicInheritance = false;
+    rebuildStanzas(state);
+    _lastCompiledGabc = gabcEditor.value;
+  }
+
   _editorTab.classList.toggle('hidden', !toEditor);
   _gabcTab.classList.toggle('hidden', toEditor);
 

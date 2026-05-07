@@ -1,20 +1,20 @@
 @font-face {
   font-family: 'Crimson Text';
-  src: url('../../fonts/crimson-roman-webfont.woff2') format('woff2'),
-       url('../../fonts/crimson-roman-webfont.woff') format('woff');
+  src: url('../assets/fonts/crimson-roman-webfont.woff2') format('woff2'),
+       url('../assets/fonts/crimson-roman-webfont.woff') format('woff');
   font-weight: 400;
 }
 
 @font-face {
   font-family: 'Crimson Text';
-  src: url('../../fonts/crimson-bold-webfont.woff2') format('woff2'),
-       url('../../fonts/crimson-bold-webfont.woff') format('woff');
+  src: url('../assets/fonts/crimson-bold-webfont.woff2') format('woff2'),
+       url('../assets/fonts/crimson-bold-webfont.woff') format('woff');
   font-weight: 700;
 }
 
 @font-face {
   font-family: 'Versiculum';
-  src: url('../../versiculum.ttf') format('truetype');
+  src: url('../assets/versiculum.ttf') format('truetype');
   font-weight: 400;
 }
 

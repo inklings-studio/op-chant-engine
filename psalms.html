@@ -7,7 +7,7 @@
     IMPORTANT: Open via HTTP server, NOT file://.
     Exsurge uses Canvas for text measurement; Web Audio requires a real origin.
     Run: http-server -a localhost -p 8080 --no-cache
-    Then open: http://localhost:8080/v2/psalms.html
+    Then open: http://localhost:8080/psalms.html
   -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>OP Psalm Tone Tool</title>
@@ -27,10 +27,10 @@
     Global libraries must load as classic scripts before the ES6 module.
     Order: Tone → tones (audio) → exsurge (rendering) → saveSvgAsPng (export)
   -->
-  <script src="../js/Tone.min.js"></script>
-  <script src="../js/tones.js"></script>
-  <script src="../exsurge.min.js"></script>
-  <script src="../saveSvgAsPng.js"></script>
+  <script src="js/Tone.min.js"></script>
+  <script src="js/tones.js"></script>
+  <script src="js/exsurge.min.js"></script>
+  <script src="js/saveSvgAsPng.js"></script>
 </head>
 
 <body class="h-screen flex flex-col bg-op-parchment text-op-ink overflow-hidden">

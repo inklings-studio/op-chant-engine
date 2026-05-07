@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { syllabifyWord, syllabifyPhrase, addException } from '../../v2/js/languages/sk/syllabifier.js';
-import { codaPattern } from '../../v2/js/languages/sk/index.js';
+import { syllabifyWord, syllabifyPhrase, addException } from '../../js/languages/sk/syllabifier.js';
+import { codaPattern } from '../../js/languages/sk/index.js';
 
 test('syllabifyWord: Kriste', () => assert.deepEqual(syllabifyWord('Kriste'), ['Kris', 'te']));
 test('syllabifyWord: sláva', () => assert.deepEqual(syllabifyWord('sláva'), ['slá', 'va']));

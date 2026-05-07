@@ -9,9 +9,9 @@ let _onGabcCompiled = null;
 
 // ─── DOM refs (initialised in initEditor to allow Node.js test imports) ───────
 let _langSel, _clefSel, _strophicChk, _largeInitChk, _stanzaNumChk,
-    _annotationInput, _rawText, _buildBtn, _rebuildBtn, _fitTextBtn,
-    _editToggle, _fontSel, _fontSizeInput, _pageWidthInput, _pageHeightInput,
-    _textArea, _stanzasEl;
+  _annotationInput, _rawText, _buildBtn, _rebuildBtn, _fitTextBtn,
+  _editToggle, _fontSel, _fontSizeInput, _pageWidthInput, _pageHeightInput,
+  _textArea, _stanzasEl;
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
@@ -22,23 +22,23 @@ let _langSel, _clefSel, _strophicChk, _largeInitChk, _stanzaNumChk,
  * @param {function(string): void} onGabcCompiled
  */
 export function initEditor(state, onGabcCompiled) {
-  _langSel        = document.getElementById('editorLang');
-  _clefSel        = document.getElementById('editorClef');
-  _strophicChk    = document.getElementById('editorStrophic');
-  _largeInitChk   = document.getElementById('editorLargeInitial');
-  _stanzaNumChk   = document.getElementById('editorStanzaNumbers');
-  _annotationInput= document.getElementById('editorAnnotation');
-  _rawText        = document.getElementById('editorRawText');
-  _buildBtn       = document.getElementById('editorBuildBtn');
-  _rebuildBtn     = document.getElementById('editorRebuildBtn');
-  _fitTextBtn     = document.getElementById('editorFitTextBtn');
-  _editToggle     = document.getElementById('editorEditToggle');
-  _fontSel        = document.getElementById('editorFont');
-  _fontSizeInput  = document.getElementById('editorFontSize');
+  _langSel = document.getElementById('editorLang');
+  _clefSel = document.getElementById('editorClef');
+  _strophicChk = document.getElementById('editorStrophic');
+  _largeInitChk = document.getElementById('editorLargeInitial');
+  _stanzaNumChk = document.getElementById('editorStanzaNumbers');
+  _annotationInput = document.getElementById('editorAnnotation');
+  _rawText = document.getElementById('editorRawText');
+  _buildBtn = document.getElementById('editorBuildBtn');
+  _rebuildBtn = document.getElementById('editorRebuildBtn');
+  _fitTextBtn = document.getElementById('editorFitTextBtn');
+  _editToggle = document.getElementById('editorEditToggle');
+  _fontSel = document.getElementById('editorFont');
+  _fontSizeInput = document.getElementById('editorFontSize');
   _pageWidthInput = document.getElementById('editorPageWidth');
-  _pageHeightInput= document.getElementById('editorPageHeight');
-  _textArea       = document.getElementById('editorTextInputArea');
-  _stanzasEl      = document.getElementById('editorStanzas');
+  _pageHeightInput = document.getElementById('editorPageHeight');
+  _textArea = document.getElementById('editorTextInputArea');
+  _stanzasEl = document.getElementById('editorStanzas');
 
   _state = state;
   _onGabcCompiled = onGabcCompiled;

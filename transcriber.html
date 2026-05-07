@@ -1,192 +1,264 @@
-﻿<!DOCTYPE html>
-<!--<html manifest="cache.manifest">-->
-<html>
-<head>
-<!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=UA-24502736-2"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+<!DOCTYPE html>
+<html lang="en">
 
-  gtag('config', 'UA-24502736-2');
-</script>
-  <title>GABC Transcription Tool</title>
-  <link rel="icon" href="icon/clear-main.png" type="image/png" />
-  <link rel="chrome-webstore-item" href="https://chrome.google.com/webstore/detail/mkhgaijffgijgkolifpoaijimncdakkd" />
-  <link rel="stylesheet" type="text/css" href="css/smoothness/jquery-ui-1.10.3.custom.min.css" />
-  <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" />
-  <link rel="stylesheet" type="text/css" href="style.css" />
-  <script src="jquery.min.js" type="text/javascript"></script>
-  <script src="jquery-ui-1.10.3.custom.min.js" type="text/javascript"></script>
+<head>
+  <meta charset="UTF-8" />
+  <!--
+    IMPORTANT: Open via HTTP server, NOT file://.
+    Exsurge uses Canvas for text measurement; Web Audio requires a real origin.
+    Run: http-server -a localhost -p 80
+    Then open: http://localhost:8080/transcriber.html
+  -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OP GABC Transcriber</title>
+  <link rel="icon" href="assets/clear-main.png" type="image/png" />
+
+  <link rel="stylesheet" href="css/output.css" />
+
+  <link rel="stylesheet" href="css/shared.css" />
+
+  <!-- Web-font equivalents for the sourceandsummit font list -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=EB+Garamond&family=Sorts+Mill+Goudy&family=Fanwood+Text&family=IM+Fell+Double+Pica&family=IM+Fell+DW+Pica&family=IM+Fell+English&family=IM+Fell+French+Canon&display=swap"
+    rel="stylesheet" />
+  <!-- Note: Times, Palatino, Gill Sans are system fonts; no Google Fonts request needed -->
+
+  <!--
+    Global libraries must load as classic scripts before the ES6 module.
+    Order: Tone → tones (audio) → exsurge (rendering) → saveSvgAsPng (export)
+  -->
   <script src="js/Tone.min.js"></script>
   <script src="js/tones.js"></script>
-  <script src="util.js" type="text/javascript"></script>
-  <script src="psalmtone.js"></script>
-  <script src="jquery.hypher.js"></script>
-  <script src="patterns/pl.js"></script>
-  <script src="patterns/it.js"></script>
-  <script src="patterns/en-us.js"></script>
-  <script src="patterns/la-hypher.js"></script>
-  <script src="transcriber.html.js"></script>
-  <!-- <script src="../exsurge/dist/exsurge.js"></script> -->
-  <script src="exsurge.min.js"></script>
-  <script src="saveSvgAsPng.js"></script>
-  <script>
-  Hypher.languages.en.leftMin = 1;
-  Hypher.languages.en.rightMin = 1;
-  Hypher.languages.pl.leftMin = 1;
-  Hypher.languages.pl.rightMin = 1;
-  Hypher.languages.it.leftMin = 1;
-  Hypher.languages.it.rightMin = 1;
-  </script>
+  <script src="js/exsurge.min.js"></script>
+  <script src="js/saveSvgAsPng.js"></script>
 </head>
-<body class='sans' style='overflow:hidden;padding: 8px'>
-<style>
-textarea{
-  padding:0px;
-}
-.dp{
-  padding-right:16px;
-}
-.tap{
-  padding-right:2px;
-}
-td{
-  padding:0px;
-}
-#chant-parent2{
-  width:10.3in;
-  max-width:100%;
-  margin:auto;
-  height:100%;
-}
-#chant-parent{
-  border:1px solid #aaa;
-  overflow-y:auto;
-  height:100%;
-}
-#chant-pad{
-  padding:0 0.1in;
-}
-#chant-preview{
-  margin:0.1in auto auto;
-}
-input[type=checkbox]{
-  margin-top:2px;
-  margin-bottom:2px;
-}
-textarea{
-  resize:none;
-}
-@media print {
-  #chant-parent2,
-  #chant-parent {
-      border: 0;
-      overflow-y: visible;
-  }
-}
-</style>
-<form id="pdfForm" target="_blank" method="get" action="https://www.sourceandsummit.com/editor/legacy/">
-  <!--<input type='hidden' name='pdf' value='1'/>-->
-  <input type='hidden' name='crop' value='0'/>
-</form>
-<form id="pdfFormDirect" target="_blank" method="post" action="https://www.sourceandsummit.com/editor/legacy/process.php">
-  <input type="hidden" id="pdff_gabc" name="gabc[]"/>
-  <input type="hidden" id="pdff_width" name="width" value="7.5"/>
-  <input type="hidden" id="pdff_height" name="height" value="11"/>
-  <input type="hidden" id="pdff_croppdf" name="croppdf" value="false"/>
-  <input type="hidden" id="pdff_spacing" value="vichi" name="spacing"/>
-  <input type="hidden" id="pdff_font" value="GaramondPremierPro" name="font"/>
-  <input type="hidden" id="pdff_fontsize" value="20" name="fontsize"/>
-  <input type="hidden" id="pdff_fmt" name="fmt" value="pdf"/>
-</form>
-<div class="hide-print">
-<div style="width:100%;margin-bottom:5px">
-  <ul class="nav nav-pills" style="display: inline-block;">
-    <li role="presentation" class="active"><a href="transcriber.html">GABC Transcription Tool</a></li>
-    <li role="presentation"><a href="psalmtone.html">Psalm Tone Tool</a></li>
-    <li role="presentation"><a href="readings.html">Readings Tool</a></li>
-    <li role="presentation"><a href="propers.html">Propers Tool</a></li>
-    <li role="presentation"><a href="faq.html">(About)</a></li>
-  </ul>
-  <div style="float:right;margin-left:8px" class="btn-group hide-cordova" role="group">
-    <a class='btn btn-xs btn-primary' href='#' id='lnkPdfDirect'>PDF</a>
-    <a class='btn btn-xs btn-default' href='#' id='lnkPdf'>Further PDF options</a>
-    <a class='btn btn-xs btn-info' href='#' id='lnkPdfAlpha'>S&S Editor</a>
-  </div>
-</div>
-<div style="width:100%;text-align:center;padding-bottom:4pt"><a href="#" id="lnkToggleMode">Show integrated GABC</a></div>
-<div id="blankSpace" style="height:193px;">
 
-<div id="twoBoxes" style="position:absolute;width:100%;overflow:hidden">
-<div class="dp">
-<div style="margin:auto;width:10.3in;max-width:100%"><div style="margin-right:-4px">
-<table width="100%" style="margin-left:-2px;margin-top:-2px">
-<tr><td width="50%">
-  <label for="hymntext" title="This text box is for the text of the chant.  Select a different language from the dropdown to the right to change the syllabification behavior.">Text</label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="checkbox" id="cbElisionHasNote"/><label for="cbElisionHasNote" title="You can signify an elision in the text by putting a vowel in parentheses.  If this box is checked, the elision will still have a punctum associated with it; if this is unchecked, that syllable will have no punctum.">Use puncta for elisions</label>
-<select style="float:right;margin:2px;height:18px;font-size:11px" id="selLanguage" title="If you select English, the text will be run through the lyric hyphenator at juiciobrennan.com; it will only contact this site at most once every 5 seconds so you may have to wait a bit at times for the word syllabification to correct itself.  Custom syllable breaks may be entered using = as in 'syl=la=ble'">
-  <option value="la">Latin</option>
-  <option value="la-liturgical">Liturgical Latin</option>
-  <option value="en">English</option>
-  <option value="pl">Polish</option>
-  <option value="it">Italian</option>
-  <option value="vi">Vietnamese</option>
-  <option value="zh">Chinese</option>
-</select>
-<br><div class="tap"><textarea id="hymntext" lang="la" style="height: 130pt; width: 100%;">Adoro t(e) devote, latens Deitas,&#10;Quæ sub his figuris vere latitas;&#10;Tibi se cor meum totum subjicit,&#10;Quia te contemplans totum deficit.&#10;2. Visus, tactus, gustus in te fallitur,&#10;Sed auditu solo tuto creditur.&#10;Credo quidquid dixit Dei Filius;&#10;Nil hoc verbo veritátis verius.&#10;--&#10;Amen.</textarea></div>
-</td><td width="50%">
-  <label for="hymngabc" title="This text box is for the GABC notation that would normally be in parentheses, as well as the GABC header.">GABC</label><span style="float: right;"><label><input type='checkbox' id='cbMultipleVerses'> All verses to one line of chant</label></span><br><div class="tap"><textarea id="hymngabc" spellcheck="false" style="height: 130pt; width: 100%;">c4 c e g g gh g. , f e d c c. ;&#10;c e g g gh g. , f e d c c. :&#10;g g hi j ji g. , h g f e d. ;&#10;e g f e dc d. , e c d c c. ::&#10;--&#10;cdc bc.. ::</textarea></div>
-</td>
-</tr>
-</table>
-</div>
-</div></div></div>
-<div id="oneBox" style="display:none;position:absolute;width:100%">
-<div class="dp">
-<div style="width:10.3in;max-width:100%;margin:auto">
-<label for="editor" title="You can put GABC headers in this text box if you want them included in the GABC file download link below.  Any headers you type in will persist in local storage between sessions.">Integrated GABC</label>
-<br><div class="tap"><textarea id="editor" spellcheck="false" style="height: 130pt; width: 100%;"></textarea></div>
-</div>
-</div></div>
+<body class="h-screen flex flex-col bg-op-parchment text-op-ink overflow-hidden">
 
-</div>
-<div style="display:block;margin-top:0.5em;margin-bottom:0.5em">
-  <a href="#" id="lnkCopyGabc">Copy Integrated GABC</a>&nbsp;
-  <a href="#" id="lnkDownloadGabc" draggable target="_blank">Download Integrated GABC</a>&nbsp;
-  <a href="#" id="lnkDownloadPng">Download PNG</a>&nbsp;
-  <a href="#" id="lnkDownloadSvg">Download SVG</a>
-</div>
-</div>
-<div id="chant-parent2">
-  <div id="chant-parent">
-    <div id="chant-pad">
-      <div id="chant-preview" class="clickable"></div>
+  <!-- TOOLBAR -->
+  <header class="flex-none grid items-center px-4 py-2 border-b border-op-burgundy-deeper bg-op-burgundy-dark"
+    style="grid-template-columns:1fr auto 1fr;">
+    <!-- Left: branding -->
+    <div class="flex items-center gap-2.5">
+      <img src="assets/op-logo.png" alt="O.P." class="h-6 w-auto"
+        style="filter:brightness(0) invert(1); opacity:0.88; max-width:88px; object-fit:contain; object-position:left center;" />
+      <div class="flex items-center gap-2">
+        <span class="text-[11px] tracking-[0.18em] uppercase font-light text-op-gold-light"
+          style="font-family:'Cinzel',serif;">Ordo Praedicatorum</span>
+        <span class="text-op-gold select-none">·</span>
+        <span class="text-[13px] font-semibold text-op-parchment" style="font-family:'Cinzel',serif;">Chant
+          Engine</span>
+      </div>
     </div>
+    <!-- Center: tool navigation -->
+    <nav class="flex items-center">
+      <a href="transcriber.html" class="op-tool-nav-link active">GABC Transcriber</a>
+      <a href="psalms.html" class="op-tool-nav-link">Psalm Tone Tool</a>
+    </nav>
+    <!-- Right: export buttons + feedback link -->
+    <div class="flex items-center gap-2 justify-end">
+      <a href="https://github.com/dedocibula/op-chant-engine/issues" target="_blank" rel="noopener"
+        class="op-export-btn" style="text-decoration:none;">Bug / Feature ↗</a>
+      <button id="btnExportPdf" class="op-export-btn op-export-btn-primary">PDF</button>
+      <button id="btnDownloadPng" class="op-export-btn">PNG</button>
+      <button id="btnDownloadSvg" class="op-export-btn">SVG</button>
+    </div>
+  </header>
+
+  <!-- TWO-PANE LAYOUT -->
+  <main class="flex-1 flex overflow-hidden">
+
+    <!-- Editor pane -->
+    <section class="w-2/5 flex flex-col border-r border-op-tan-light min-w-0">
+
+      <!-- Tab bar -->
+      <div class="flex-none flex border-b border-op-tan-light bg-op-cream">
+        <button id="tabEditorBtn"
+          class="tab-btn tab-btn-active px-4 py-2 text-xs font-medium border-b-2 border-op-gold text-op-ink">
+          Editor
+        </button>
+        <button id="tabGabcBtn"
+          class="tab-btn px-4 py-2 text-xs font-medium border-b-2 border-transparent text-op-ink-subtle hover:text-op-ink">
+          GABC
+        </button>
+      </div>
+
+      <!-- Tab 1: Structured editor -->
+      <div id="editorTab" class="flex-1 flex flex-col overflow-y-auto p-3 min-w-0">
+
+        <!-- Controls -->
+        <div class="pb-3 mb-3 border-b border-op-tan-light flex items-center w-full">
+          <!-- Left grid: label | control -->
+          <div style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center;">
+            <span class="text-xs text-op-ink-light text-right">Language</span>
+            <select id="editorLang"
+              class="border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold">
+              <!-- options populated by editor.js from language registry -->
+            </select>
+            <span class="text-xs text-op-ink-light text-right">Annotation</span>
+            <input type="text" id="editorAnnotation" spellcheck="false"
+              class="border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
+              placeholder="e.g. Ant." style="width:90px;" />
+            <span class="text-xs text-op-ink-light text-right">Clef</span>
+            <select id="editorClef"
+              class="border border-op-tan rounded px-2 py-1 text-xs font-mono text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold">
+              <option>c1</option>
+              <option>c2</option>
+              <option>c3</option>
+              <option selected>c4</option>
+              <option>f3</option>
+              <option>f4</option>
+            </select>
+          </div>
+          <!-- Right grid: label | checkbox — pushed to far right -->
+          <div
+            style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center; margin-left:auto;">
+            <label class="text-xs text-op-ink-light cursor-pointer select-none" for="editorStrophic">Strophic
+              Copy</label>
+            <input type="checkbox" id="editorStrophic" class="accent-op-burgundy">
+            <label class="text-xs text-op-ink-light cursor-pointer select-none" for="editorLargeInitial">Large
+              Initial</label>
+            <input type="checkbox" id="editorLargeInitial" class="accent-op-burgundy">
+            <label class="text-xs text-op-ink-light cursor-pointer select-none" for="editorStanzaNumbers">Stanza
+              Numbers</label>
+            <input type="checkbox" id="editorStanzaNumbers" class="accent-op-burgundy">
+          </div>
+        </div>
+
+        <!-- PDF export settings -->
+        <div class="pb-3 mb-3 border-b border-op-tan-light flex items-center gap-3 w-full">
+          <span class="text-xs font-medium text-op-ink-faint uppercase tracking-wide shrink-0">PDF</span>
+          <div
+            style="display:grid; grid-template-columns:auto auto auto auto auto auto auto auto; gap:4px 8px; align-items:center;">
+            <span class="text-xs text-op-ink-light">Font</span>
+            <select id="editorFont"
+              class="border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
+              style="width:140px;">
+              <option value="">— default —</option>
+              <option value="Crimson">Crimson</option>
+              <option value="GaramondPremierPro">Garamond Premier Pro</option>
+              <option value="OFLSortsMillGoudy">Sorts Mill Goudy</option>
+              <option value="Fanwood">Fanwood</option>
+              <option value="IMFELLDoublePicaPRO">IM Fell Double Pica</option>
+              <option value="IMFELLDWPicaPRO">IM Fell DW Pica</option>
+              <option value="IMFELLEnglishPRO">IM Fell English</option>
+              <option value="IMFELLFrenchCanonPRO">IM Fell French Canon</option>
+              <option value="times">Times</option>
+              <option value="palatino">Palatino</option>
+              <option value="GillSansMTPro">Gill Sans MT Pro</option>
+              <option value="GillSansMTProLight">Gill Sans MT Pro Light</option>
+            </select>
+            <span class="text-xs text-op-ink-light">Font size</span>
+            <input type="number" id="editorFontSize" min="8" max="24" step="1"
+              class="border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
+              placeholder="pt" style="width:56px;" />
+            <span class="text-xs text-op-ink-light">Width</span>
+            <input type="number" id="editorPageWidth" min="4" max="20" step="0.5"
+              class="border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
+              placeholder="in" style="width:56px;" />
+            <span class="text-xs text-op-ink-light">Height</span>
+            <input type="number" id="editorPageHeight" min="4" max="20" step="0.5"
+              class="border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
+              placeholder="in" style="width:56px;" />
+          </div>
+        </div>
+
+        <!-- Raw text input + Build -->
+        <div id="editorTextInputArea" class="flex-1 flex gap-2 mb-2">
+          <textarea id="editorRawText" spellcheck="false"
+            class="flex-1 min-h-24 resize-y border border-op-tan rounded px-2 py-1.5 text-xs font-mono leading-relaxed bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
+            placeholder="Paste hymn text here…"></textarea>
+          <div class="self-stretch flex flex-col justify-end gap-1">
+            <button id="editorBuildBtn"
+              class="px-3 py-2.5 bg-op-burgundy text-white text-xs font-medium rounded hover:bg-op-burgundy-dark active:bg-op-burgundy-deeper">
+              Build
+            </button>
+            <button id="editorRebuildBtn"
+              class="hidden px-3 py-2 bg-op-ink-subtle text-white text-xs font-medium rounded hover:bg-op-ink-light active:bg-[#4a3c32]"
+              title="Re-parse text and reset melody to rectotone defaults">
+              Re-Build
+            </button>
+            <button id="editorFitTextBtn"
+              class="hidden px-3 py-2 bg-op-amber-dark text-white text-xs font-medium rounded hover:bg-op-amber-darker active:bg-op-amber-deepest"
+              title="Re-syllabify new text while keeping existing melody">
+              Fit Text
+            </button>
+          </div>
+        </div>
+
+        <!-- Edit-text toggle sits between textarea and stanzas so both sections can be toggled independently -->
+        <button id="editorEditToggle"
+          class="hidden mb-2 px-2 py-0.5 text-xs text-op-burgundy border border-op-tan rounded hover:bg-op-cream">
+          Edit text
+        </button>
+
+        <!-- Dynamic stanza rows injected here by editor.js -->
+        <div id="editorStanzas"></div>
+
+      </div>
+
+      <!-- Tab 2: Raw GABC — gabcEditor ID preserved exactly for app.js -->
+      <div id="gabcTab" class="hidden flex-1 flex flex-col min-w-0">
+        <textarea id="gabcEditor" spellcheck="false" autocorrect="off" autocapitalize="none"
+          class="flex-1 resize-none p-3 font-mono text-sm leading-relaxed text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-inset focus:ring-op-gold"
+          placeholder="Paste or type integrated GABC here…"></textarea>
+      </div>
+
+    </section>
+
+    <!-- Preview pane -->
+    <section class="flex-1 flex flex-col min-w-0">
+      <div class="flex-none border-b border-op-tan-light bg-op-cream preview-header-row">
+        <span class="text-xs font-medium text-op-ink-subtle uppercase tracking-wide">Preview</span>
+        <div id="previewControls" class="hidden flex items-center gap-1">
+          <button id="btnPlayFromStart" class="toolbar-btn toolbar-btn-primary-inline">▶ Play</button>
+          <button id="btnHeaderPitchUp" class="toolbar-btn toolbar-btn-success">▲</button>
+          <div id="headerPitchDisplay" class="toolbar-btn toolbar-btn-info toolbar-pitch-info preview-pitch-display">—
+          </div>
+          <button id="btnHeaderPitchDown" class="toolbar-btn toolbar-btn-success">▼</button>
+        </div>
+        <div></div>
+      </div>
+      <div id="chantPreview" class="flex-1 overflow-auto p-4">
+        <p id="previewPlaceholder" class="text-sm text-op-ink-faint italic mt-8 text-center">
+          Enter GABC in the editor to see a preview.
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- STATUS BAR -->
+  <footer class="flex-none px-4 py-1 border-t border-op-tan-light bg-op-cream">
+    <p id="statusMessage" class="text-xs text-op-ink-faint"></p>
+  </footer>
+
+  <!-- Hidden PDF export form -->
+  <form id="pdfForm" target="_blank" method="post" action="https://www.sourceandsummit.com/editor/legacy/process.php"
+    class="hidden">
+    <input type="hidden" id="pdfGabc" name="gabc[]" />
+    <input type="hidden" id="pdfWidth" name="width" value="7.5" />
+    <input type="hidden" id="pdfHeight" name="height" value="11" />
+    <input type="hidden" id="pdfFontSize" name="fontsize" value="20" />
+    <input type="hidden" name="croppdf" value="false" />
+    <input type="hidden" name="spacing" value="vichi" />
+    <input type="hidden" id="pdfFont" name="font" value="Crimson" />
+    <input type="hidden" name="fmt" value="pdf" />
+  </form>
+
+  <!-- Media controls — shown during playback, fixed at bottom -->
+  <div id="mediaControls" class="hidden">
+    <button id="btnPauseResume" class="mc-btn mc-btn-primary" title="Pause / Resume">⏸</button>
+    <button id="btnBpmMinus" class="mc-btn mc-btn-default" title="Slower">−</button>
+    <span id="bpmDisplay">165 BPM</span>
+    <button id="btnBpmPlus" class="mc-btn mc-btn-default" title="Faster">+</button>
+    <button id="btnMediaStop" class="mc-btn mc-btn-danger" title="Stop">■ Stop</button>
   </div>
-</div>
-  <svg class="bg-blur">
-  <defs>
-    <filter id="text-glow" x="-100%" y="-100%" width="300%" height="300%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="5 5" result="glow"/>
-      <feFlood flood-color="#337ab7" result="COLOR" />
-      <feComposite in="COLOR" in2="glow" operator="in" result="glow-color" />
-      <feMerge>
-        <feMergeNode in="glow-color"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-    <filter id="note-glow" x="-150%" y="-150%" width="400%" height="400%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="5 5" result="glow"/>
-      <feFlood flood-color="#337ab7" result="COLOR" />
-      <feComposite in="COLOR" in2="glow" operator="in" result="glow-color" />
-      <feMerge>
-        <feMergeNode in="glow-color"/>
-        <feMergeNode in="glow-color"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-  </defs>
-  </svg>
+
+  <!-- ES6 module entry point — runs after all globals above are ready -->
+  <script type="module" src="js/transcriber/app.js"></script>
 </body>
+
 </html>

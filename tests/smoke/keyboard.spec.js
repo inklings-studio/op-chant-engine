@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const URL = '/v2/transcriber.html';
+const URL = '/transcriber.html';
 const SAMPLE_TEXT = 'Kriste Rex\nsláva Bohu';
 
 async function buildAndRender(page, text = SAMPLE_TEXT) {
