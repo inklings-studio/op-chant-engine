@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pointVerse, alignChunk } from '../../js/psalms/pointer.js';
-import { tone8 } from '../../js/tones/dominican.js';
+import { pointVerse, alignChunk, deriveRolesFromNotes } from '../../js/psalms/pointer.js';
+import { tone7, tone8 } from '../../js/tones/dominican.js';
 import { syllabifyPhrase } from '../../js/languages/sk/syllabifier.js';
 
 // ── Mediant accent placement ───────────────────────────────────────────────────
@@ -293,4 +293,76 @@ test('pointVerse: long mediant with isFirstVerse=true → intonation applied on 
   assert.equal(tokens[1].role, 'intonation', '2nd syllable: intonation role');
   assert.equal(tokens[1].note, 'h',          '2nd syllable: tone8 intonation note h');
   assert.equal(tokens[2].role, 'tenor',      '3rd syllable: tenor (survives after 2-note intonation)');
+});
+
+// ── deriveRolesFromNotes ──────────────────────────────────────────────────────
+
+// Canonical tone8 termG sequence: auto-pointed notes fed back in → original roles recovered.
+// Notes for 7 syllables: tenor tenor prep prep acc ep fin
+// (tone8 termG cadence: [{prep:"i"},{prep:"j"},{acc:"h"},{ep:"g"},{fin:"g."}], tenor="j")
+test('deriveRolesFromNotes: canonical tone8 termG note sequence → correct roles', () => {
+  // "a nič mi ne chý ba" auto-pointed: j j i j h g g.
+  const notes = ['j', 'j', 'i', 'j', 'h', 'g', 'g.'];
+  const roles = deriveRolesFromNotes(notes, tone8.terminations['G']);
+  assert.deepEqual(roles, ['tenor', 'tenor', 'prep', 'prep', 'acc', 'ep', 'fin']);
+});
+
+// acc note moved to an earlier position: roles follow the note, not the original stress position.
+// Simulated with a minimal inline cadence so the swap is unambiguous.
+test('deriveRolesFromNotes: acc note moved left → acc role follows the note', () => {
+  // cadence: [{acc:'h'},{ep:'g'},{fin:'g.'}]
+  // original: [h, g, g.] → acc ep fin
+  // user moves acc to position 0, shifts original acc note out: [h, j, g, g.]
+  const cadence = [{ acc: 'h' }, { ep: 'g' }, { fin: 'g.' }];
+  const notes   = ['h', 'j', 'g', 'g.'];
+  const roles   = deriveRolesFromNotes(notes, cadence);
+  assert.equal(roles[0], 'acc',   'acc note "h" at position 0 → acc role');
+  assert.equal(roles[1], 'tenor', 'position 1 scanned past → tenor');
+  assert.equal(roles[2], 'ep',    'ep note "g" → ep role');
+  assert.equal(roles[3], 'fin',   'fin on last syllable');
+});
+
+// acc note absent: graceful degradation — no acc role emitted, fin still anchored.
+test('deriveRolesFromNotes: acc note absent → acc silently dropped, fin preserved', () => {
+  // Replace acc note 'h' with 'k' (not in cadence)
+  const notes = ['j', 'k', 'g', 'g.'];
+  const roles = deriveRolesFromNotes(notes, tone8.terminations['G']);
+  assert.ok(!roles.includes('acc'), 'no acc role when acc note is absent from the sequence');
+  assert.equal(roles[roles.length - 1], 'fin', 'fin still on last syllable');
+});
+
+// ep skipped when its note is absent: no crash, surrounding roles unaffected.
+test('deriveRolesFromNotes: ep note absent → ep slot skipped silently', () => {
+  // cadence: [{acc:'h'},{ep:'g'},{fin:'g.'}]; replace ep note 'g' with 'j'
+  const cadence = [{ acc: 'h' }, { ep: 'g' }, { fin: 'g.' }];
+  const notes   = ['h', 'j', 'g.'];  // ep note 'g' never appears before fin
+  const roles   = deriveRolesFromNotes(notes, cadence);
+  assert.ok(!roles.includes('ep'),  'ep slot skipped when note absent');
+  assert.equal(roles[0], 'acc',     'acc on matching note "h"');
+  assert.equal(roles[2], 'fin',     'fin on last syllable');
+});
+
+// ── Tone 7 short-form selection ───────────────────────────────────────────────
+
+// 1-syllable mediant phrase → shortMediant cadence [{fin:"i."}] chosen.
+// Normal mediant cadence would produce fin:"j.", so the note is a direct discriminator.
+test('pointVerse: tone7 1-syllable mediant → shortMediant cadence (fin note "i.", not "j.")', () => {
+  // "Pán *": single syllable before the mediant marker
+  const tokens    = pointVerse('Pán * a nič mi nechýba', tone7, 'a', false, syllabifyPhrase, false);
+  const mediantEnd = tokens.findIndex(t => t.role === 'mediant');
+  const phrase     = tokens.slice(0, mediantEnd);
+  assert.equal(phrase.length,        1,    'exactly 1 syllable in mediant phrase');
+  assert.equal(phrase[0].role,       'fin', 'single syllable assigned fin role');
+  assert.equal(phrase[0].note,       'i.', 'shortMediant fin note "i." (not normal "j.")');
+});
+
+// 3-syllable mediant phrase → normal mediant cadence, fin note "j.".
+test('pointVerse: tone7 3-syllable mediant → normal mediant cadence (fin note "j.")', () => {
+  // "Pane Boh *": Pa-ne + Boh = 3 syllables
+  const tokens    = pointVerse('Pane Boh * a nič', tone7, 'a', false, syllabifyPhrase, false);
+  const mediantEnd = tokens.findIndex(t => t.role === 'mediant');
+  const phrase     = tokens.slice(0, mediantEnd);
+  assert.equal(phrase.length, 3, '3 syllables in mediant phrase');
+  const fin = phrase.find(t => t.role === 'fin');
+  assert.equal(fin?.note, 'j.', 'normal mediant fin note "j." (not short form "i.")');
 });

@@ -12,7 +12,7 @@
  * @param {boolean}  isFirstVerse  — true only for verse index 0; controls intonation assignment
  * @returns {Array<{syl: string, note: string, role: string}>}
  *   role ∈ { 'tenor', 'intonation', 'acc', 'ep', 'fin', 'prep', 'flex', 'mediant' }
- *   'flex' and 'mediant' are barline sentinels: syl is '' and note is ',' / ';' respectively.
+ *   'flex' and 'mediant' are barline sentinels: syl is '' and note is ',' / ':' respectively.
  */
 export function pointVerse(rawVerseText, toneObject, cadenceKey, isSolemn, syllabifierFn, isFirstVerse = true) {
   const daggerIdx = rawVerseText.indexOf('†');
@@ -24,7 +24,12 @@ export function pointVerse(rawVerseText, toneObject, cadenceKey, isSolemn, sylla
   const mediantRaw = mainRaw.slice(0, starIdx);
   const termRaw = mainRaw.slice(starIdx + 1);
 
-  const cadenceSection = isSolemn ? toneObject.solemn : toneObject.mediant;
+  // Compute mediant tokens first so short-form selection can check phrase length.
+  const mediantTokens = syllabifierFn(mediantRaw.trim());
+  const normalSection = isSolemn ? toneObject.solemn : toneObject.mediant;
+  const shortSection  = isSolemn ? toneObject.shortSolemn : toneObject.shortMediant;
+  const cadenceSection = (shortSection && mediantTokens.length <= 2) ? shortSection : normalSection;
+
   // Intonation is only sung on the first verse; subsequent verses start directly on the tenor.
   const intonation = isFirstVerse ? cadenceSection.intonation : [];
   const tenorNote = toneObject.tenor;
@@ -38,7 +43,6 @@ export function pointVerse(rawVerseText, toneObject, cadenceKey, isSolemn, sylla
     result.push({ syl: '', note: ',', role: 'flex' });
   }
 
-  const mediantTokens = syllabifierFn(mediantRaw.trim());
   result.push(...alignChunk(mediantTokens, cadenceSection.cadence, tenorNote, intonation));
   result.push({ syl: '', note: ':', role: 'mediant' });
 
@@ -111,4 +115,43 @@ export function alignChunk(tokens, cadence, tenorNote, intonationNotes) {
   }
 
   return result;
+}
+
+/**
+ * Derives syllable roles from a user-edited note sequence by matching the cadence
+ * pattern right-to-left against actual note values. This is the inverse of alignChunk:
+ * given what the user wrote, determine which syllable is fin, ep, acc, prep, or tenor.
+ * HTML breviary roles therefore follow melodic intent — wherever the user places the
+ * acc note, the bold mark follows.
+ *
+ * Matching rules (right-to-left through cadence):
+ *   fin      — always the rightmost syllable, unconditional.
+ *   ep/prep  — positional: if the current syllable's note equals the expected note,
+ *              assign that role and advance; otherwise skip this cadence slot.
+ *   acc      — scan leftward for the first syllable whose note matches the expected
+ *              note; intervening syllables stay 'tenor'. If no match, slot dropped.
+ *
+ * @param {string[]}    userNotes — note string per syllable, left-to-right (no barlines)
+ * @param {Array<object>} cadence — cadence array from a tone schema
+ * @returns {string[]} role string per syllable position
+ */
+export function deriveRolesFromNotes(userNotes, cadence) {
+  const roles = new Array(userNotes.length).fill('tenor');
+  let ti = userNotes.length - 1;
+
+  for (let ci = cadence.length - 1; ci >= 0 && ti >= 0; ci--) {
+    const role = Object.keys(cadence[ci])[0];
+    const expected = cadence[ci][role];
+
+    if (role === 'fin') {
+      roles[ti--] = 'fin';
+    } else if (role === 'ep' || role === 'prep') {
+      if (userNotes[ti] === expected) roles[ti--] = role;
+    } else if (role === 'acc') {
+      while (ti >= 0 && userNotes[ti] !== expected) ti--;
+      if (ti >= 0) roles[ti--] = 'acc';
+    }
+  }
+
+  return roles;
 }

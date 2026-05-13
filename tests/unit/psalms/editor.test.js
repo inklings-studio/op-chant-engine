@@ -449,7 +449,7 @@ test('psalm editor AST sync: editing melody input for verse 2 updates stanza.ast
     'AST note should differ from its pre-edit value');
 });
 
-test('psalm editor AST sync: entering all non-cadence notes resets mediant phrase roles to tenor', () => {
+test('psalm editor AST sync: entering all non-cadence notes clears acc/prep/ep roles', () => {
   const { state } = setup();
   buildVerses([VERSE_1, VERSE_2]);
 
@@ -457,15 +457,21 @@ test('psalm editor AST sync: entering all non-cadence notes resets mediant phras
   input.value = 'z z z z z z z z z z z';
   fire(input, 'input');
 
-  // Only the mediant phrase (li=0) AST tokens are affected; barlines are untouched.
-  // With all 'z' notes (not in any cadence map), every non-intonation syllable role → tenor.
+  // With all 'z' notes (not in cadence), acc/ep/prep disappear.
+  // deriveRolesFromNotes always assigns 'fin' to the last syllable (phrase ending,
+  // unconditional); all others become 'tenor'. Both render as plain text in the
+  // breviary outside a flex phrase, so no bold/italic appears.
   const mediantAst = state.stanzas[1].ast.slice(
     0,
     state.stanzas[1].ast.findIndex(t => t.role === 'mediant') + 1,
   );
   const sylTokens = mediantAst.filter(t => t.role !== 'mediant' && t.role !== 'intonation');
-  assert.ok(sylTokens.every(t => t.role === 'tenor'),
-    'all mediant syllable tokens should have tenor role when only non-cadence notes are entered');
+  assert.ok(!sylTokens.some(t => t.role === 'acc' || t.role === 'ep' || t.role === 'prep'),
+    'no acc/ep/prep roles when only non-cadence notes are entered');
+  assert.equal(sylTokens[sylTokens.length - 1].role, 'fin',
+    'last syllable always gets fin role (phrase ending is unconditional)');
+  assert.ok(sylTokens.slice(0, -1).every(t => t.role === 'tenor'),
+    'all syllables before the last become tenor');
 });
 
 test('psalm editor AST sync: placing the cadence accent note moves the acc role to that syllable', () => {

@@ -1,7 +1,7 @@
 import { listLanguages, getLanguage } from '../common/language.js';
 import { compileGabc, compileGabc1 } from '../common/compiler.js';
 import { BARLINES, tokenizeMelody } from '../common/melody.js';
-import { pointVerse } from './pointer.js';
+import { pointVerse, deriveRolesFromNotes } from './pointer.js';
 import { loadPsalm } from './loader.js';
 import { compileBreviaryHtml } from './formatter.js';
 import {
@@ -546,19 +546,10 @@ function _syncAstFromLine(stanza, li, parsedNotes) {
   const cadence = _phraseCadence(phrase, tone, stanza.cadenceKey ?? _cadenceKey, stanza.isSolemn ?? _isSolemn);
   if (!cadence) return;
 
-  // Map unique note values (those that differ from the tenor) to their cadence role.
-  // Ambiguous notes (note === tenor) are left as tenor — they cannot be distinguished
-  // from a tenor note by value alone, and they render identically in the HTML breviary.
-  const noteRoleMap = new Map();
-  for (const slot of cadence) {
-    const role = Object.keys(slot)[0];
-    const note = slot[role];
-    if (note !== tone.tenor && !noteRoleMap.has(note)) noteRoleMap.set(note, role);
-  }
-
+  const freshRoles = deriveRolesFromNotes(noteStrings.slice(0, len), cadence);
   for (let i = 0; i < len; i++) {
     if (astSylTokens[i].role === 'intonation') continue;
-    astSylTokens[i].role = noteRoleMap.get(noteStrings[i]) ?? 'tenor';
+    astSylTokens[i].role = freshRoles[i];
   }
 }
 
