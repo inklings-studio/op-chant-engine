@@ -1,5 +1,6 @@
 import { listLanguages, getLanguage } from '../common/language.js';
 import { compileGabc, compileGabc1 } from '../common/compiler.js';
+import { parseGabc } from '../common/gabc-parser.js';
 import { BARLINES, tokenizeMelody } from '../common/melody.js';
 import { pointVerse, deriveRolesFromNotes } from './pointer.js';
 import { loadPsalm } from './loader.js';
@@ -595,4 +596,113 @@ function _renderStanzas(state) {
     });
     container.appendChild(stanzaEl);
   });
+}
+
+// ─── Persistence API ──────────────────────────────────────────────────────────
+
+/**
+ * Builds the save envelope for the current psalm editor state.
+ * Uses the same JSON-wrapping-GABC format as the transcriber.
+ *
+ * @param {object} state
+ * @returns {object}
+ */
+export function buildSaveData(state) {
+  return {
+    v: 1,
+    gabc: compileGabc(state),
+    language: state.language,
+    largeInitial: state.largeInitial,
+    toneKey: _toneKey,
+    cadenceKey: _cadenceKey,
+    isSolemn: _isSolemn,
+    repeatIntonation: _repeatIntonation,
+  };
+}
+
+/**
+ * Reconstructs the raw verse text (with †/* markers) from a parsed GABC stanza.
+ * Scans the parsedNotes stream: barline ',' → flex †, ':' or ';' → mediant *.
+ * Syllables are joined into words using wordMap, phrases separated by markers.
+ *
+ * @param {{ lines: Array<{syllables: string[], parsedNotes: string[], wordMap: number[]}> }} parsedStanza
+ * @returns {string}
+ */
+function _reconstructRawLine(parsedStanza) {
+  return parsedStanza.lines.map(line => {
+    const { syllables, parsedNotes, wordMap } = line;
+
+    // Join syllables into words using wordMap.
+    const words = [];
+    let curWordIdx = -1;
+    syllables.forEach((syl, i) => {
+      const wIdx = wordMap?.[i] ?? i;
+      if (wIdx !== curWordIdx) {
+        words.push(syl);
+        curWordIdx = wIdx;
+      } else {
+        words[words.length - 1] += syl;
+      }
+    });
+
+    const text = words.join(' ');
+
+    // Find the terminal barline token to determine which marker follows this phrase.
+    const lastBarline = [...parsedNotes].reverse().find(t => t === ',' || t === ':' || t === ';' || t === '::');
+    const marker = lastBarline === ',' ? '†' : (lastBarline === ':' || lastBarline === ';') ? '*' : '';
+
+    return text + marker;
+  }).join(' ');
+}
+
+/**
+ * Full reimport from a save envelope: parses GABC, restores tone controls,
+ * reconstructs raw verse text, re-points, applies saved notes, re-derives roles.
+ *
+ * @param {object} state
+ * @param {object} data   — save envelope from buildSaveData / getSave
+ */
+export function restoreFromSave(state, data) {
+  // 1. Apply tone metadata to module vars and DOM controls.
+  _toneKey          = data.toneKey          ?? _toneKey;
+  _isSolemn         = data.isSolemn         ?? false;
+  _repeatIntonation = data.repeatIntonation ?? false;
+  _toneSelect.value = _toneKey;
+  _populateTermSelect();
+  _cadenceKey       = data.cadenceKey ?? _cadenceKey;
+  _termSelect.value = _cadenceKey;
+  _solemnChk.checked      = _isSolemn;
+  _repeatIntonChk.checked = _repeatIntonation;
+
+  // 2. Parse GABC → extract per-stanza syllables, notes, and word structure.
+  const parsed = parseGabc(data.gabc ?? '');
+  state.language    = data.language    ?? state.language;
+  state.largeInitial = data.largeInitial ?? state.largeInitial;
+  state.clef        = parsed.clef;
+  _langSel.value         = state.language;
+  _largeInitChk.checked  = state.largeInitial;
+
+  // 3. Reconstruct raw verse text (with †/* markers) from the parsed GABC stanzas.
+  const rawLines = parsed.stanzas.map(s => _reconstructRawLine(s));
+
+  // 4. Re-point all verses using the restored tone.
+  _parseAndPoint(rawLines.join('\n'), state);
+
+  // 5. Override auto-pointed notes with the saved note values and re-derive roles.
+  parsed.stanzas.forEach((parsedStanza, si) => {
+    const stanza = state.stanzas[si];
+    if (!stanza) return;
+    stanza.lines.forEach((line, li) => {
+      const srcLine = parsedStanza.lines[li];
+      if (!srcLine) return;
+      line.notes       = srcLine.notes;
+      line.parsedNotes = srcLine.parsedNotes;
+      _syncAstFromLine(stanza, li, line.parsedNotes);
+    });
+  });
+
+  _renderStanzas(state);
+  _showStanzas();
+  _syncBuildButtons(state);
+  triggerCompile(state);
 }

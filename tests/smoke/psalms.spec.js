@@ -281,3 +281,114 @@ test('psalm selector: selecting psalm renders preview', async ({ page }) => {
   expect(svgCount).toBeGreaterThan(0);
   expect(errors).toHaveLength(0);
 });
+
+// ── Persistence: Save / Auto-load ─────────────────────────────────────────────
+
+async function clearPsalmSaves(page) {
+  await page.evaluate(() => {
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('op-ps::'))
+      .forEach(k => localStorage.removeItem(k));
+  });
+}
+
+test('persistence: Save button is visible in the tab bar', async ({ page }) => {
+  await page.goto(URL);
+  await expect(page.locator('#btnSave')).toBeVisible();
+});
+
+test('persistence: Save opens modal with title', async ({ page }) => {
+  await page.goto(URL);
+  await clearPsalmSaves(page);
+  await buildVerses(page);
+  await page.click('#btnSave');
+  await expect(page.locator('dialog[data-op-modal]')).toBeVisible();
+  const title = await page.locator('.op-modal-title').textContent();
+  expect(title).toMatch(/save/i);
+  await page.keyboard.press('Escape');
+});
+
+test('persistence: Save modal pre-fills name as psalm+tone key', async ({ page }) => {
+  await page.goto(URL);
+  await clearPsalmSaves(page);
+  await page.selectOption('#psalmSelect', '5');
+  await page.waitForSelector('#editorEditToggle:not(.hidden)');
+  const tone = await page.locator('#editorTone').inputValue();
+  await page.click('#btnSave');
+  const val = await page.locator('dialog[data-op-modal] input[type="text"]').inputValue();
+  expect(val).toMatch(/Ps5/);
+  expect(val).toContain(tone);
+  await page.keyboard.press('Escape');
+});
+
+test('persistence: saving writes to localStorage with correct namespace', async ({ page }) => {
+  await page.goto(URL);
+  await clearPsalmSaves(page);
+  await buildVerses(page);
+
+  await page.click('#btnSave');
+  const name = await page.locator('dialog[data-op-modal] input[type="text"]').inputValue();
+  await page.locator('dialog[data-op-modal] .op-modal-btn-primary').click();
+
+  const stored = await page.evaluate(n => localStorage.getItem('op-ps::' + n), name);
+  expect(stored).not.toBeNull();
+  const data = JSON.parse(stored);
+  expect(data.v).toBe(1);
+  expect(data.gabc).toContain('%%');
+  await clearPsalmSaves(page);
+});
+
+test('persistence: auto-load fires when switching back to a saved tone', async ({ page }) => {
+  await page.goto(URL);
+  await clearPsalmSaves(page);
+
+  // Build with tone 8 and save
+  await page.selectOption('#psalmSelect', '5');
+  await page.waitForSelector('#editorEditToggle:not(.hidden)');
+  await page.selectOption('#editorTone', 'tone8');
+  await page.waitForSelector('#editorEditToggle:not(.hidden)');
+
+  const notesBefore = await page.evaluate(() =>
+    document.querySelector('.editor-melody-input')?.value ?? ''
+  );
+
+  await page.click('#btnSave');
+  const name = await page.locator('dialog[data-op-modal] input[type="text"]').inputValue();
+  await page.locator('dialog[data-op-modal] .op-modal-btn-primary').click();
+
+  // Switch to a different tone
+  await page.selectOption('#editorTone', 'tone1');
+  await page.waitForSelector('#editorEditToggle:not(.hidden)');
+
+  // Switch back to tone 8 — auto-load should fire
+  await page.selectOption('#editorTone', 'tone8');
+  await page.waitForSelector('#editorEditToggle:not(.hidden)');
+
+  const notesAfter = await page.evaluate(() =>
+    document.querySelector('.editor-melody-input')?.value ?? ''
+  );
+  expect(notesAfter).toBe(notesBefore);
+
+  const status = await page.textContent('#statusMessage');
+  expect(status).toMatch(/auto.?load/i);
+  await clearPsalmSaves(page);
+});
+
+test('persistence: deleting a save from modal removes it from localStorage', async ({ page }) => {
+  await page.goto(URL);
+  await clearPsalmSaves(page);
+  await buildVerses(page);
+
+  await page.click('#btnSave');
+  const name = await page.locator('dialog[data-op-modal] input[type="text"]').inputValue();
+  await page.locator('dialog[data-op-modal] .op-modal-btn-primary').click();
+
+  // Re-open save modal and delete
+  await page.click('#btnSave');
+  await page.locator('.op-modal-list-item-name').filter({ hasText: name })
+    .locator('..').locator('.op-modal-btn-danger').click();
+
+  const stored = await page.evaluate(n => localStorage.getItem('op-ps::' + n), name);
+  expect(stored).toBeNull();
+  await page.keyboard.press('Escape');
+});

@@ -74,15 +74,22 @@
     <section class="w-2/5 flex flex-col border-r border-op-tan-light min-w-0">
 
       <!-- Tab bar -->
-      <div class="flex-none flex border-b border-op-tan-light bg-op-cream">
-        <button id="tabEditorBtn"
-          class="tab-btn tab-btn-active px-4 py-2 text-xs font-medium border-b-2 border-op-gold text-op-ink">
-          Editor
-        </button>
-        <button id="tabGabcBtn"
-          class="tab-btn px-4 py-2 text-xs font-medium border-b-2 border-transparent text-op-ink-subtle hover:text-op-ink">
-          GABC
-        </button>
+      <div class="flex-none border-b border-op-tan-light bg-op-cream"
+        style="display:grid; grid-template-columns:1fr auto;">
+        <div class="flex">
+          <button id="tabEditorBtn"
+            class="tab-btn tab-btn-active px-4 py-2 text-xs font-medium border-b-2 border-op-gold text-op-ink">
+            Editor
+          </button>
+          <button id="tabGabcBtn"
+            class="tab-btn px-4 py-2 text-xs font-medium border-b-2 border-transparent text-op-ink-subtle hover:text-op-ink">
+            GABC
+          </button>
+        </div>
+        <div class="flex items-center gap-1 px-2">
+          <button id="btnSave" class="op-tab-action-btn">Save</button>
+          <button id="btnLoad" class="op-tab-action-btn">Load</button>
+        </div>
       </div>
 
       <!-- Tab 1: Structured editor -->

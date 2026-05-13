@@ -306,3 +306,163 @@ test('play button: disabled while playing, re-enabled after stop', async ({ page
   await page.click('#btnMediaStop');
   await expect(page.locator('#btnPlayFromStart')).toBeEnabled();
 });
+
+// ── §13 Persistence: Save / Load ─────────────────────────────────────────────
+
+// Helper: clear all op-tc:: keys from localStorage
+async function clearTranscriberSaves(page) {
+  await page.evaluate(() => {
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('op-tc::'))
+      .forEach(k => localStorage.removeItem(k));
+  });
+}
+
+test('persistence: Save button is visible in the tab bar', async ({ page }) => {
+  await page.goto(URL);
+  await expect(page.locator('#btnSave')).toBeVisible();
+});
+
+test('persistence: Load button is visible in the tab bar', async ({ page }) => {
+  await page.goto(URL);
+  await expect(page.locator('#btnLoad')).toBeVisible();
+});
+
+test('persistence: Save opens modal with title', async ({ page }) => {
+  await page.goto(URL);
+  await clearTranscriberSaves(page);
+  await buildHymn(page);
+  await page.click('#btnSave');
+  await expect(page.locator('dialog[data-op-modal]')).toBeVisible();
+  const title = await page.locator('.op-modal-title').textContent();
+  expect(title).toMatch(/save/i);
+});
+
+test('persistence: Save modal pre-fills name from annotation', async ({ page }) => {
+  await page.goto(URL);
+  await clearTranscriberSaves(page);
+  await buildHymn(page);
+  await page.fill('#editorAnnotation', 'My Hymn');
+  await page.dispatchEvent('#editorAnnotation', 'input');
+  await page.click('#btnSave');
+  const val = await page.locator('dialog[data-op-modal] input[type="text"]').inputValue();
+  expect(val).toBe('My Hymn');
+  await page.keyboard.press('Escape');
+});
+
+test('persistence: Save modal shows empty-name validation error', async ({ page }) => {
+  await page.goto(URL);
+  await clearTranscriberSaves(page);
+  await buildHymn(page);
+  await page.click('#btnSave');
+  // Clear pre-filled name and try to save
+  await page.locator('dialog[data-op-modal] input[type="text"]').fill('');
+  await page.locator('dialog[data-op-modal] .op-modal-btn-primary').click();
+  const err = await page.locator('.op-modal-error').textContent();
+  expect(err.trim().length).toBeGreaterThan(0);
+  await page.keyboard.press('Escape');
+});
+
+test('persistence: saving a hymn writes to localStorage', async ({ page }) => {
+  await page.goto(URL);
+  await clearTranscriberSaves(page);
+  await buildHymn(page);
+
+  await page.click('#btnSave');
+  await page.locator('dialog[data-op-modal] input[type="text"]').fill('TestHymn');
+  await page.locator('dialog[data-op-modal] .op-modal-btn-primary').click();
+
+  const saved = await page.evaluate(() => localStorage.getItem('op-tc::TestHymn'));
+  expect(saved).not.toBeNull();
+  const data = JSON.parse(saved);
+  expect(data.gabc).toContain('%%');
+  expect(data.v).toBe(1);
+  await clearTranscriberSaves(page);
+});
+
+test('persistence: overwrite requires two clicks (two-step confirm)', async ({ page }) => {
+  await page.goto(URL);
+  await clearTranscriberSaves(page);
+  await buildHymn(page);
+
+  // First save
+  await page.click('#btnSave');
+  await page.locator('dialog[data-op-modal] input[type="text"]').fill('OverwriteMe');
+  await page.locator('dialog[data-op-modal] .op-modal-btn-primary').click();
+
+  // Second save with same name — should ask to confirm
+  await page.click('#btnSave');
+  await page.locator('dialog[data-op-modal] input[type="text"]').fill('OverwriteMe');
+  const saveBtn = page.locator('dialog[data-op-modal] .op-modal-btn-primary');
+  await saveBtn.click(); // first click → "Overwrite?"
+  expect(await saveBtn.textContent()).toMatch(/overwrite/i);
+  await saveBtn.click(); // second click → confirms and closes
+  await expect(page.locator('dialog[data-op-modal]')).not.toBeVisible();
+  await clearTranscriberSaves(page);
+});
+
+test('persistence: Load opens modal listing saved hymns', async ({ page }) => {
+  await page.goto(URL);
+  await clearTranscriberSaves(page);
+  await buildHymn(page);
+
+  // Save one hymn first
+  await page.click('#btnSave');
+  await page.locator('dialog[data-op-modal] input[type="text"]').fill('LoadMe');
+  await page.locator('dialog[data-op-modal] .op-modal-btn-primary').click();
+
+  // Now open Load modal
+  await page.click('#btnLoad');
+  await expect(page.locator('dialog[data-op-modal]')).toBeVisible();
+  const items = await page.locator('.op-modal-list-item-name').allTextContents();
+  expect(items).toContain('LoadMe');
+  await page.keyboard.press('Escape');
+  await clearTranscriberSaves(page);
+});
+
+test('persistence: loading a save restores notes in melody inputs', async ({ page }) => {
+  await page.goto(URL);
+  await clearTranscriberSaves(page);
+  await buildHymn(page);
+
+  const notesBefore = await page.locator('.editor-melody-input').first().inputValue();
+
+  // Save
+  await page.click('#btnSave');
+  await page.locator('dialog[data-op-modal] input[type="text"]').fill('RestoreMe');
+  await page.locator('dialog[data-op-modal] .op-modal-btn-primary').click();
+
+  // Change a note input directly
+  await page.locator('.editor-melody-input').first().fill('z');
+  await page.dispatchEvent('.editor-melody-input', 'change');
+
+  // Load the save
+  await page.click('#btnLoad');
+  await page.locator('.op-modal-list-item-name').filter({ hasText: 'RestoreMe' })
+    .locator('..').locator('.op-modal-btn-ghost').click();
+
+  const notesAfter = await page.locator('.editor-melody-input').first().inputValue();
+  expect(notesAfter).toBe(notesBefore);
+  await clearTranscriberSaves(page);
+});
+
+test('persistence: deleting a save removes it from the list', async ({ page }) => {
+  await page.goto(URL);
+  await clearTranscriberSaves(page);
+  await buildHymn(page);
+
+  await page.click('#btnSave');
+  await page.locator('dialog[data-op-modal] input[type="text"]').fill('DeleteMe');
+  await page.locator('dialog[data-op-modal] .op-modal-btn-primary').click();
+
+  // Open load modal and delete
+  await page.click('#btnLoad');
+  await page.locator('.op-modal-list-item-name').filter({ hasText: 'DeleteMe' })
+    .locator('..').locator('.op-modal-btn-danger').click();
+
+  const items = await page.locator('.op-modal-list-item-name').allTextContents();
+  expect(items).not.toContain('DeleteMe');
+  const stored = await page.evaluate(() => localStorage.getItem('op-tc::DeleteMe'));
+  expect(stored).toBeNull();
+  await page.keyboard.press('Escape');
+});

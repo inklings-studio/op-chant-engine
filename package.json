@@ -16,8 +16,8 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "node --test tests/unit/*.test.js tests/unit/transcriber/*.test.js tests/unit/psalms/*.test.js",
-    "test:unit": "node --test tests/unit/*.test.js tests/unit/transcriber/*.test.js tests/unit/psalms/*.test.js",
+    "test": "node --test tests/unit/*.test.js tests/unit/common/*.test.js tests/unit/transcriber/*.test.js tests/unit/psalms/*.test.js",
+    "test:unit": "node --test tests/unit/*.test.js tests/unit/common/*.test.js tests/unit/transcriber/*.test.js tests/unit/psalms/*.test.js",
     "test:smoke": "npx playwright test",
     "build:css": "tailwindcss -i ./src/input.css -o ./css/output.css --minify",
     "watch:css": "tailwindcss -i ./src/input.css -o ./css/output.css --watch"

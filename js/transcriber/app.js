@@ -8,7 +8,8 @@ import {
   getScoreNotes, getTranspose, changePitch, getBpm, setBpm,
   EXSURGE_TO_TONES_OFFSET,
 } from '../core/audio.js';
-import { formatPitch, formatPitchName, positionToolbar } from '../common/ui-helpers.js';
+import { formatPitch, formatPitchName, positionToolbar, showSaveModal, showLoadModal } from '../common/ui-helpers.js';
+import { listSaves, getSave, putSave, deleteSave } from '../common/storage.js';
 
 // Language plugins — self-register via side-effect import
 import '../languages/sk/index.js';
@@ -44,6 +45,8 @@ const gabcEditor = document.getElementById('gabcEditor');
 const chantPreview = document.getElementById('chantPreview');
 const placeholder = document.getElementById('previewPlaceholder');
 const statusMsg = document.getElementById('statusMessage');
+const btnSave = document.getElementById('btnSave');
+const btnLoad = document.getElementById('btnLoad');
 const btnPdf = document.getElementById('btnExportPdf');
 const btnPng = document.getElementById('btnDownloadPng');
 const btnSvg = document.getElementById('btnDownloadSvg');
@@ -76,6 +79,8 @@ let _toolbar = null;   // currently visible floating toolbar div
 
 let _lastCompiledGabc = '';
 let activeTab = 'editor';   // 'editor' | 'gabc'
+let _isDirty = false;
+let _initDone = false;
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 function init() {
@@ -92,9 +97,12 @@ function init() {
   gabcEditor.addEventListener('input', onEditorInput);
   gabcEditor.addEventListener('keydown', onEditorKeydown);
   document.addEventListener('keydown', onDocumentKeydown);
+  btnSave?.addEventListener('click', onSave);
+  btnLoad?.addEventListener('click', onLoad);
   btnPdf.addEventListener('click', onExportPdf);
   btnPng.addEventListener('click', onExportPng);
   btnSvg.addEventListener('click', onExportSvg);
+  window.addEventListener('beforeunload', e => { if (_isDirty) e.preventDefault(); });
 
   // Click on note or syllable text in the preview
   chantPreview.addEventListener('click', onPreviewClick);
@@ -124,6 +132,8 @@ function init() {
   // Tab switching
   document.getElementById('tabEditorBtn').addEventListener('click', () => switchToTab('editor'));
   document.getElementById('tabGabcBtn').addEventListener('click', () => switchToTab('gabc'));
+
+  _initDone = true;
 }
 
 // ─── Rendering ────────────────────────────────────────────────────────────────
@@ -138,6 +148,7 @@ function onEditorInput() {
 function onCompiledGabc(gabcStr) {
   gabcEditor.value = gabcStr;
   _lastCompiledGabc = gabcStr;
+  if (_initDone) _isDirty = true;
   renderFromEditor();
 }
 
@@ -166,6 +177,7 @@ function switchToTab(tab) {
     state.strophicInheritance = false;
     rebuildStanzas(state);
     _lastCompiledGabc = gabcEditor.value;
+    _isDirty = true;
   }
 
   _editorTab.classList.toggle('hidden', !toEditor);
@@ -499,6 +511,61 @@ function hideMediaControls() {
   if (mediaControls) {
     mediaControls.classList.add('hidden');
   }
+}
+
+// ─── Save / Load handlers ─────────────────────────────────────────────────────
+function onSave() {
+  const state = getState();
+  showSaveModal({
+    title: 'Save Hymn',
+    defaultName: state.annotation?.trim() || '',
+    saves: listSaves('transcriber'),
+    onSave(name) {
+      try {
+        putSave('transcriber', name, {
+          v: 1,
+          gabc: _lastCompiledGabc,
+          language: state.language,
+          strophic: state.strophicInheritance,
+          stanzaNumbers: state.stanzaNumbers,
+        });
+      } catch (err) {
+        setStatus('Save failed: ' + err.message, 'error');
+        return false;
+      }
+      _isDirty = false;
+      setStatus(`Saved as '${name}'.`);
+      return true;
+    },
+    onDelete(name) { deleteSave('transcriber', name); },
+  });
+}
+
+function onLoad() {
+  showLoadModal({
+    title: 'Load Hymn',
+    saves: listSaves('transcriber'),
+    onLoad(name) {
+      const data = getSave('transcriber', name);
+      if (!data) { setStatus('Could not load save.', 'error'); return; }
+      const parsed = parseGabc(data.gabc ?? '');
+      const state = getState();
+      state.clef = parsed.clef;
+      state.stanzas = parsed.stanzas;
+      state.coda = parsed.coda;
+      state.font = parsed.font;
+      state.fontSizePt = parsed.fontSizePt;
+      state.pageWidthIn = parsed.pageWidthIn;
+      state.pageHeightIn = parsed.pageHeightIn;
+      state.language = data.language ?? state.language;
+      state.strophicInheritance = data.strophic ?? false;
+      state.stanzaNumbers = data.stanzaNumbers ?? false;
+      rebuildStanzas(state);
+      _isDirty = false;
+      setStatus(`Loaded '${name}'.`);
+    },
+    onDelete(name) { deleteSave('transcriber', name); },
+  });
 }
 
 // ─── Export handlers ──────────────────────────────────────────────────────────

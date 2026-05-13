@@ -6,8 +6,9 @@ import {
 } from '../core/audio.js';
 import { getState } from '../common/state.js';
 import '../languages/sk/index.js';
-import { initEditor } from './editor.js';
-import { formatPitch, formatPitchName, positionToolbar } from '../common/ui-helpers.js';
+import { initEditor, buildSaveData, restoreFromSave } from './editor.js';
+import { formatPitch, formatPitchName, positionToolbar, showSaveModal } from '../common/ui-helpers.js';
+import { listSaves, getSave, putSave, deleteSave, hasSave } from '../common/storage.js';
 
 const DEFAULT_EXPORT_WIDTH = 7.5 * 96;
 const DEFAULT_DPI = 300;
@@ -19,6 +20,7 @@ const chantPreview = document.getElementById('chantPreview');
 const versesPreview = document.getElementById('versesPreview');
 const placeholder = document.getElementById('previewPlaceholder');
 const statusMsg = document.getElementById('statusMessage');
+const btnSave = document.getElementById('btnSave');
 const btnPng = document.getElementById('btnDownloadPng');
 const btnSvg = document.getElementById('btnDownloadSvg');
 
@@ -51,6 +53,8 @@ let _renderGabc = '';         // what _doRender actually renders (may differ fro
 let _toolbar = null;
 let _lastCompiledGabc = '';
 let activeTab = 'editor';
+let _lastAutoLoadKey = '';
+let _inAutoLoad = false;
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 function init() {
@@ -71,6 +75,12 @@ function init() {
   state.largeInitial = true;
   state.strophicInheritance = false;
   state.stanzaNumbers = true;
+
+  // Register before initEditor so these fire before editor.js change handlers,
+  // ensuring _lastAutoLoadKey is cleared before triggerCompile → onCompiled runs.
+  ['editorTone', 'editorTerm', 'editorSolemn', 'psalmSelect'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', () => { _lastAutoLoadKey = ''; });
+  });
 
   initEditor(state, onCompiled, { onStatus: setStatus });
 
@@ -97,6 +107,7 @@ function init() {
   document.addEventListener('click', onDocumentClick, true);
   document.addEventListener('keydown', onDocumentKeydown);
 
+  btnSave?.addEventListener('click', onSave);
   btnPng?.addEventListener('click', onExportPng);
   btnSvg?.addEventListener('click', onExportSvg);
 
@@ -106,8 +117,48 @@ function init() {
   setStatus(isAudioAvailable() ? 'Ready.' : 'Ready (audio unavailable).');
 }
 
+// ─── Save / Auto-load ─────────────────────────────────────────────────────────
+function _psalmAutoLoadKey() {
+  const psalmVal = document.getElementById('psalmSelect')?.value || '';
+  const toneVal  = document.getElementById('editorTone')?.value  || 'tone8';
+  return (psalmVal ? `Ps${psalmVal}` : 'custom') + `_${toneVal}`;
+}
+
+function onSave() {
+  const state = getState();
+  showSaveModal({
+    title: 'Save Psalm',
+    defaultName: _psalmAutoLoadKey(),
+    saves: listSaves('psalms'),
+    onSave(name) {
+      try { putSave('psalms', name, buildSaveData(state)); }
+      catch (err) { setStatus('Save failed: ' + err.message, 'error'); return false; }
+      setStatus(`Saved as '${name}'.`);
+      return true;
+    },
+    onDelete(name) { deleteSave('psalms', name); },
+  });
+}
+
 // ─── Compiled output callback ─────────────────────────────────────────────────
 function onCompiled(result) {
+  // Auto-load: if a save matches the current psalm+tone key, apply it once.
+  // Re-entry guard prevents the triggerCompile inside restoreFromSave from looping.
+  if (!_inAutoLoad) {
+    const key = _psalmAutoLoadKey();
+    if (key !== _lastAutoLoadKey && hasSave('psalms', key)) {
+      const data = getSave('psalms', key);
+      if (data?.gabc) {
+        _lastAutoLoadKey = key;
+        _inAutoLoad = true;
+        restoreFromSave(getState(), data);
+        _inAutoLoad = false;
+        setStatus(`Auto-loaded '${key}'.`);
+        return;
+      }
+    }
+  }
+
   _currentMode = result.mode;
   _lastCompiledGabc = result.gabcFull;
   gabcEditor.value = result.gabcFull;   // GABC tab always shows full GABC
