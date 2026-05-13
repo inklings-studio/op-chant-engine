@@ -7,6 +7,14 @@
 
 @font-face {
   font-family: 'Crimson Text';
+  src: url('../assets/fonts/crimson-italic-webfont.woff2') format('woff2'),
+       url('../assets/fonts/crimson-italic-webfont.woff') format('woff');
+  font-weight: 400;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Crimson Text';
   src: url('../assets/fonts/crimson-bold-webfont.woff2') format('woff2'),
        url('../assets/fonts/crimson-bold-webfont.woff') format('woff');
   font-weight: 700;
@@ -224,6 +232,71 @@
 .track-word-group .track-chip-matched:last-child,
 .track-word-group .track-chip-cursor:last-child {
   border-right: none;
+}
+
+/* ── GABC Summary link ───────────────────────────────────────────────────── */
+.op-gabc-summary-link {
+  margin-left: 32px;
+  font-family: 'Crimson Text', Georgia, serif;
+  font-style: italic;
+  font-size: 11.5px;
+  color: #f5c040;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  opacity: 0.88;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.op-gabc-summary-link:hover { opacity: 1; }
+
+/* ── GABC Summary popup dialog ───────────────────────────────────────────── */
+#gabcSummaryDialog {
+  width: 82vw;
+  height: 90vh;
+  max-width: 1000px;
+  border: none;
+  border-radius: 8px;
+  padding: 0;
+  box-shadow: 0 8px 40px rgba(74, 26, 18, 0.4);
+  overflow: hidden;
+}
+#gabcSummaryDialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+#gabcSummaryDialog::backdrop { background: rgba(26, 18, 8, 0.55); }
+.gabc-summary-dialog-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 12px;
+  background: #3d1a10;
+}
+.gabc-summary-dialog-title {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  color: #e8d5b0;
+  letter-spacing: 0.08em;
+}
+.gabc-summary-dialog-close {
+  padding: 2px 9px;
+  font-size: 11px;
+  font-weight: 500;
+  background: transparent;
+  border: 1px solid rgba(196, 168, 130, 0.4);
+  border-radius: 4px;
+  color: #e8d5b0;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.gabc-summary-dialog-close:hover { background: rgba(196, 168, 130, 0.15); }
+.gabc-summary-dialog-iframe {
+  flex: 1;
+  width: 100%;
+  border: none;
+  display: block;
 }
 
 /* ── Dominican site header ───────────────────────────────────────────────── */

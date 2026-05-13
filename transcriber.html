@@ -51,13 +51,15 @@
         <span class="text-[13px] font-semibold text-op-parchment" style="font-family:'Cinzel',serif;">Chant
           Engine</span>
       </div>
+      <a href="assets/summary-gabc-v5.pdf" class="op-gabc-summary-link"
+        onclick="event.preventDefault(); document.getElementById('gabcSummaryDialog').showModal();">Summary of GABC ↗</a>
     </div>
     <!-- Center: tool navigation -->
     <nav class="flex items-center">
       <a href="transcriber.html" class="op-tool-nav-link active">GABC Transcriber</a>
       <a href="psalms.html" class="op-tool-nav-link">Psalm Tone Tool</a>
     </nav>
-    <!-- Right: export buttons + feedback link -->
+    <!-- Right: export buttons -->
     <div class="flex items-center gap-2 justify-end">
       <a href="https://github.com/dedocibula/op-chant-engine/issues" target="_blank" rel="noopener"
         class="op-export-btn" style="text-decoration:none;">Bug / Feature ↗</a>
@@ -220,7 +222,7 @@
       <div class="flex-none border-b border-op-tan-light bg-op-cream preview-header-row">
         <span class="text-xs font-medium text-op-ink-subtle uppercase tracking-wide">Preview</span>
         <div id="previewControls" class="hidden flex items-center gap-1">
-          <button id="btnPlayFromStart" class="toolbar-btn toolbar-btn-primary-inline">▶ Play</button>
+          <button id="btnPlayFromStart" class="toolbar-btn toolbar-btn-primary-inline">▶ &lt;Space&gt; to Play</button>
           <button id="btnHeaderPitchUp" class="toolbar-btn toolbar-btn-success">▲</button>
           <div id="headerPitchDisplay" class="toolbar-btn toolbar-btn-info toolbar-pitch-info preview-pitch-display">—
           </div>
@@ -261,8 +263,17 @@
     <button id="btnBpmMinus" class="mc-btn mc-btn-default" title="Slower">−</button>
     <span id="bpmDisplay">165 BPM</span>
     <button id="btnBpmPlus" class="mc-btn mc-btn-default" title="Faster">+</button>
-    <button id="btnMediaStop" class="mc-btn mc-btn-danger" title="Stop">■ Stop</button>
+    <button id="btnMediaStop" class="mc-btn mc-btn-danger" title="Stop">■ &lt;Esc&gt; to Stop</button>
   </div>
+
+  <!-- GABC Summary popup -->
+  <dialog id="gabcSummaryDialog" onclick="if(event.target===this)this.close();">
+    <div class="gabc-summary-dialog-header">
+      <span class="gabc-summary-dialog-title">Summary of GABC</span>
+      <button class="gabc-summary-dialog-close" onclick="document.getElementById('gabcSummaryDialog').close();">✕ Close</button>
+    </div>
+    <iframe src="assets/summary-gabc-v5.pdf" class="gabc-summary-dialog-iframe" title="Summary of GABC"></iframe>
+  </dialog>
 
   <!-- ES6 module entry point — runs after all globals above are ready -->
   <script type="module" src="js/transcriber/app.js"></script>

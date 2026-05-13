@@ -109,6 +109,7 @@ function init() {
 
   // Dismiss toolbar when clicking outside preview + toolbar
   document.addEventListener('click', onDocumentClick, true);
+  document.addEventListener('click', e => { if (e.target instanceof HTMLButtonElement) e.target.blur(); });
 
   // Preview header controls
   btnPlayFromStart?.addEventListener('click', () => {

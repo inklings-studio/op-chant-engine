@@ -106,6 +106,7 @@ function init() {
   chantPreview.addEventListener('click', onPreviewClick);
   document.addEventListener('click', onDocumentClick, true);
   document.addEventListener('keydown', onDocumentKeydown);
+  document.addEventListener('click', e => { if (e.target instanceof HTMLButtonElement) e.target.blur(); });
 
   btnSave?.addEventListener('click', onSave);
   btnPng?.addEventListener('click', onExportPng);
