@@ -1,3 +1,27 @@
+/* ── Output mode toggle buttons ──────────────────────────────────────────── */
+.output-mode-btn {
+  padding: 2px 9px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 3px;
+  border: 1px solid #c4b09a;
+  background: transparent;
+  color: #7a6a5a;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.output-mode-btn:hover {
+  background: #e8d5b0;
+  color: #3d2b1f;
+}
+.output-mode-btn-selected {
+  background: #c4b09a;
+  color: #3d2b1f;
+  cursor: default;
+  opacity: 0.65;
+  pointer-events: none;
+}
+
 /* ── Breviary HTML verse output ──────────────────────────────────────────── */
 #versesPreview {
   font-family: 'Crimson Text', Georgia, serif;

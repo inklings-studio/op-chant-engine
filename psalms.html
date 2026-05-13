@@ -126,15 +126,14 @@
 
         <!-- Controls row 2: Output selector + conditional options -->
         <div class="py-2 mb-3 border-b border-op-tan-light flex items-start w-full">
-          <!-- Left area: Output select + mode-specific controls -->
+          <!-- Left area: Output buttons + mode-specific controls -->
           <div>
             <div style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center;">
               <span class="text-xs text-op-ink-light text-right">Output</span>
-              <select id="editorOutputMode"
-                class="border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold">
-                <option value="gabc">GABC</option>
-                <option value="html">HTML</option>
-              </select>
+              <div class="flex gap-1">
+                <button id="btnOutputGabc" class="output-mode-btn output-mode-btn-selected">GABC</button>
+                <button id="btnOutputHtml" class="output-mode-btn">HTML</button>
+              </div>
             </div>
             <!-- GABC mode: Large Initial checkbox -->
             <div id="editorGabcOptions"

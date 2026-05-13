@@ -28,7 +28,8 @@ let _outputMode = 'gabc';
 // ─── DOM refs (initialised in initEditor to allow Node.js test imports) ───────
 let _langSel, _psalmSel, _psalmLabel, _largeInitChk, _repeatIntonChk, _annotationInput,
     _rawText, _buildBtn, _rebuildBtn, _editToggle, _textArea, _stanzasEl,
-    _toneSelect, _termSelect, _solemnChk, _gabcOptions, _htmlLeft, _htmlRight;
+    _toneSelect, _termSelect, _solemnChk, _gabcOptions, _htmlLeft, _htmlRight,
+    _btnOutputGabc, _btnOutputHtml;
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
@@ -65,6 +66,8 @@ export function initEditor(state, onGabcCompiled, options = {}) {
   _gabcOptions    = document.getElementById('editorGabcOptions');
   _htmlLeft       = document.getElementById('editorHtmlLeft');
   _htmlRight      = document.getElementById('editorHtmlRight');
+  _btnOutputGabc  = document.getElementById('btnOutputGabc');
+  _btnOutputHtml  = document.getElementById('btnOutputHtml');
 
   _state = state;
   _onGabcCompiled = onGabcCompiled;
@@ -269,16 +272,20 @@ function _wireStaticEvents(state) {
     triggerCompile(state);
   });
 
-  document.getElementById('editorOutputMode')?.addEventListener('change', e => {
-    _outputMode = e.target.value;
+  function _setOutputMode(mode) {
+    _outputMode = mode;
     const isHtml = _outputMode === 'html';
+    _btnOutputGabc?.classList.toggle('output-mode-btn-selected', !isHtml);
+    _btnOutputHtml?.classList.toggle('output-mode-btn-selected', isHtml);
     _gabcOptions.style.display = isHtml ? 'none' : 'grid';
     _htmlLeft.style.display = isHtml ? 'grid' : 'none';
     _htmlRight.style.display = isHtml ? 'grid' : 'none';
     // Large Initial: always on in HTML mode (drop cap on verse 1), user-controlled in GABC
     state.largeInitial = isHtml ? true : _largeInitChk.checked;
     triggerCompile(state);
-  });
+  }
+  _btnOutputGabc?.addEventListener('click', () => _setOutputMode('gabc'));
+  _btnOutputHtml?.addEventListener('click', () => _setOutputMode('html'));
 
   ['editorPrepBegin', 'editorPrepEnd', 'editorAccBegin', 'editorAccEnd',
     'editorFlexAccBegin', 'editorFlexAccEnd', 'editorFlexBegin', 'editorFlexEnd'].forEach(id => {
@@ -290,6 +297,11 @@ function _wireStaticEvents(state) {
     _editToggle.textContent = hidden ? 'Edit text' : 'Hide';
     _stanzasEl.classList.toggle('hidden', !hidden);
     if (!hidden) _syncRawTextarea(state);
+  });
+
+  // Return focus to page after any select/checkbox change so Space key works for playback
+  document.querySelectorAll('#editorTab select, #editorTab input[type=checkbox]').forEach(el => {
+    el.addEventListener('change', () => el.blur());
   });
 }
 

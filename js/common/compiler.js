@@ -33,7 +33,7 @@ function buildLine(notes, syllables, wordMap) {
   for (const token of notes) {
     if (BARLINES.has(token)) {
       if (token === '::')     result += prevSep + DOUBLE_BAR;
-      else if (token === ':') result += prevSep + '*(;)';
+      else if (token === ':') result += prevSep + '*(:)';
       else if (token === ',') result += prevSep + `(${token})`;
       else                    result += prevSep + `(${token})`;
       prevSep  = ' ';

@@ -215,6 +215,11 @@ function _wireStaticEvents(state) {
     _stanzasEl.classList.toggle('hidden', !hidden);
   });
 
+  // Return focus to page after any select/checkbox change so Space key works for playback
+  document.querySelectorAll('#editorTab select, #editorTab input[type=checkbox]').forEach(el => {
+    el.addEventListener('change', () => el.blur());
+  });
+
   _fontSel.addEventListener('change', () => {
     state.font = _fontSel.value || null;
     triggerCompile(state);

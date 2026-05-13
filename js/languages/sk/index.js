@@ -5,7 +5,7 @@ export const codaPattern = /^am[eé]n[.,;:!?]*$/i;
 
 registerLanguage({
   code: 'sk',
-  label: 'Slovak',
+  label: '🇸🇰 Slovak',
   codaPattern,
   syllabifyWord,
   syllabifyPhrase,
