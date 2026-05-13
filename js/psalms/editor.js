@@ -430,9 +430,9 @@ function _splitAstToLines(ast, wordMap) {
  */
 function _buildStanza(rawLine, tone, plugin, isFirstVerse) {
   try {
-    const ast = pointVerse(rawLine, tone, _cadenceKey, _isSolemn, plugin.syllabifyPhrase, isFirstVerse);
+    const ast = pointVerse(rawLine, tone, _cadenceKey, _isSolemn, plugin.syllabifier, isFirstVerse);
     const cleanLine = rawLine.replace(/[†*]/g, ' ').replace(/\s+/g, ' ').trim();
-    const langTokens = plugin.syllabifyPhrase(cleanLine);
+    const langTokens = plugin.syllabifier.syllabify(cleanLine);
     const wordMap = langTokens.map(t => t.wordIdx);
     const markedLine = _buildMarkedLine(ast, wordMap);
     const lines = _splitAstToLines(ast, wordMap);
@@ -440,7 +440,7 @@ function _buildStanza(rawLine, tone, plugin, isFirstVerse) {
     return { rawLine: markedLine, ast, wordMap, lines, toneKey: _toneKey, cadenceKey: _cadenceKey, isSolemn: _isSolemn };
   } catch (_e) {
     const cleanLine = rawLine.replace(/[†*]/g, ' ').replace(/\s+/g, ' ').trim();
-    const tokens = plugin.syllabifyPhrase(cleanLine);
+    const tokens = plugin.syllabifier.syllabify(cleanLine);
     return {
       rawLine,
       ast: null,

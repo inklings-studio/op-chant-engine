@@ -7,21 +7,22 @@
  */
 
 /**
+ * @typedef {Object} WordResult
+ * @property {boolean} hasNucleus - Whether the word has a phonological nucleus (vowel/syllabic).
+ *   Words without a nucleus (consonant-only prepositions like 'v', 's') are deferred as
+ *   prefixes onto the next syllable token.
+ * @property {Array<{syl: string, isStressed: boolean}>} syllables
+ *   Syllable strings with per-syllable stress. Must be non-empty when hasNucleus is true.
+ */
+
+/**
  * @typedef {Object} LanguagePlugin
- * @property {string}  code          - ISO 639-1 code: 'sk', 'cs', 'en', 'fr'
- * @property {string}  label         - Display name: 'Slovak', 'Czech', etc.
- * @property {RegExp}  [codaPattern] - Regex to detect a coda word (e.g. /^amen$/i)
+ * @property {string}   code          - ISO 639-1 code: 'sk', 'cs', 'en', 'fr'
+ * @property {string}   label         - Display name: 'Slovak', 'Czech', etc.
+ * @property {RegExp}   [codaPattern] - Regex to detect a coda word (e.g. /^amen$/i)
  * @property {Array<{num: number, label: string}>} [psalms]
  *   Ordered list of available psalm texts for this language.
- *   `num` is the psalm number (used to construct the file path);
- *   `label` is the display string shown in the selector and written to the annotation field.
- * @property {(word: string) => string[]} syllabifyWord
- *   Syllabify a single word (no spaces, no punctuation). Returns syllable strings.
- * @property {(phrase: string) => SyllableToken[]} syllabifyPhrase
- *   Tokenize a full text phrase — already run through {@link preprocessPhrase} — into
- *   syllable tokens with position metadata.
- *   Language plugins must honour {@link PIPE_SEP} (in-word split, same wordIdx) and
- *   {@link TIE_SEP} (join into one chip / one melody note).
+ * @property {Syllabifier} syllabifier - Language-specific syllabifier instance.
  */
 
 /**
@@ -76,21 +77,26 @@ export function listLanguages() {
 }
 
 /**
- * Creates a `syllabifyPhrase` function tailored to a specific language.
- * This factory encapsulates all the generic, language-agnostic logic for parsing a line of text,
- * handling special characters, punctuation, and stress patterns.
- *
- * @param {object} langConfig - Language-specific implementation details.
- * @param {function(string): string[]} langConfig.syllabifyWord - Function to syllabify a single clean word.
- * @param {function(string): boolean} langConfig.hasNucleus - Function to check if a word has a vowel/syllabic nucleus.
- * @param {Set<string>} langConfig.unstressedMonosyllables - A set of lowercase monosyllabic words that don't receive stress.
- *
- * @returns {function(string): SyllableToken[]} A complete `syllabifyPhrase` function.
+ * Abstract base class for language syllabifiers.
+ * Subclasses implement only {@link syllabifyWord}; all phrase-level logic
+ * (TIE, PIPE, prefix deferral, punctuation handling) lives here.
  */
-export function createPhraseSyllabifier(langConfig) {
-  const { syllabifyWord, hasNucleus, unstressedMonosyllables } = langConfig;
+export class Syllabifier {
+  /**
+   * Syllabify a single clean word (no spaces, no punctuation).
+   * @param {string} word
+   * @returns {WordResult}
+   */
+  syllabifyWord(_word) {
+    throw new Error('syllabifyWord() must be implemented by subclass');
+  }
 
-  return function syllabifyPhrase(phrase) {
+  /**
+   * Tokenize a full text phrase into syllable tokens with position metadata.
+   * @param {string} phrase
+   * @returns {SyllableToken[]}
+   */
+  syllabify(phrase) {
     const tokens = [];
     phrase = preprocessPhrase(phrase);
 
@@ -109,7 +115,7 @@ export function createPhraseSyllabifier(langConfig) {
           const lp = part.match(/^[^\p{L}]*/u)?.[0] ?? '';
           const tp = part.match(/[^\p{L}]*$/u)?.[0] ?? '';
           const clean = part.slice(lp.length, part.length - tp.length);
-          const syls = clean ? syllabifyWord(clean) : [];
+          const syls = clean ? this.syllabifyWord(clean).syllables.map(s => s.syl) : [];
           if (syls.length) {
             syls[0] = lp + syls[0];
             syls[syls.length - 1] += tp;
@@ -142,25 +148,22 @@ export function createPhraseSyllabifier(langConfig) {
       // ── Standard word ──
       const leadPunct = raw.match(/^[^\p{L}]*/u)?.[0] ?? '';
       const trailPunct = raw.match(/[^\p{L}]*$/u)?.[0] ?? '';
-      let clean = raw.slice(leadPunct.length, raw.length - trailPunct.length); // FIXED BUG
+      const clean = raw.slice(leadPunct.length, raw.length - trailPunct.length);
+
+      const { syllables, hasNucleus } = this.syllabifyWord(clean);
 
       // Consonant-only word before another word → defer as prefix onto next syllable.
-      if (clean && !hasNucleus(clean) && wi < words.length - 1) {
+      if (!hasNucleus && wi < words.length - 1) {
         pendingPrefix += leadPunct + clean + trailPunct + ' ';
         continue;
       }
 
-      const syls = syllabifyWord(clean);
       const wIdx = wordIdxCounter++;
-      for (let sylIdx = 0; sylIdx < syls.length; sylIdx++) {
-        let syl = syls[sylIdx];
+      for (let sylIdx = 0; sylIdx < syllables.length; sylIdx++) {
+        let syl = syllables[sylIdx].syl;
         if (sylIdx === 0) syl = pendingPrefix + leadPunct + syl;
-        if (sylIdx === syls.length - 1) syl = syl + trailPunct;
-        const defaultStressed = sylIdx === 0 || (syls.length >= 4 && sylIdx % 2 === 0);
-        const isStressed = syls.length === 1
-          ? !unstressedMonosyllables.has(clean.toLowerCase())
-          : defaultStressed;
-        tokens.push({ syl, wordIdx: wIdx, sylIdx, isStressed });
+        if (sylIdx === syllables.length - 1) syl += trailPunct;
+        tokens.push({ syl, wordIdx: wIdx, sylIdx, isStressed: syllables[sylIdx].isStressed });
       }
       pendingPrefix = '';
     }

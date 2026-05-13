@@ -1,7 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BARLINES, tokenizeMelody } from '../../js/common/melody.js';
-import { registerLanguage, getLanguage, listLanguages } from '../../js/common/language.js';
+import { Syllabifier, registerLanguage, getLanguage, listLanguages } from '../../js/common/language.js';
+
+class PassthroughSyllabifier extends Syllabifier {
+  syllabifyWord(w) {
+    return { hasNucleus: true, syllables: [{ syl: w, isStressed: true }] };
+  }
+}
 
 // ─── tokenizeMelody ───────────────────────────────────────────────────────────
 
@@ -51,12 +57,7 @@ test('BARLINES: does not contain note tokens', () => {
 // ─── language registry ────────────────────────────────────────────────────────
 
 test('language: register and get', () => {
-  const plugin = {
-    code: 'xx',
-    label: 'Test Language',
-    syllabifyWord: w => [w],
-    syllabifyPhrase: phrase => phrase.split(' ').map((s, i) => ({ syl: s, wordIdx: i, sylIdx: 0 })),
-  };
+  const plugin = { code: 'xx', label: 'Test Language', syllabifier: new PassthroughSyllabifier() };
   registerLanguage(plugin);
   assert.strictEqual(getLanguage('xx'), plugin);
 });
@@ -66,8 +67,8 @@ test('language: getLanguage returns undefined for unknown code', () => {
 });
 
 test('language: listLanguages returns sorted array by label', () => {
-  registerLanguage({ code: 'bb', label: 'Zeta', syllabifyWord: w => [w], syllabifyPhrase: () => [] });
-  registerLanguage({ code: 'aa', label: 'Alpha', syllabifyWord: w => [w], syllabifyPhrase: () => [] });
+  registerLanguage({ code: 'bb', label: 'Zeta', syllabifier: new PassthroughSyllabifier() });
+  registerLanguage({ code: 'aa', label: 'Alpha', syllabifier: new PassthroughSyllabifier() });
   const list = listLanguages();
   const labels = list.map(p => p.label);
   const sorted = [...labels].sort((a, b) => a.localeCompare(b));
@@ -75,12 +76,7 @@ test('language: listLanguages returns sorted array by label', () => {
 });
 
 test('language: listLanguages includes registered plugin', () => {
-  const plugin = {
-    code: 'yy',
-    label: 'Yolo',
-    syllabifyWord: w => [w],
-    syllabifyPhrase: () => [],
-  };
+  const plugin = { code: 'yy', label: 'Yolo', syllabifier: new PassthroughSyllabifier() };
   registerLanguage(plugin);
   assert.ok(listLanguages().some(p => p.code === 'yy'));
 });

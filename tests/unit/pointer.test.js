@@ -2,7 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { pointVerse, alignChunk, deriveRolesFromNotes } from '../../js/psalms/pointer.js';
 import { tone7, tone8 } from '../../js/tones/dominican.js';
-import { syllabifyPhrase } from '../../js/languages/sk/syllabifier.js';
+import { SlovakSyllabifier } from '../../js/languages/sk/syllabifier.js';
+
+const sk = new SlovakSyllabifier();
 
 // ── Mediant accent placement ───────────────────────────────────────────────────
 
@@ -20,7 +22,7 @@ import { syllabifyPhrase } from '../../js/languages/sk/syllabifier.js';
 test('pointVerse: tone8 mediant – acc lands on primary stress of last word (pastier)', () => {
   const tokens = pointVerse(
     'Hospodin je môj pastier * a nič mi nechýba',
-    tone8, 'G', false, syllabifyPhrase
+    tone8, 'G', false, sk
   );
 
   const mediantTokens = tokens.slice(0, 7);
@@ -49,7 +51,7 @@ test('pointVerse: tone8 mediant – acc lands on primary stress of last word (pa
 test('pointVerse: tone8 flex – acc lands on primary stress of last flex word (Pána)', () => {
   const tokens = pointVerse(
     'Chváľte Pána † lebo je dobrý * aleluja',
-    tone8, 'G', false, syllabifyPhrase
+    tone8, 'G', false, sk
   );
 
   const flexTokens = tokens.slice(0, 4);
@@ -67,7 +69,7 @@ test('pointVerse: tone8 flex – acc lands on primary stress of last flex word (
 //   acc: ne(★) → acc(h)
 //   prep(j): mi (unstressed) → prep; prep(i): nič → prep
 test('pointVerse: proparoxytone last word — ep correctly used (nechýba)', () => {
-  const tokens = pointVerse('* a nič mi nechýba', tone8, 'G', false, syllabifyPhrase);
+  const tokens = pointVerse('* a nič mi nechýba', tone8, 'G', false, sk);
   const acc = tokens.find(t => t.role === 'acc');
   const ep  = tokens.find(t => t.role === 'ep');
   const fin = tokens.find(t => t.role === 'fin');
@@ -87,7 +89,7 @@ test('pointVerse: proparoxytone last word — ep correctly used (nechýba)', () 
 //   prep(j): mi (unstressed) → prep
 //   prep(i): nič (stressed, no acc left) → prep
 test('pointVerse: paroxytone last word — ep skipped, acc on stressed penultimate (čakám)', () => {
-  const tokens = pointVerse('* a nič mi čakám', tone8, 'G', false, syllabifyPhrase);
+  const tokens = pointVerse('* a nič mi čakám', tone8, 'G', false, sk);
   const acc  = tokens.find(t => t.role === 'acc');
   const ep   = tokens.find(t => t.role === 'ep');
   const fin  = tokens.find(t => t.role === 'fin');
@@ -107,7 +109,7 @@ test('pointVerse: paroxytone last word — ep skipped, acc on stressed penultima
 //   acc: ra(★) (secondary) → acc(k)
 //   de mok → intonation g, h
 test('pointVerse: secondary stress — acc falls on "ra" (secondary), not "de" (primary)', () => {
-  const tokens = pointVerse('demokraticky * lebo', tone8, 'G', false, syllabifyPhrase);
+  const tokens = pointVerse('demokraticky * lebo', tone8, 'G', false, sk);
   const mediant = tokens.slice(0, 5);
   assert.equal(mediant.find(t => t.role === 'acc')?.syl, 'ra',
     'secondary stress at syl 2 is rightmost stressed; acc should land there, not on syl 0');
@@ -119,8 +121,8 @@ test('pointVerse: secondary stress — acc falls on "ra" (secondary), not "de" (
 // isFirstVerse=false: all leftover syllables become tenor.
 test('pointVerse: isFirstVerse=false — intonation syllables become tenor', () => {
   const verse = 'Hospodin je môj pastier * a nič mi nechýba';
-  const first  = pointVerse(verse, tone8, 'G', false, syllabifyPhrase, true);
-  const later  = pointVerse(verse, tone8, 'G', false, syllabifyPhrase, false);
+  const first  = pointVerse(verse, tone8, 'G', false, sk, true);
+  const later  = pointVerse(verse, tone8, 'G', false, sk, false);
 
   // Mediant "Hospodin je môj pastier" → Hos po din je môj pas tier
   // First two tokens (Hos, po) get intonation on verse 1; tenor on verse 2+
@@ -142,7 +144,7 @@ test('pointVerse: isFirstVerse=false — intonation syllables become tenor', () 
 test('pointVerse: barline sentinels emitted after flex and mediant sections', () => {
   const tokens = pointVerse(
     'Chváľte Pána † lebo je dobrý * aleluja',
-    tone8, 'G', false, syllabifyPhrase
+    tone8, 'G', false, sk
   );
 
   const flexBarlineIdx  = tokens.findIndex(t => t.role === 'flex');
@@ -170,7 +172,7 @@ test('pointVerse: barline sentinels emitted after flex and mediant sections', ()
 //   acc:  kráľ (stressed → anchor)
 //   prep: no tokens left → dropped
 test('pointVerse: tone8 termG – unstressed "a" does not steal acc; acc lands on kráľ', () => {
-  const tokens = pointVerse('* kráľ a Boh', tone8, 'G', false, syllabifyPhrase);
+  const tokens = pointVerse('* kráľ a Boh', tone8, 'G', false, sk);
   assert.equal(tokens.find(t => t.role === 'acc')?.syl,  'kráľ', 'acc on "kráľ"');
   assert.equal(tokens.find(t => t.role === 'ep')?.syl,   'a',    'ep on "a" (unstressed bridge)');
   assert.equal(tokens.find(t => t.role === 'fin')?.syl,  'Boh',  'fin on "Boh"');
@@ -185,7 +187,7 @@ test('pointVerse: tone8 termG – unstressed "a" does not steal acc; acc lands o
 //   ep:   vé (unstressed → no skip)
 //   acc:  li  (stressed — secondary stress applied)  ← was landing on spra before fix
 test('pointVerse: tone8 termG – pipe-split 5-syllable word places acc on secondary stress (li), not first syllable (spra)', () => {
-  const tokens = pointVerse('* spra|vod|li|vé|ho,', tone8, 'G', false, syllabifyPhrase);
+  const tokens = pointVerse('* spra|vod|li|vé|ho,', tone8, 'G', false, sk);
   assert.equal(tokens.find(t => t.role === 'acc')?.syl,  'li',   'acc on "li" (secondary stress at pi=2)');
   assert.equal(tokens.find(t => t.role === 'ep')?.syl,   'vé',   'ep on "vé"');
   assert.equal(tokens.find(t => t.role === 'fin')?.syl,  'ho,',  'fin on "ho,"');
@@ -198,7 +200,7 @@ test('pointVerse: tone8 termG – pipe-split 5-syllable word places acc on secon
 //   acc:  ne (stressed)
 //   prep: mi (unstressed function word)
 test('pointVerse: tone8 termG – unstressed "mi" fills prep slot; acc on "ne" (nechýba)', () => {
-  const tokens = pointVerse('* mi nechýba', tone8, 'G', false, syllabifyPhrase);
+  const tokens = pointVerse('* mi nechýba', tone8, 'G', false, sk);
   assert.equal(tokens.find(t => t.role === 'acc')?.syl,  'ne',  'acc on "ne"');
   assert.equal(tokens.find(t => t.role === 'ep')?.syl,   'chý', 'ep on "chý"');
   assert.equal(tokens.find(t => t.role === 'fin')?.syl,  'ba',  'fin on "ba"');
@@ -209,7 +211,7 @@ test('pointVerse: tone8 termG – unstressed "mi" fills prep slot; acc on "ne" (
 test('pointVerse: mediant-only verse emits only mediant barline sentinel', () => {
   const tokens = pointVerse(
     'Hospodin je môj pastier * a nič mi nechýba',
-    tone8, 'G', false, syllabifyPhrase
+    tone8, 'G', false, sk
   );
 
   const flexCount    = tokens.filter(t => t.role === 'flex').length;
@@ -271,7 +273,7 @@ test('alignChunk: 2-note intonation with exactly 3 leftover positions → intona
 //   guard: 2 > 2 = false → all tenor even though isFirstVerse=true passes intonation array.
 test('pointVerse: short mediant with isFirstVerse=true → guard prevents intonation (all tenor)', () => {
   const verse = 'lebo dobrý Pán * a nič mi nechýba';
-  const tokens = pointVerse(verse, tone8, 'G', false, syllabifyPhrase, true);
+  const tokens = pointVerse(verse, tone8, 'G', false, sk, true);
   const mediantEnd = tokens.findIndex(t => t.role === 'mediant');
   const mediantPhrase = tokens.slice(0, mediantEnd);
 
@@ -286,7 +288,7 @@ test('pointVerse: short mediant with isFirstVerse=true → guard prevents intona
 // The first two tokens of the mediant get the tone8 intonation notes ("g", "h").
 test('pointVerse: long mediant with isFirstVerse=true → intonation applied on first 2 syllables', () => {
   const verse = 'Hospodin je môj pastier * a nič mi nechýba';
-  const tokens = pointVerse(verse, tone8, 'G', false, syllabifyPhrase, true);
+  const tokens = pointVerse(verse, tone8, 'G', false, sk, true);
 
   assert.equal(tokens[0].role, 'intonation', '1st syllable: intonation role');
   assert.equal(tokens[0].note, 'g',          '1st syllable: tone8 intonation note g');
@@ -348,7 +350,7 @@ test('deriveRolesFromNotes: ep note absent → ep slot skipped silently', () => 
 // Normal mediant cadence would produce fin:"j.", so the note is a direct discriminator.
 test('pointVerse: tone7 1-syllable mediant → shortMediant cadence (fin note "i.", not "j.")', () => {
   // "Pán *": single syllable before the mediant marker
-  const tokens    = pointVerse('Pán * a nič mi nechýba', tone7, 'a', false, syllabifyPhrase, false);
+  const tokens    = pointVerse('Pán * a nič mi nechýba', tone7, 'a', false, sk, false);
   const mediantEnd = tokens.findIndex(t => t.role === 'mediant');
   const phrase     = tokens.slice(0, mediantEnd);
   assert.equal(phrase.length,        1,    'exactly 1 syllable in mediant phrase');
@@ -359,7 +361,7 @@ test('pointVerse: tone7 1-syllable mediant → shortMediant cadence (fin note "i
 // 3-syllable mediant phrase → normal mediant cadence, fin note "j.".
 test('pointVerse: tone7 3-syllable mediant → normal mediant cadence (fin note "j.")', () => {
   // "Pane Boh *": Pa-ne + Boh = 3 syllables
-  const tokens    = pointVerse('Pane Boh * a nič', tone7, 'a', false, syllabifyPhrase, false);
+  const tokens    = pointVerse('Pane Boh * a nič', tone7, 'a', false, sk, false);
   const mediantEnd = tokens.findIndex(t => t.role === 'mediant');
   const phrase     = tokens.slice(0, mediantEnd);
   assert.equal(phrase.length, 3, '3 syllables in mediant phrase');

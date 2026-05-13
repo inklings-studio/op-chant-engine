@@ -8,13 +8,13 @@
  * @param {object}   toneObject    — tone schema from dominican.js
  * @param {string}   cadenceKey    — key into toneObject.terminations (ignored for single-termination tones)
  * @param {boolean}  isSolemn      — use solemn vs. mediant cadence
- * @param {function} syllabifierFn — syllabifyPhrase (or equivalent) returning [{syl, isStressed, ...}]
+ * @param {import('../common/language.js').Syllabifier} syllabifier
  * @param {boolean}  isFirstVerse  — true only for verse index 0; controls intonation assignment
  * @returns {Array<{syl: string, note: string, role: string}>}
  *   role ∈ { 'tenor', 'intonation', 'acc', 'ep', 'fin', 'prep', 'flex', 'mediant' }
  *   'flex' and 'mediant' are barline sentinels: syl is '' and note is ',' / ':' respectively.
  */
-export function pointVerse(rawVerseText, toneObject, cadenceKey, isSolemn, syllabifierFn, isFirstVerse = true) {
+export function pointVerse(rawVerseText, toneObject, cadenceKey, isSolemn, syllabifier, isFirstVerse = true) {
   const daggerIdx = rawVerseText.indexOf('†');
   const flexRaw = daggerIdx !== -1 ? rawVerseText.slice(0, daggerIdx) : '';
   const mainRaw = daggerIdx !== -1 ? rawVerseText.slice(daggerIdx + 1) : rawVerseText;
@@ -25,7 +25,7 @@ export function pointVerse(rawVerseText, toneObject, cadenceKey, isSolemn, sylla
   const termRaw = mainRaw.slice(starIdx + 1);
 
   // Compute mediant tokens first so short-form selection can check phrase length.
-  const mediantTokens = syllabifierFn(mediantRaw.trim());
+  const mediantTokens = syllabifier.syllabify(mediantRaw.trim());
   const normalSection = isSolemn ? toneObject.solemn : toneObject.mediant;
   const shortSection  = isSolemn ? toneObject.shortSolemn : toneObject.shortMediant;
   const cadenceSection = (shortSection && mediantTokens.length <= 2) ? shortSection : normalSection;
@@ -38,7 +38,7 @@ export function pointVerse(rawVerseText, toneObject, cadenceKey, isSolemn, sylla
   const result = [];
 
   if (flexRaw.trim()) {
-    const tokens = syllabifierFn(flexRaw.trim());
+    const tokens = syllabifier.syllabify(flexRaw.trim());
     result.push(...alignChunk(tokens, toneObject.flex, tenorNote, []));
     result.push({ syl: '', note: ',', role: 'flex' });
   }
@@ -46,7 +46,7 @@ export function pointVerse(rawVerseText, toneObject, cadenceKey, isSolemn, sylla
   result.push(...alignChunk(mediantTokens, cadenceSection.cadence, tenorNote, intonation));
   result.push({ syl: '', note: ':', role: 'mediant' });
 
-  const termTokens = syllabifierFn(termRaw.trim());
+  const termTokens = syllabifier.syllabify(termRaw.trim());
   result.push(...alignChunk(termTokens, termCadence, tenorNote, []));
 
   return result;

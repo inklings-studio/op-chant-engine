@@ -2,10 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseText } from '../../js/common/parser.js';
 import { parseGabc, reconstructText } from '../../js/common/gabc-parser.js';
-import { syllabifyWord, syllabifyPhrase } from '../../js/languages/sk/syllabifier.js';
+import { SlovakSyllabifier } from '../../js/languages/sk/syllabifier.js';
 import { codaPattern } from '../../js/languages/sk/index.js';
 
-const skPlugin = { codaPattern, syllabifyWord, syllabifyPhrase };
+const skPlugin = { codaPattern, syllabifier: new SlovakSyllabifier() };
 
 function freshState(overrides = {}) {
   return { stanzas: [], coda: null, strophicInheritance: false, ...overrides };

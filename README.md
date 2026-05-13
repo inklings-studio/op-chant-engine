@@ -46,25 +46,35 @@ Language support is a drop-in plugin. To add, say, Czech (`cs`):
 
 **1. Create `js/languages/cs/syllabifier.js`**
 
-Implement `syllabifyWord(word: string): string[]` and export `syllabifyPhrase` built with the shared factory:
+Extend `Syllabifier` and implement the single required method `syllabifyWord`. It must return a `WordResult`: a `hasNucleus` flag (false for consonant-only words like prepositions that attach to the next syllable) and a `syllables` array with per-syllable stress:
 
 ```js
-import { createPhraseSyllabifier } from '../../common/language.js';
+import { Syllabifier } from '../../common/language.js';
 
 const VOWELS = new Set([...'aeiouáéíóúůAEIOUÁÉÍÓÚŮ']);
 const UNSTRESSED_MONOSYLLABLES = new Set(['a', 'i', 'v', 'z', 'k', 'o', 'u', 'se', 'si']);
-const hasNucleus = word => [...word].some(c => VOWELS.has(c));
 
-export function syllabifyWord(word) {
-  // ... language-specific FSM ...
+export class CzechSyllabifier extends Syllabifier {
+  syllabifyWord(word) {
+    if (!word) return { hasNucleus: false, syllables: [] };
+
+    const syls = _split(word); // language-specific FSM returning string[]
+    const hasNucleus = [...word].some(c => VOWELS.has(c));
+
+    return {
+      hasNucleus,
+      syllables: syls.map((syl, i) => ({
+        syl,
+        isStressed: syls.length === 1
+          ? !UNSTRESSED_MONOSYLLABLES.has(word.toLowerCase())
+          : i === 0 || (syls.length >= 4 && i % 2 === 0),
+      })),
+    };
+  }
 }
-
-export const syllabifyPhrase = createPhraseSyllabifier({
-  syllabifyWord,
-  hasNucleus,
-  unstressedMonosyllables: UNSTRESSED_MONOSYLLABLES,
-});
 ```
+
+All phrase-level logic — TIE (`_`), PIPE (`|`), punctuation handling, consonant-only prefix deferral — is inherited from `Syllabifier.syllabify()`. Only the word-splitting FSM and stress rules are language-specific.
 
 **2. Create `js/languages/cs/index.js`**
 
@@ -72,14 +82,13 @@ Register the plugin and list available psalm texts:
 
 ```js
 import { registerLanguage } from '../../common/language.js';
-import { syllabifyWord, syllabifyPhrase } from './syllabifier.js';
+import { CzechSyllabifier } from './syllabifier.js';
 
 registerLanguage({
   code: 'cs',
   label: 'Czech',
   codaPattern: /^am[eé]n[.,;:!?]*$/i,
-  syllabifyWord,
-  syllabifyPhrase,
+  syllabifier: new CzechSyllabifier(),
   psalms: [
     { num: 22, label: 'Ž. 22' },
   ],
@@ -104,7 +113,16 @@ import '../languages/cs/index.js';
 
 **5. Add tests under `tests/unit/`**
 
-Follow the pattern in `tests/unit/sk-syllabifier.test.js` for syllabification edge cases.
+Follow the pattern in `tests/unit/sk-syllabifier.test.js`. Instantiate the class once and use `split()` / `syllabify()` helpers:
+
+```js
+import { CzechSyllabifier } from '../../js/languages/cs/syllabifier.js';
+
+const cs = new CzechSyllabifier();
+const split = word => cs.syllabifyWord(word).syllables.map(s => s.syl);
+
+test('syllabifyWord: Praha', () => assert.deepEqual(split('Praha'), ['Pra', 'ha']));
+```
 
 ## Tech Stack
 

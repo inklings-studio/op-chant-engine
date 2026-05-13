@@ -1,4 +1,4 @@
-import { createPhraseSyllabifier } from '../../common/language.js';
+import { Syllabifier } from '../../common/language.js';
 
 // Slovak syllabification — cursor-advance FSM.
 // Nucleus priority: diphthong (ia/ie/iu) > vowel > syllabic consonant (r/l/ŕ/ĺ).
@@ -8,7 +8,6 @@ const VOWELS = new Set([...'yaeiouáéíóúýäôYAEIOUÁÉÍÓÚÝÄÔ']);
 const SYLLABIC = new Set([...'rlŕĺRLŔĹ']);
 
 // Monosyllabic function words that never carry primary stress.
-// Checked against clean.toLowerCase() in syllabifyPhrase; apostrophe override still wins.
 const UNSTRESSED_MONOSYLLABLES = new Set([
   // conjunctions
   'a', 'i', 'aj', 'že',
@@ -45,29 +44,8 @@ function consonantUnits(str) {
 function isVowel(ch) { return VOWELS.has(ch); }
 function isSyllabic(ch) { return SYLLABIC.has(ch); }
 
-// Per-word exception dictionary for morphological boundaries and loanwords.
-const DICTIONARY = new Map();
-
-/**
- * Register a syllabification exception. Lookup is case-insensitive.
- * @param {string} word
- * @param {string[]} syllables
- */
-export function addException(word, syllables) {
-  DICTIONARY.set(word.toLowerCase(), syllables);
-}
-
-/**
- * Syllabify a single word (no spaces, no punctuation).
- * @param {string} word
- * @returns {string[]}
- */
-export function syllabifyWord(word) {
-  if (!word) return [];
-
-  const entry = DICTIONARY.get(word.toLowerCase());
-  if (entry) return entry;
-
+// Split a word into syllable strings using the FSM. Returns string[].
+function _split(word) {
   // Collect nucleus positions and their lengths.
   const nuclei = [];
   let i = 0;
@@ -91,12 +69,10 @@ export function syllabifyWord(word) {
     }
   }
 
-  if (nuclei.length === 0) return [word];
-  if (nuclei.length === 1) return [word];
+  if (nuclei.length <= 1) return [word];
 
   // Determine split points between consecutive nuclei.
   // Rule: first consonant unit = coda, remaining units = onset of next syllable.
-  // Digraphs are treated as a single indivisible unit.
   const splits = [];
   for (let n = 1; n < nuclei.length; n++) {
     const prevEnd = nuclei[n - 1].pos + nuclei[n - 1].len;
@@ -115,7 +91,6 @@ export function syllabifyWord(word) {
     }
   }
 
-  // Slice word at split points.
   const syllables = [];
   let start = 0;
   for (const split of splits) {
@@ -127,15 +102,25 @@ export function syllabifyWord(word) {
   return syllables.filter(Boolean);
 }
 
-function hasNucleus(word) {
-  for (const ch of word) {
-    if (isVowel(ch) || isSyllabic(ch)) return true;
-  }
-  return false;
-}
+export class SlovakSyllabifier extends Syllabifier {
+  /**
+   * @param {string} word
+   * @returns {import('../../common/language.js').WordResult}
+   */
+  syllabifyWord(word) {
+    if (!word) return { hasNucleus: false, syllables: [] };
 
-export const syllabifyPhrase = createPhraseSyllabifier({
-  syllabifyWord,
-  hasNucleus,
-  unstressedMonosyllables: UNSTRESSED_MONOSYLLABLES,
-});
+    const syls = _split(word);
+    const hasNucleus = [...word].some(c => VOWELS.has(c) || SYLLABIC.has(c));
+
+    return {
+      hasNucleus,
+      syllables: syls.map((syl, i) => ({
+        syl,
+        isStressed: syls.length === 1
+          ? !UNSTRESSED_MONOSYLLABLES.has(word.toLowerCase())
+          : i === 0 || (syls.length >= 4 && i % 2 === 0),
+      })),
+    };
+  }
+}
