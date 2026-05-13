@@ -1,8 +1,10 @@
-name: Deploy static content to Pages
+name: CI / Deploy
 
 on:
   push:
-    branches: ["master"]
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
   workflow_dispatch:
 
 permissions:
@@ -15,7 +17,35 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Tailwind CSS
+        run: npm run build:css
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run smoke tests
+        run: npm run test:smoke
+
   deploy:
+    needs: test
+    if: (github.ref == 'refs/heads/master') && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -44,6 +74,7 @@ jobs:
           rm -rf artifact/src
           rm -rf artifact/tests
           rm -f  artifact/playwright.config.js
+          rm -f  artifact/playwright.config.cjs
           rm -f  artifact/tailwind.config.js
           rm -f  artifact/package.json
           rm -f  artifact/package-lock.json
