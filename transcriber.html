@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -52,7 +52,8 @@
           Engine</span>
       </div>
       <a href="assets/summary-gabc-v5.pdf" class="op-gabc-summary-link"
-        onclick="event.preventDefault(); document.getElementById('gabcSummaryDialog').showModal();">Summary of GABC ↗</a>
+        onclick="event.preventDefault(); document.getElementById('gabcSummaryDialog').showModal();">Summary of GABC
+        ↗</a>
     </div>
     <!-- Center: tool navigation -->
     <nav class="flex items-center">
@@ -222,7 +223,8 @@
       <div class="flex-none border-b border-op-tan-light bg-op-cream preview-header-row">
         <span class="text-xs font-medium text-op-ink-subtle uppercase tracking-wide">Preview</span>
         <div id="previewControls" class="hidden flex items-center gap-1">
-          <button id="btnPlayFromStart" class="toolbar-btn toolbar-btn-primary-inline">▶ &lt;Space&gt; to Play</button>
+          <button id="btnPlayFromStart" class="toolbar-btn toolbar-btn-primary-inline">▶ Play <kbd
+              class="op-kbd">Space</kbd></button>
           <button id="btnHeaderPitchUp" class="toolbar-btn toolbar-btn-success">▲</button>
           <div id="headerPitchDisplay" class="toolbar-btn toolbar-btn-info toolbar-pitch-info preview-pitch-display">—
           </div>
@@ -259,18 +261,20 @@
 
   <!-- Media controls — shown during playback, fixed at bottom -->
   <div id="mediaControls" class="hidden">
-    <button id="btnPauseResume" class="mc-btn mc-btn-primary" title="Pause / Resume">⏸</button>
+    <button id="btnPauseResume" class="mc-btn mc-btn-primary" title="Pause / Resume">⏸ <kbd
+        class="op-kbd">Space</kbd></button>
     <button id="btnBpmMinus" class="mc-btn mc-btn-default" title="Slower">−</button>
     <span id="bpmDisplay">165 BPM</span>
     <button id="btnBpmPlus" class="mc-btn mc-btn-default" title="Faster">+</button>
-    <button id="btnMediaStop" class="mc-btn mc-btn-danger" title="Stop">■ &lt;Esc&gt; to Stop</button>
+    <button id="btnMediaStop" class="mc-btn mc-btn-danger" title="Stop">■ Stop <kbd class="op-kbd">Esc</kbd></button>
   </div>
 
   <!-- GABC Summary popup -->
   <dialog id="gabcSummaryDialog" onclick="if(event.target===this)this.close();">
     <div class="gabc-summary-dialog-header">
       <span class="gabc-summary-dialog-title">Summary of GABC</span>
-      <button class="gabc-summary-dialog-close" onclick="document.getElementById('gabcSummaryDialog').close();">✕ Close</button>
+      <button class="gabc-summary-dialog-close" onclick="document.getElementById('gabcSummaryDialog').close();">✕
+        Close</button>
     </div>
     <iframe src="assets/summary-gabc-v5.pdf" class="gabc-summary-dialog-iframe" title="Summary of GABC"></iframe>
   </dialog>

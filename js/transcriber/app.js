@@ -499,7 +499,7 @@ function updateBpmDisplay() {
 }
 
 function setPlayPauseIcon(playing) {
-  if (btnPauseResume) btnPauseResume.textContent = playing ? '⏸' : '▶';
+  if (btnPauseResume) btnPauseResume.innerHTML = (playing ? '⏸' : '▶') + '<kbd class="op-kbd">Space</kbd>';
 }
 
 function showMediaControls() {

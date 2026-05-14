@@ -121,7 +121,7 @@ function init() {
 // ─── Save / Auto-load ─────────────────────────────────────────────────────────
 function _psalmAutoLoadKey() {
   const psalmVal = document.getElementById('psalmSelect')?.value || '';
-  const toneVal  = document.getElementById('editorTone')?.value  || 'tone8';
+  const toneVal = document.getElementById('editorTone')?.value || 'tone8';
   return (psalmVal ? `Ps${psalmVal}` : 'custom') + `_${toneVal}`;
 }
 
@@ -472,7 +472,7 @@ function updateBpmDisplay() {
 }
 
 function setPlayPauseIcon(playing) {
-  if (btnPauseResume) btnPauseResume.textContent = playing ? '⏸' : '▶';
+  if (btnPauseResume) btnPauseResume.innerHTML = (playing ? '⏸' : '▶') + '<kbd class="op-kbd">Space</kbd>';
 }
 
 function showMediaControls() {

@@ -71,15 +71,15 @@ test('keyboard: Space plays, pauses, and resumes', async ({ page }) => {
 
   await page.keyboard.press('Space');
   await expect(page.locator('#mediaControls')).toBeVisible();
-  await expect(page.locator('#btnPauseResume')).toHaveText('⏸');
+  await expect(page.locator('#btnPauseResume')).toContainText('⏸');
 
   await page.keyboard.press('Space');
   await expect(page.locator('#mediaControls')).toBeVisible();
-  await expect(page.locator('#btnPauseResume')).toHaveText('▶');
+  await expect(page.locator('#btnPauseResume')).toContainText('▶');
 
   await page.keyboard.press('Space');
   await expect(page.locator('#mediaControls')).toBeVisible();
-  await expect(page.locator('#btnPauseResume')).toHaveText('⏸');
+  await expect(page.locator('#btnPauseResume')).toContainText('⏸');
 });
 
 test('keyboard: Space plays, Esc stops while playing', async ({ page }) => {
@@ -133,5 +133,5 @@ test('keyboard: Space after pause resumes (next Space plays, not restarts)', asy
   await page.keyboard.press('Space'); // resume — must show ⏸, not start over
 
   await expect(page.locator('#mediaControls')).toBeVisible();
-  await expect(page.locator('#btnPauseResume')).toHaveText('⏸');
+  await expect(page.locator('#btnPauseResume')).toContainText('⏸');
 });
