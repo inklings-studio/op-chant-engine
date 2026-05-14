@@ -15,7 +15,7 @@ export function generateGabc(verseAst) {
 
 /**
  * Convert a verse AST to a breviary-style HTML string for verses 2+.
- * Intonation tokens are skipped (not sung on repeating verses).
+ * Intonation tokens are skipped unless repeatIntonation is true.
  * flex → †, mediant → *, acc → wrapped in accBegin/End (flexAccBegin/End in flex phrase),
  * prep → wrapped in prepBegin/End, ep/fin → wrapped in flexBegin/End.
  * Syllables of the same word are joined without space; different words get a space.
@@ -25,9 +25,10 @@ export function generateGabc(verseAst) {
  * @param {number[]} [wordMap]
  * @param {{ prepBegin?:string, prepEnd?:string, accBegin?:string, accEnd?:string,
  *           flexAccBegin?:string, flexAccEnd?:string, flexBegin?:string, flexEnd?:string }} [wrappers]
+ * @param {boolean} [repeatIntonation]
  * @returns {string}
  */
-export function generateBreviaryHtml(verseAst, wordMap, wrappers = {}) {
+export function generateBreviaryHtml(verseAst, wordMap, wrappers = {}, repeatIntonation = false) {
     const pb = wrappers.prepBegin ?? '<i>';
     const pe = wrappers.prepEnd ?? '</i>';
     const ab = wrappers.accBegin ?? '<b>';
@@ -55,7 +56,7 @@ export function generateBreviaryHtml(verseAst, wordMap, wrappers = {}) {
             inFlexPhrase = false;
             continue;
         }
-        if (t.role === 'intonation') {
+        if (t.role === 'intonation' && !repeatIntonation) {
             sylIdx++;
             continue;
         }
@@ -85,9 +86,10 @@ export function generateBreviaryHtml(verseAst, wordMap, wrappers = {}) {
  * @param {object} state
  * @param {{ prepBegin?:string, prepEnd?:string, accBegin?:string, accEnd?:string,
  *           flexAccBegin?:string, flexAccEnd?:string, flexBegin?:string, flexEnd?:string }} [wrappers]
+ * @param {boolean} [repeatIntonation]
  * @returns {string}
  */
-export function compileBreviaryHtml(state, wrappers = {}) {
+export function compileBreviaryHtml(state, wrappers = {}, repeatIntonation = false) {
     return state.stanzas
         .slice(1)
         .map((stanza, idx) => {
@@ -95,7 +97,7 @@ export function compileBreviaryHtml(state, wrappers = {}) {
             const wordMap = stanza.wordMap;
             if (!ast) return '';
             const verseNum = idx + 2;
-            const html = generateBreviaryHtml(ast, wordMap, wrappers);
+            const html = generateBreviaryHtml(ast, wordMap, wrappers, repeatIntonation);
             return `<p class="verse-line" data-verse="${verseNum}"><span class="verse-num">${verseNum}.</span><span class="verse-text">${html}</span></p>`;
         })
         .filter(Boolean)

@@ -138,7 +138,7 @@ function _buildResult(state) {
     if (_outputMode !== 'html') return { mode: 'gabc', gabcFull };
     const gabc1 = compileGabc1(state);
     const wrappers = _getWrappers();
-    const versesHtml = compileBreviaryHtml(state, wrappers);
+    const versesHtml = compileBreviaryHtml(state, wrappers, _repeatIntonation);
     return { mode: 'html', gabcFull, gabc1, versesHtml };
 }
 
