@@ -344,6 +344,50 @@ test('deriveRolesFromNotes: ep note absent → ep slot skipped silently', () => 
   assert.equal(roles[2], 'fin',     'fin on last syllable');
 });
 
+// ── Multi-line verse: extra * in termination stripped ────────────────────────
+//
+// Psalm texts from breviar.sk mark each display line with its own * mediant
+// marker. _groupVerses folds two consecutive display lines into one raw verse
+// string, producing text like:
+//   "first half * second half\ncontinuation * rest of verse."
+// pointVerse splits on the FIRST *, so the second * ends up in termRaw.
+// Before the fix the Syllabifier saw * as a standalone non-letter token, treated
+// both leadPunct and trailPunct as '*', and prepended '** ' to the next word —
+// causing '****' to appear in the marked textarea and in the rendered score.
+
+test('pointVerse: extra * in term section is stripped — no * in any syllable syl', () => {
+  // Simulates a two-line grouped verse (both lines carry their own * marker).
+  const twoLinePsalmVerse =
+    'Zmiluj sa, Bože, nado mnou * pre svoje milosrdenstvo\n' +
+    'a pre svoje veľké zľutovanie * znič moju neprávosť.';
+  const tokens = pointVerse(twoLinePsalmVerse, tone8, 'G', false, sk);
+  const syllables = tokens.filter(t => t.syl !== '').map(t => t.syl);
+  assert.ok(
+    syllables.every(s => !s.includes('*')),
+    `no syllable should contain "*"; got: ${syllables.filter(s => s.includes('*')).join(', ')}`,
+  );
+});
+
+test('pointVerse: multi-line grouped verse still emits exactly one mediant sentinel', () => {
+  const twoLinePsalmVerse =
+    'Zmiluj sa, Bože, nado mnou * pre svoje milosrdenstvo\n' +
+    'a pre svoje veľké zľutovanie * znič moju neprávosť.';
+  const tokens = pointVerse(twoLinePsalmVerse, tone8, 'G', false, sk);
+  const mediantCount = tokens.filter(t => t.role === 'mediant').length;
+  assert.equal(mediantCount, 1, 'exactly one mediant sentinel even with two * in source');
+});
+
+test('pointVerse: term section of multi-line verse contains expected words (znič, moju, neprávosť)', () => {
+  const twoLinePsalmVerse =
+    'Zmiluj sa, Bože, nado mnou * pre svoje milosrdenstvo\n' +
+    'a pre svoje veľké zľutovanie * znič moju neprávosť.';
+  const tokens = pointVerse(twoLinePsalmVerse, tone8, 'G', false, sk);
+  const mediantIdx = tokens.findIndex(t => t.role === 'mediant');
+  const termSyls = tokens.slice(mediantIdx + 1).map(t => t.syl).join(' ');
+  assert.ok(termSyls.includes('znič'), `term section should contain "znič"; got: ${termSyls}`);
+  assert.ok(termSyls.includes('nep'), `term section should contain "nep" (from neprávosť); got: ${termSyls}`);
+});
+
 // ── Tone 7 short-form selection ───────────────────────────────────────────────
 
 // 1-syllable mediant phrase → shortMediant cadence [{fin:"i."}] chosen.

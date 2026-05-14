@@ -22,7 +22,9 @@ export function pointVerse(rawVerseText, toneObject, cadenceKey, isSolemn, sylla
   const starIdx = mainRaw.indexOf('*');
   if (starIdx === -1) throw new Error('pointVerse: verse is missing the * mediant marker');
   const mediantRaw = mainRaw.slice(0, starIdx);
-  const termRaw = mainRaw.slice(starIdx + 1);
+  // Strip any extra * or † that may appear when a multi-line verse is grouped into one
+  // raw string (each display line carries its own mediant marker in the source text).
+  const termRaw = mainRaw.slice(starIdx + 1).replace(/[*†]/g, ' ').replace(/\s+/g, ' ');
 
   // Compute mediant tokens first so short-form selection can check phrase length.
   const mediantTokens = syllabifier.syllabify(mediantRaw.trim());
