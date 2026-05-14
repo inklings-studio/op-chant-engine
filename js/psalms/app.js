@@ -445,9 +445,16 @@ function _updateHeaderPitchDisplay() {
         headerPitchDisplay.innerHTML = '—';
         return;
     }
-    const { firstPitched, transpose } = d;
+    const { firstPitched, transpose, low, high } = d;
     const OFF = EXSURGE_TO_TONES_OFFSET;
-    headerPitchDisplay.innerHTML = formatPitch(firstPitched.pitch.toInt() + transpose + OFF);
+    headerPitchDisplay.innerHTML =
+        'Pitch: ' +
+        formatPitch(firstPitched.pitch.toInt() + transpose + OFF) +
+        '<span class="hidden md:inline">&ensp;·&ensp;Range: ' +
+        formatPitch(low + transpose + OFF) +
+        ' to ' +
+        formatPitch(high + transpose + OFF) +
+        '</span>';
 }
 
 function startPlayback(startNote) {
