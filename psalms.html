@@ -1,294 +1,503 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="sk">
-
-<head>
-  <meta charset="UTF-8" />
-  <!--
+    <head>
+        <meta charset="UTF-8" />
+        <!--
     IMPORTANT: Open via HTTP server, NOT file://.
     Exsurge uses Canvas for text measurement; Web Audio requires a real origin.
     Run: http-server -a localhost -p 8080 --no-cache
     Then open: http://localhost:8080/psalms.html
   -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OP Psalm Tone Tool</title>
-  <link rel="icon" href="assets/clear-main.png" type="image/png" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>OP Psalm Tone Tool</title>
+        <link rel="icon" href="assets/clear-main.png" type="image/png" />
 
-  <link rel="stylesheet" href="css/output.css" />
-  <link rel="stylesheet" href="css/shared.css" />
-  <link rel="stylesheet" href="css/psalms.css" />
+        <link rel="stylesheet" href="css/output.css" />
+        <link rel="stylesheet" href="css/shared.css" />
+        <link rel="stylesheet" href="css/psalms.css" />
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Text:ital,wght@0,400;0,700;1,400;1,700&display=swap"
-    rel="stylesheet" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Text:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+            rel="stylesheet"
+        />
 
-  <!--
+        <!--
     Global libraries must load as classic scripts before the ES6 module.
     Order: Tone → tones (audio) → exsurge (rendering) → saveSvgAsPng (export)
   -->
-  <script src="js/Tone.min.js"></script>
-  <script src="js/tones.js"></script>
-  <script src="js/exsurge.min.js"></script>
-  <script src="js/saveSvgAsPng.js"></script>
-</head>
+        <script src="js/Tone.min.js"></script>
+        <script src="js/tones.js"></script>
+        <script src="js/exsurge.min.js"></script>
+        <script src="js/saveSvgAsPng.js"></script>
+    </head>
 
-<body class="h-screen flex flex-col bg-op-parchment text-op-ink overflow-hidden">
-
-  <!-- TOOLBAR -->
-  <header class="flex-none grid items-center px-4 py-2 border-b border-op-burgundy-deeper bg-op-burgundy-dark"
-    style="grid-template-columns:1fr auto 1fr;">
-    <!-- Left: branding -->
-    <div class="flex items-center gap-2.5">
-      <img src="assets/op-logo.png" alt="O.P." class="h-6 w-auto"
-        style="filter:brightness(0) invert(1); opacity:0.88; max-width:88px; object-fit:contain; object-position:left center;" />
-      <div class="flex items-center gap-2">
-        <span class="text-[11px] tracking-[0.18em] uppercase font-light text-op-gold-light"
-          style="font-family:'Cinzel',serif;">Ordo Praedicatorum</span>
-        <span class="text-op-gold select-none">·</span>
-        <span class="text-[13px] font-semibold text-op-parchment" style="font-family:'Cinzel',serif;">Chant
-          Engine</span>
-      </div>
-      <a href="assets/summary-gabc-v5.pdf" class="op-gabc-summary-link"
-        onclick="event.preventDefault(); document.getElementById('gabcSummaryDialog').showModal();">Summary of GABC
-        ↗</a>
-    </div>
-    <!-- Center: tool navigation -->
-    <nav class="flex items-center">
-      <a href="transcriber.html" class="op-tool-nav-link">GABC Transcriber</a>
-      <a href="psalms.html" class="op-tool-nav-link active">Psalm Tone Tool</a>
-    </nav>
-    <!-- Right: export buttons -->
-    <div class="flex items-center gap-2 justify-end">
-      <a href="https://github.com/dedocibula/op-chant-engine/issues" target="_blank" rel="noopener"
-        class="op-export-btn" style="text-decoration:none;">Bug / Feature ↗</a>
-      <button id="btnDownloadPng" class="op-export-btn">PNG</button>
-      <button id="btnDownloadSvg" class="op-export-btn">SVG</button>
-    </div>
-  </header>
-
-  <!-- TWO-PANE LAYOUT -->
-  <main class="flex-1 flex overflow-hidden">
-
-    <!-- Editor pane -->
-    <section class="w-2/5 flex flex-col border-r border-op-tan-light min-w-0">
-
-      <!-- Tab bar -->
-      <div class="flex-none border-b border-op-tan-light bg-op-cream"
-        style="display:grid; grid-template-columns:1fr auto;">
-        <div class="flex">
-          <button id="tabEditorBtn"
-            class="tab-btn tab-btn-active px-4 py-2 text-xs font-medium border-b-2 border-op-gold text-op-ink">
-            Editor
-          </button>
-          <button id="tabGabcBtn"
-            class="tab-btn px-4 py-2 text-xs font-medium border-b-2 border-transparent text-op-ink-subtle hover:text-op-ink">
-            GABC
-          </button>
-        </div>
-        <div class="flex items-center gap-1 px-2">
-          <button id="btnSave" class="op-tab-action-btn">Save</button>
-        </div>
-      </div>
-
-      <!-- Tab 1: Structured editor -->
-      <div id="editorTab" class="flex-1 flex flex-col overflow-y-auto p-3 min-w-0">
-
-        <!-- Controls row 1: Language/Psalm/Annotation (left) | Tone/Termination/Solemn (right) -->
-        <div class="pb-3 mb-0 border-b border-op-tan-light flex items-start w-full">
-          <!-- Left grid: Language, Psalm, Annotation -->
-          <div style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center;">
-            <span class="text-xs text-op-ink-light text-right">Language</span>
-            <select id="editorLang"
-              class="border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold">
-              <!-- options populated by editor.js from language registry -->
-            </select>
-            <span id="psalmSelectLabel" class="text-xs text-op-ink-light text-right hidden">Psalm</span>
-            <select id="psalmSelect"
-              class="hidden border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold">
-              <option value="">— select —</option>
-              <!-- options populated by editor.js from language plugin -->
-            </select>
-            <span class="text-xs text-op-ink-light text-right">Annotation</span>
-            <input type="text" id="editorAnnotation" spellcheck="false"
-              class="border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
-              placeholder="e.g. Ps." style="width:90px;" />
-          </div>
-          <!-- Right grid: Tone, Termination, Solemn — pushed to far right -->
-          <div
-            style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center; margin-left:auto;">
-            <span class="text-xs text-op-ink-light text-right">Tone</span>
-            <select id="editorTone"
-              class="border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold">
-              <!-- options populated by editor.js -->
-            </select>
-            <span class="text-xs text-op-ink-light text-right">Termination</span>
-            <select id="editorTerm"
-              class="border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold">
-              <!-- options populated by editor.js on tone change -->
-            </select>
-            <label class="text-xs text-op-ink-light cursor-pointer select-none text-right"
-              for="editorSolemn">Solemn</label>
-            <input type="checkbox" id="editorSolemn" class="accent-op-burgundy">
-          </div>
-        </div>
-
-        <!-- Controls row 2: Output selector + conditional options -->
-        <div class="py-2 mb-3 border-b border-op-tan-light flex items-start w-full">
-          <!-- Left area: Output buttons + mode-specific controls -->
-          <div>
-            <div style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center;">
-              <span class="text-xs text-op-ink-light text-right">Output</span>
-              <div class="flex gap-1">
-                <button id="btnOutputGabc" class="output-mode-btn output-mode-btn-selected">GABC</button>
-                <button id="btnOutputHtml" class="output-mode-btn">HTML</button>
-              </div>
+    <body class="h-screen flex flex-col bg-op-parchment text-op-ink overflow-hidden">
+        <!-- TOOLBAR -->
+        <header
+            class="flex-none grid items-center px-4 py-2 border-b border-op-burgundy-deeper bg-op-burgundy-dark"
+            style="grid-template-columns: 1fr auto 1fr"
+        >
+            <!-- Left: branding -->
+            <div class="flex items-center gap-2.5">
+                <img
+                    src="assets/op-logo.png"
+                    alt="O.P."
+                    class="h-6 w-auto"
+                    style="
+                        filter: brightness(0) invert(1);
+                        opacity: 0.88;
+                        max-width: 88px;
+                        object-fit: contain;
+                        object-position: left center;
+                    "
+                />
+                <div class="flex items-center gap-2">
+                    <span
+                        class="text-[11px] tracking-[0.18em] uppercase font-light text-op-gold-light"
+                        style="font-family: 'Cinzel', serif"
+                        >Ordo Praedicatorum</span
+                    >
+                    <span class="text-op-gold select-none">·</span>
+                    <span
+                        class="text-[13px] font-semibold text-op-parchment"
+                        style="font-family: 'Cinzel', serif"
+                        >Chant Engine</span
+                    >
+                </div>
+                <a
+                    href="assets/summary-gabc-v5.pdf"
+                    class="op-gabc-summary-link"
+                    onclick="
+                        event.preventDefault();
+                        document.getElementById('gabcSummaryDialog').showModal();
+                    "
+                    >Summary of GABC ↗</a
+                >
             </div>
-            <!-- GABC mode: Large Initial checkbox -->
-            <div id="editorGabcOptions"
-              style="display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center; margin-top:5px;">
-              <label class="text-xs text-op-ink-light cursor-pointer select-none text-right"
-                for="editorLargeInitial">Large Initial</label>
-              <input type="checkbox" id="editorLargeInitial" class="accent-op-burgundy" checked>
-              <label class="text-xs text-op-ink-light cursor-pointer select-none text-right"
-                for="editorRepeatIntonation">Repeat Intonation</label>
-              <input type="checkbox" id="editorRepeatIntonation" class="accent-op-burgundy">
+            <!-- Center: tool navigation -->
+            <nav class="flex items-center">
+                <a href="transcriber.html" class="op-tool-nav-link">GABC Transcriber</a>
+                <a href="psalms.html" class="op-tool-nav-link active">Psalm Tone Tool</a>
+            </nav>
+            <!-- Right: export buttons -->
+            <div class="flex items-center gap-2 justify-end">
+                <a
+                    href="https://github.com/dedocibula/op-chant-engine/issues"
+                    target="_blank"
+                    rel="noopener"
+                    class="op-export-btn"
+                    style="text-decoration: none"
+                    >Bug / Feature ↗</a
+                >
+                <button id="btnDownloadPng" class="op-export-btn">PNG</button>
+                <button id="btnDownloadSvg" class="op-export-btn">SVG</button>
             </div>
-            <!-- HTML mode: Prep begin + Acc begin + Flex Acc begin + Flex begin (left column) -->
-            <div id="editorHtmlLeft"
-              style="display:none; grid-template-columns:auto auto; gap:4px 8px; align-items:center; margin-top:5px;">
-              <span class="text-xs text-op-ink-subtle text-right whitespace-nowrap">Prep begin</span>
-              <input type="text" id="editorPrepBegin" value="&lt;i&gt;"
-                class="border border-op-tan rounded px-1 py-0.5 text-xs font-mono text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
-                style="width:52px;">
-              <span class="text-xs text-op-ink-subtle text-right whitespace-nowrap">Acc begin</span>
-              <input type="text" id="editorAccBegin" value="&lt;b&gt;"
-                class="border border-op-tan rounded px-1 py-0.5 text-xs font-mono text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
-                style="width:52px;">
-              <span class="text-xs text-op-ink-subtle text-right whitespace-nowrap">Flex Acc begin</span>
-              <input type="text" id="editorFlexAccBegin" value=""
-                class="border border-op-tan rounded px-1 py-0.5 text-xs font-mono text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
-                style="width:52px;">
-              <span class="text-xs text-op-ink-subtle text-right whitespace-nowrap">Flex begin</span>
-              <input type="text" id="editorFlexBegin" value="&lt;i&gt;"
-                class="border border-op-tan rounded px-1 py-0.5 text-xs font-mono text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
-                style="width:52px;">
-            </div>
-          </div>
-          <!-- Right area: HTML mode Prep end + Acc end + Flex Acc end + Flex end — aligned to right column above -->
-          <div id="editorHtmlRight"
-            style="display:none; grid-template-columns:auto auto; gap:4px 8px; align-items:center; margin-left:auto; align-self:flex-end;">
-            <span class="text-xs text-op-ink-subtle text-right whitespace-nowrap">Prep end</span>
-            <input type="text" id="editorPrepEnd" value="&lt;/i&gt;"
-              class="border border-op-tan rounded px-1 py-0.5 text-xs font-mono text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
-              style="width:52px;">
-            <span class="text-xs text-op-ink-subtle text-right whitespace-nowrap">Acc end</span>
-            <input type="text" id="editorAccEnd" value="&lt;/b&gt;"
-              class="border border-op-tan rounded px-1 py-0.5 text-xs font-mono text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
-              style="width:52px;">
-            <span class="text-xs text-op-ink-subtle text-right whitespace-nowrap">Flex Acc end</span>
-            <input type="text" id="editorFlexAccEnd" value=""
-              class="border border-op-tan rounded px-1 py-0.5 text-xs font-mono text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
-              style="width:52px;">
-            <span class="text-xs text-op-ink-subtle text-right whitespace-nowrap">Flex end</span>
-            <input type="text" id="editorFlexEnd" value="&lt;/i&gt;"
-              class="border border-op-tan rounded px-1 py-0.5 text-xs font-mono text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
-              style="width:52px;">
-          </div>
-        </div>
+        </header>
 
-        <!-- Edit text toggle — revealed after first Build; sits between textarea and stanzas -->
-        <button id="editorEditToggle"
-          class="hidden mb-2 px-2 py-0.5 text-xs text-op-burgundy border border-op-tan rounded hover:bg-op-cream">
-          Edit text
-        </button>
+        <!-- TWO-PANE LAYOUT -->
+        <main class="flex-1 flex overflow-hidden">
+            <!-- Editor pane -->
+            <section class="w-2/5 flex flex-col border-r border-op-tan-light min-w-0">
+                <!-- Tab bar -->
+                <div
+                    class="flex-none border-b border-op-tan-light bg-op-cream"
+                    style="display: grid; grid-template-columns: 1fr auto"
+                >
+                    <div class="flex">
+                        <button
+                            id="tabEditorBtn"
+                            class="tab-btn tab-btn-active px-4 py-2 text-xs font-medium border-b-2 border-op-gold text-op-ink"
+                        >
+                            Editor
+                        </button>
+                        <button
+                            id="tabGabcBtn"
+                            class="tab-btn px-4 py-2 text-xs font-medium border-b-2 border-transparent text-op-ink-subtle hover:text-op-ink"
+                        >
+                            GABC
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-1 px-2">
+                        <button id="btnSave" class="op-tab-action-btn">Save</button>
+                    </div>
+                </div>
 
-        <!-- Raw text input + Build — hidden after first Build -->
-        <div id="editorTextInputArea" class="flex-1 flex gap-2 mb-2">
-          <textarea id="editorRawText" spellcheck="false"
-            class="flex-1 min-h-24 resize-y border border-op-tan rounded px-2 py-1.5 text-xs font-mono leading-relaxed bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
-            placeholder="Paste psalm verses here… (one verse per line, * for mediant, † for flex)"></textarea>
-          <div class="self-stretch flex flex-col justify-end gap-1">
-            <button id="editorBuildBtn"
-              class="px-3 py-2.5 bg-op-burgundy text-white text-xs font-medium rounded hover:bg-op-burgundy-dark active:bg-op-burgundy-deeper">
-              Build
+                <!-- Tab 1: Structured editor -->
+                <div id="editorTab" class="flex-1 flex flex-col overflow-y-auto p-3 min-w-0">
+                    <!-- Controls row 1: Language/Psalm/Annotation (left) | Tone/Termination/Solemn (right) -->
+                    <div class="pb-3 mb-0 border-b border-op-tan-light flex items-start w-full">
+                        <!-- Left grid: Language, Psalm, Annotation -->
+                        <div
+                            style="
+                                display: grid;
+                                grid-template-columns: auto auto;
+                                gap: 6px 8px;
+                                align-items: center;
+                            "
+                        >
+                            <span class="text-xs text-op-ink-light text-right">Language</span>
+                            <select
+                                id="editorLang"
+                                class="border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
+                            >
+                                <!-- options populated by editor.js from language registry -->
+                            </select>
+                            <span
+                                id="psalmSelectLabel"
+                                class="text-xs text-op-ink-light text-right hidden"
+                                >Psalm</span
+                            >
+                            <select
+                                id="psalmSelect"
+                                class="hidden border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
+                            >
+                                <option value="">— select —</option>
+                                <!-- options populated by editor.js from language plugin -->
+                            </select>
+                            <span class="text-xs text-op-ink-light text-right">Annotation</span>
+                            <input
+                                type="text"
+                                id="editorAnnotation"
+                                spellcheck="false"
+                                class="border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
+                                placeholder="e.g. Ps."
+                                style="width: 90px"
+                            />
+                        </div>
+                        <!-- Right grid: Tone, Termination, Solemn — pushed to far right -->
+                        <div
+                            style="
+                                display: grid;
+                                grid-template-columns: auto auto;
+                                gap: 6px 8px;
+                                align-items: center;
+                                margin-left: auto;
+                            "
+                        >
+                            <span class="text-xs text-op-ink-light text-right">Tone</span>
+                            <select
+                                id="editorTone"
+                                class="border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
+                            >
+                                <!-- options populated by editor.js -->
+                            </select>
+                            <span class="text-xs text-op-ink-light text-right">Termination</span>
+                            <select
+                                id="editorTerm"
+                                class="border border-op-tan rounded px-2 py-1 text-xs text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
+                            >
+                                <!-- options populated by editor.js on tone change -->
+                            </select>
+                            <label
+                                class="text-xs text-op-ink-light cursor-pointer select-none text-right"
+                                for="editorSolemn"
+                                >Solemn</label
+                            >
+                            <input type="checkbox" id="editorSolemn" class="accent-op-burgundy" />
+                        </div>
+                    </div>
+
+                    <!-- Controls row 2: Output selector + conditional options -->
+                    <div class="py-2 mb-3 border-b border-op-tan-light flex items-start w-full">
+                        <!-- Left area: Output buttons + mode-specific controls -->
+                        <div>
+                            <div
+                                style="
+                                    display: grid;
+                                    grid-template-columns: auto auto;
+                                    gap: 6px 8px;
+                                    align-items: center;
+                                "
+                            >
+                                <span class="text-xs text-op-ink-light text-right">Output</span>
+                                <div class="flex gap-1">
+                                    <button
+                                        id="btnOutputGabc"
+                                        class="output-mode-btn output-mode-btn-selected"
+                                    >
+                                        GABC
+                                    </button>
+                                    <button id="btnOutputHtml" class="output-mode-btn">HTML</button>
+                                </div>
+                            </div>
+                            <!-- GABC mode: Large Initial checkbox -->
+                            <div
+                                id="editorGabcOptions"
+                                style="
+                                    display: grid;
+                                    grid-template-columns: auto auto;
+                                    gap: 6px 8px;
+                                    align-items: center;
+                                    margin-top: 5px;
+                                "
+                            >
+                                <label
+                                    class="text-xs text-op-ink-light cursor-pointer select-none text-right"
+                                    for="editorLargeInitial"
+                                    >Large Initial</label
+                                >
+                                <input
+                                    type="checkbox"
+                                    id="editorLargeInitial"
+                                    class="accent-op-burgundy"
+                                    checked
+                                />
+                                <label
+                                    class="text-xs text-op-ink-light cursor-pointer select-none text-right"
+                                    for="editorRepeatIntonation"
+                                    >Repeat Intonation</label
+                                >
+                                <input
+                                    type="checkbox"
+                                    id="editorRepeatIntonation"
+                                    class="accent-op-burgundy"
+                                />
+                            </div>
+                            <!-- HTML mode: Prep begin + Acc begin + Flex Acc begin + Flex begin (left column) -->
+                            <div
+                                id="editorHtmlLeft"
+                                style="
+                                    display: none;
+                                    grid-template-columns: auto auto;
+                                    gap: 4px 8px;
+                                    align-items: center;
+                                    margin-top: 5px;
+                                "
+                            >
+                                <span
+                                    class="text-xs text-op-ink-subtle text-right whitespace-nowrap"
+                                    >Prep begin</span
+                                >
+                                <input
+                                    type="text"
+                                    id="editorPrepBegin"
+                                    value="&lt;i&gt;"
+                                    class="border border-op-tan rounded px-1 py-0.5 text-xs font-mono text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
+                                    style="width: 52px"
+                                />
+                                <span
+                                    class="text-xs text-op-ink-subtle text-right whitespace-nowrap"
+                                    >Acc begin</span
+                                >
+                                <input
+                                    type="text"
+                                    id="editorAccBegin"
+                                    value="&lt;b&gt;"
+                                    class="border border-op-tan rounded px-1 py-0.5 text-xs font-mono text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
+                                    style="width: 52px"
+                                />
+                                <span
+                                    class="text-xs text-op-ink-subtle text-right whitespace-nowrap"
+                                    >Flex Acc begin</span
+                                >
+                                <input
+                                    type="text"
+                                    id="editorFlexAccBegin"
+                                    value=""
+                                    class="border border-op-tan rounded px-1 py-0.5 text-xs font-mono text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
+                                    style="width: 52px"
+                                />
+                                <span
+                                    class="text-xs text-op-ink-subtle text-right whitespace-nowrap"
+                                    >Flex begin</span
+                                >
+                                <input
+                                    type="text"
+                                    id="editorFlexBegin"
+                                    value="&lt;i&gt;"
+                                    class="border border-op-tan rounded px-1 py-0.5 text-xs font-mono text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
+                                    style="width: 52px"
+                                />
+                            </div>
+                        </div>
+                        <!-- Right area: HTML mode Prep end + Acc end + Flex Acc end + Flex end — aligned to right column above -->
+                        <div
+                            id="editorHtmlRight"
+                            style="
+                                display: none;
+                                grid-template-columns: auto auto;
+                                gap: 4px 8px;
+                                align-items: center;
+                                margin-left: auto;
+                                align-self: flex-end;
+                            "
+                        >
+                            <span class="text-xs text-op-ink-subtle text-right whitespace-nowrap"
+                                >Prep end</span
+                            >
+                            <input
+                                type="text"
+                                id="editorPrepEnd"
+                                value="&lt;/i&gt;"
+                                class="border border-op-tan rounded px-1 py-0.5 text-xs font-mono text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
+                                style="width: 52px"
+                            />
+                            <span class="text-xs text-op-ink-subtle text-right whitespace-nowrap"
+                                >Acc end</span
+                            >
+                            <input
+                                type="text"
+                                id="editorAccEnd"
+                                value="&lt;/b&gt;"
+                                class="border border-op-tan rounded px-1 py-0.5 text-xs font-mono text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
+                                style="width: 52px"
+                            />
+                            <span class="text-xs text-op-ink-subtle text-right whitespace-nowrap"
+                                >Flex Acc end</span
+                            >
+                            <input
+                                type="text"
+                                id="editorFlexAccEnd"
+                                value=""
+                                class="border border-op-tan rounded px-1 py-0.5 text-xs font-mono text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
+                                style="width: 52px"
+                            />
+                            <span class="text-xs text-op-ink-subtle text-right whitespace-nowrap"
+                                >Flex end</span
+                            >
+                            <input
+                                type="text"
+                                id="editorFlexEnd"
+                                value="&lt;/i&gt;"
+                                class="border border-op-tan rounded px-1 py-0.5 text-xs font-mono text-op-ink-muted bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
+                                style="width: 52px"
+                            />
+                        </div>
+                    </div>
+
+                    <!-- Edit text toggle — revealed after first Build; sits between textarea and stanzas -->
+                    <button
+                        id="editorEditToggle"
+                        class="hidden mb-2 px-2 py-0.5 text-xs text-op-burgundy border border-op-tan rounded hover:bg-op-cream"
+                    >
+                        Edit text
+                    </button>
+
+                    <!-- Raw text input + Build — hidden after first Build -->
+                    <div id="editorTextInputArea" class="flex-1 flex gap-2 mb-2">
+                        <textarea
+                            id="editorRawText"
+                            spellcheck="false"
+                            class="flex-1 min-h-24 resize-y border border-op-tan rounded px-2 py-1.5 text-xs font-mono leading-relaxed bg-op-input-bg focus:outline-none focus:ring-1 focus:ring-op-gold"
+                            placeholder="Paste psalm verses here… (one verse per line, * for mediant, † for flex)"
+                        ></textarea>
+                        <div class="self-stretch flex flex-col justify-end gap-1">
+                            <button
+                                id="editorBuildBtn"
+                                class="px-3 py-2.5 bg-op-burgundy text-white text-xs font-medium rounded hover:bg-op-burgundy-dark active:bg-op-burgundy-deeper"
+                            >
+                                Build
+                            </button>
+                            <button
+                                id="editorRebuildBtn"
+                                class="hidden px-3 py-2 bg-op-amber-dark text-white text-xs font-medium rounded hover:bg-op-amber-darker active:bg-op-amber-deepest"
+                                title="Re-syllabify new text while keeping existing melody edits"
+                            >
+                                Re-Build
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic verse rows injected here by editor.js -->
+                    <div id="editorStanzas" class="hidden"></div>
+                </div>
+
+                <!-- Tab 2: Generated GABC (read-only) -->
+                <div id="gabcTab" class="hidden flex-1 flex flex-col min-w-0">
+                    <textarea
+                        id="gabcEditor"
+                        readonly
+                        spellcheck="false"
+                        autocorrect="off"
+                        autocapitalize="none"
+                        class="flex-1 resize-none p-3 font-mono text-sm leading-relaxed text-op-ink-muted bg-op-cream focus:outline-none focus:ring-1 focus:ring-inset focus:ring-op-gold"
+                        placeholder="Generated GABC will appear here after Build…"
+                    ></textarea>
+                </div>
+            </section>
+
+            <!-- Preview pane -->
+            <section class="flex-1 flex flex-col min-w-0">
+                <div class="flex-none border-b border-op-tan-light bg-op-cream preview-header-row">
+                    <span class="text-xs font-medium text-op-ink-subtle uppercase tracking-wide"
+                        >Preview</span
+                    >
+                    <div id="previewControls" class="hidden flex items-center gap-1">
+                        <button
+                            id="btnPlayFromStart"
+                            class="toolbar-btn toolbar-btn-primary-inline"
+                        >
+                            ▶ Play <kbd class="op-kbd">Space</kbd>
+                        </button>
+                        <button id="btnHeaderPitchUp" class="toolbar-btn toolbar-btn-success">
+                            ▲
+                        </button>
+                        <div
+                            id="headerPitchDisplay"
+                            class="toolbar-btn toolbar-btn-info toolbar-pitch-info preview-pitch-display"
+                        >
+                            —
+                        </div>
+                        <button id="btnHeaderPitchDown" class="toolbar-btn toolbar-btn-success">
+                            ▼
+                        </button>
+                    </div>
+                    <div></div>
+                </div>
+                <!-- Shared scroll container for GABC SVG + HTML verses -->
+                <div class="flex-1 overflow-y-auto">
+                    <div id="chantPreview" class="p-4">
+                        <p
+                            id="previewPlaceholder"
+                            class="text-sm text-op-ink-faint italic mt-8 text-center"
+                        >
+                            Enter psalm verses and click Build to see a preview.
+                        </p>
+                    </div>
+                    <div id="versesPreview" class="hidden px-4 pb-6"></div>
+                </div>
+            </section>
+        </main>
+
+        <!-- STATUS BAR -->
+        <footer class="flex-none px-4 py-1 border-t border-op-tan-light bg-op-cream">
+            <p id="statusMessage" class="text-xs text-op-ink-faint"></p>
+        </footer>
+
+        <!-- Media controls — shown during playback, fixed at bottom -->
+        <div id="mediaControls" class="hidden">
+            <button id="btnPauseResume" class="mc-btn mc-btn-primary" title="Pause / Resume">
+                ⏸ <kbd class="op-kbd">Space</kbd>
             </button>
-            <button id="editorRebuildBtn"
-              class="hidden px-3 py-2 bg-op-amber-dark text-white text-xs font-medium rounded hover:bg-op-amber-darker active:bg-op-amber-deepest"
-              title="Re-syllabify new text while keeping existing melody edits">
-              Re-Build
+            <button id="btnBpmMinus" class="mc-btn mc-btn-default" title="Slower">−</button>
+            <span id="bpmDisplay">165 BPM</span>
+            <button id="btnBpmPlus" class="mc-btn mc-btn-default" title="Faster">+</button>
+            <button id="btnMediaStop" class="mc-btn mc-btn-danger" title="Stop">
+                ■ Stop <kbd class="op-kbd">Esc</kbd>
             </button>
-          </div>
         </div>
 
-        <!-- Dynamic verse rows injected here by editor.js -->
-        <div id="editorStanzas" class="hidden"></div>
+        <!-- GABC Summary popup -->
+        <dialog id="gabcSummaryDialog" onclick="if (event.target === this) this.close();">
+            <div class="gabc-summary-dialog-header">
+                <span class="gabc-summary-dialog-title">Summary of GABC</span>
+                <button
+                    class="gabc-summary-dialog-close"
+                    onclick="document.getElementById('gabcSummaryDialog').close()"
+                >
+                    ✕ Close
+                </button>
+            </div>
+            <iframe
+                src="assets/summary-gabc-v5.pdf"
+                class="gabc-summary-dialog-iframe"
+                title="Summary of GABC"
+            ></iframe>
+        </dialog>
 
-      </div>
-
-      <!-- Tab 2: Generated GABC (read-only) -->
-      <div id="gabcTab" class="hidden flex-1 flex flex-col min-w-0">
-        <textarea id="gabcEditor" readonly spellcheck="false" autocorrect="off" autocapitalize="none"
-          class="flex-1 resize-none p-3 font-mono text-sm leading-relaxed text-op-ink-muted bg-op-cream focus:outline-none focus:ring-1 focus:ring-inset focus:ring-op-gold"
-          placeholder="Generated GABC will appear here after Build…"></textarea>
-      </div>
-
-    </section>
-
-    <!-- Preview pane -->
-    <section class="flex-1 flex flex-col min-w-0">
-      <div class="flex-none border-b border-op-tan-light bg-op-cream preview-header-row">
-        <span class="text-xs font-medium text-op-ink-subtle uppercase tracking-wide">Preview</span>
-        <div id="previewControls" class="hidden flex items-center gap-1">
-          <button id="btnPlayFromStart" class="toolbar-btn toolbar-btn-primary-inline">▶ Play <kbd
-              class="op-kbd">Space</kbd></button>
-          <button id="btnHeaderPitchUp" class="toolbar-btn toolbar-btn-success">▲</button>
-          <div id="headerPitchDisplay" class="toolbar-btn toolbar-btn-info toolbar-pitch-info preview-pitch-display">—
-          </div>
-          <button id="btnHeaderPitchDown" class="toolbar-btn toolbar-btn-success">▼</button>
-        </div>
-        <div></div>
-      </div>
-      <!-- Shared scroll container for GABC SVG + HTML verses -->
-      <div class="flex-1 overflow-y-auto">
-        <div id="chantPreview" class="p-4">
-          <p id="previewPlaceholder" class="text-sm text-op-ink-faint italic mt-8 text-center">
-            Enter psalm verses and click Build to see a preview.
-          </p>
-        </div>
-        <div id="versesPreview" class="hidden px-4 pb-6"></div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- STATUS BAR -->
-  <footer class="flex-none px-4 py-1 border-t border-op-tan-light bg-op-cream">
-    <p id="statusMessage" class="text-xs text-op-ink-faint"></p>
-  </footer>
-
-  <!-- Media controls — shown during playback, fixed at bottom -->
-  <div id="mediaControls" class="hidden">
-    <button id="btnPauseResume" class="mc-btn mc-btn-primary" title="Pause / Resume">⏸ <kbd
-        class="op-kbd">Space</kbd></button>
-    <button id="btnBpmMinus" class="mc-btn mc-btn-default" title="Slower">−</button>
-    <span id="bpmDisplay">165 BPM</span>
-    <button id="btnBpmPlus" class="mc-btn mc-btn-default" title="Faster">+</button>
-    <button id="btnMediaStop" class="mc-btn mc-btn-danger" title="Stop">■ Stop <kbd class="op-kbd">Esc</kbd></button>
-  </div>
-
-  <!-- GABC Summary popup -->
-  <dialog id="gabcSummaryDialog" onclick="if(event.target===this)this.close();">
-    <div class="gabc-summary-dialog-header">
-      <span class="gabc-summary-dialog-title">Summary of GABC</span>
-      <button class="gabc-summary-dialog-close" onclick="document.getElementById('gabcSummaryDialog').close();">✕
-        Close</button>
-    </div>
-    <iframe src="assets/summary-gabc-v5.pdf" class="gabc-summary-dialog-iframe" title="Summary of GABC"></iframe>
-  </dialog>
-
-  <!-- ES6 module entry point — runs after all globals above are ready -->
-  <script type="module" src="js/psalms/app.js"></script>
-</body>
-
+        <!-- ES6 module entry point — runs after all globals above are ready -->
+        <script type="module" src="js/psalms/app.js"></script>
+    </body>
 </html>

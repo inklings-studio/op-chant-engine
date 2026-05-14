@@ -10,7 +10,7 @@
  * @returns {string}
  */
 export function generateGabc(verseAst) {
-  return verseAst.map(t => `${t.syl.trim()}(${t.note})`).join(' ');
+    return verseAst.map((t) => `${t.syl.trim()}(${t.note})`).join(' ');
 }
 
 /**
@@ -28,53 +28,54 @@ export function generateGabc(verseAst) {
  * @returns {string}
  */
 export function generateBreviaryHtml(verseAst, wordMap, wrappers = {}) {
-  const pb  = wrappers.prepBegin    ?? '<i>';
-  const pe  = wrappers.prepEnd      ?? '</i>';
-  const ab  = wrappers.accBegin     ?? '<b>';
-  const ae  = wrappers.accEnd       ?? '</b>';
-  const fab = wrappers.flexAccBegin ?? '';
-  const fae = wrappers.flexAccEnd   ?? '';
-  const fb  = wrappers.flexBegin    ?? '<i>';
-  const fe  = wrappers.flexEnd      ?? '</i>';
+    const pb = wrappers.prepBegin ?? '<i>';
+    const pe = wrappers.prepEnd ?? '</i>';
+    const ab = wrappers.accBegin ?? '<b>';
+    const ae = wrappers.accEnd ?? '</b>';
+    const fab = wrappers.flexAccBegin ?? '';
+    const fae = wrappers.flexAccEnd ?? '';
+    const fb = wrappers.flexBegin ?? '<i>';
+    const fe = wrappers.flexEnd ?? '</i>';
 
-  let result = '';
-  let sylIdx = 0;
-  let prevWordIdx = null;
-  let inFlexPhrase = verseAst.some(t => t.role === 'flex');
+    let result = '';
+    let sylIdx = 0;
+    let prevWordIdx = null;
+    let inFlexPhrase = verseAst.some((t) => t.role === 'flex');
 
-  for (const t of verseAst) {
-    if (t.role === 'flex') {
-      result += ' <span class="verse-mark">†</span>';
-      prevWordIdx = null;
-      inFlexPhrase = false;
-      continue;
+    for (const t of verseAst) {
+        if (t.role === 'flex') {
+            result += ' <span class="verse-mark">†</span>';
+            prevWordIdx = null;
+            inFlexPhrase = false;
+            continue;
+        }
+        if (t.role === 'mediant') {
+            result += ' <span class="verse-mark">*</span>';
+            prevWordIdx = null;
+            inFlexPhrase = false;
+            continue;
+        }
+        if (t.role === 'intonation') {
+            sylIdx++;
+            continue;
+        }
+
+        const wIdx = wordMap?.[sylIdx] ?? sylIdx;
+        const sameWord = prevWordIdx !== null && wIdx === prevWordIdx;
+        if (!sameWord && result !== '') result += ' ';
+
+        if (t.role === 'acc' && inFlexPhrase) result += `${fab}${t.syl}${fae}`;
+        else if (t.role === 'acc') result += `${ab}${t.syl}${ae}`;
+        else if (t.role === 'prep') result += `${pb}${t.syl}${pe}`;
+        else if ((t.role === 'ep' || t.role === 'fin') && inFlexPhrase)
+            result += `${fb}${t.syl}${fe}`;
+        else result += t.syl;
+
+        prevWordIdx = wIdx;
+        sylIdx++;
     }
-    if (t.role === 'mediant') {
-      result += ' <span class="verse-mark">*</span>';
-      prevWordIdx = null;
-      inFlexPhrase = false;
-      continue;
-    }
-    if (t.role === 'intonation') {
-      sylIdx++;
-      continue;
-    }
 
-    const wIdx = wordMap?.[sylIdx] ?? sylIdx;
-    const sameWord = prevWordIdx !== null && wIdx === prevWordIdx;
-    if (!sameWord && result !== '') result += ' ';
-
-    if (t.role === 'acc' && inFlexPhrase)              result += `${fab}${t.syl}${fae}`;
-    else if (t.role === 'acc')                         result += `${ab}${t.syl}${ae}`;
-    else if (t.role === 'prep')                        result += `${pb}${t.syl}${pe}`;
-    else if ((t.role === 'ep' || t.role === 'fin') && inFlexPhrase) result += `${fb}${t.syl}${fe}`;
-    else                                               result += t.syl;
-
-    prevWordIdx = wIdx;
-    sylIdx++;
-  }
-
-  return result;
+    return result;
 }
 
 /**
@@ -87,16 +88,16 @@ export function generateBreviaryHtml(verseAst, wordMap, wrappers = {}) {
  * @returns {string}
  */
 export function compileBreviaryHtml(state, wrappers = {}) {
-  return state.stanzas
-    .slice(1)
-    .map((stanza, idx) => {
-      const ast     = stanza.ast;
-      const wordMap = stanza.wordMap;
-      if (!ast) return '';
-      const verseNum = idx + 2;
-      const html = generateBreviaryHtml(ast, wordMap, wrappers);
-      return `<p class="verse-line" data-verse="${verseNum}"><span class="verse-num">${verseNum}.</span><span class="verse-text">${html}</span></p>`;
-    })
-    .filter(Boolean)
-    .join('\n');
+    return state.stanzas
+        .slice(1)
+        .map((stanza, idx) => {
+            const ast = stanza.ast;
+            const wordMap = stanza.wordMap;
+            if (!ast) return '';
+            const verseNum = idx + 2;
+            const html = generateBreviaryHtml(ast, wordMap, wrappers);
+            return `<p class="verse-line" data-verse="${verseNum}"><span class="verse-num">${verseNum}.</span><span class="verse-text">${html}</span></p>`;
+        })
+        .filter(Boolean)
+        .join('\n');
 }

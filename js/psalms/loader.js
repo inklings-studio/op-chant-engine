@@ -8,7 +8,7 @@
  * @returns {Promise<string>}
  */
 export async function loadPsalm(langCode, psalmId) {
-  const res = await fetch(`js/languages/${langCode}/psalms/${psalmId}.txt`);
-  if (!res.ok) throw new Error(`Psalm ${psalmId} not found (${res.status})`);
-  return res.text();
+    const res = await fetch(`js/languages/${langCode}/psalms/${psalmId}.txt`);
+    if (!res.ok) throw new Error(`Psalm ${psalmId} not found (${res.status})`);
+    return res.text();
 }

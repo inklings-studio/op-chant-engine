@@ -1,7 +1,7 @@
 const NS = { transcriber: 'op-tc::', psalms: 'op-ps::' };
 
 function _key(ns, name) {
-  return (NS[ns] ?? ns) + name;
+    return (NS[ns] ?? ns) + name;
 }
 
 /**
@@ -10,21 +10,21 @@ function _key(ns, name) {
  * @returns {Array<{name: string, savedAt: number}>}
  */
 export function listSaves(ns) {
-  const prefix = NS[ns] ?? ns;
-  const result = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k?.startsWith(prefix)) {
-      const name = k.slice(prefix.length);
-      try {
-        const data = JSON.parse(localStorage.getItem(k));
-        result.push({ name, savedAt: data?._savedAt ?? 0 });
-      } catch {
-        result.push({ name, savedAt: 0 });
-      }
+    const prefix = NS[ns] ?? ns;
+    const result = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k?.startsWith(prefix)) {
+            const name = k.slice(prefix.length);
+            try {
+                const data = JSON.parse(localStorage.getItem(k));
+                result.push({ name, savedAt: data?._savedAt ?? 0 });
+            } catch {
+                result.push({ name, savedAt: 0 });
+            }
+        }
     }
-  }
-  return result.sort((a, b) => b.savedAt - a.savedAt);
+    return result.sort((a, b) => b.savedAt - a.savedAt);
 }
 
 /**
@@ -34,12 +34,12 @@ export function listSaves(ns) {
  * @returns {object|null}
  */
 export function getSave(ns, name) {
-  try {
-    const raw = localStorage.getItem(_key(ns, name));
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+    try {
+        const raw = localStorage.getItem(_key(ns, name));
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
 }
 
 /**
@@ -49,12 +49,14 @@ export function getSave(ns, name) {
  * @param {object} data
  */
 export function putSave(ns, name, data) {
-  const payload = JSON.stringify({ ...data, _savedAt: Date.now() });
-  try {
-    localStorage.setItem(_key(ns, name), payload);
-  } catch (err) {
-    throw new Error('Storage quota exceeded — delete some saves to free space.');
-  }
+    const payload = JSON.stringify({ ...data, _savedAt: Date.now() });
+    try {
+        localStorage.setItem(_key(ns, name), payload);
+    } catch (err) {
+        throw new Error('Storage quota exceeded — delete some saves to free space.', {
+            cause: err,
+        });
+    }
 }
 
 /**
@@ -63,7 +65,7 @@ export function putSave(ns, name, data) {
  * @param {string} name
  */
 export function deleteSave(ns, name) {
-  localStorage.removeItem(_key(ns, name));
+    localStorage.removeItem(_key(ns, name));
 }
 
 /**
@@ -73,5 +75,5 @@ export function deleteSave(ns, name) {
  * @returns {boolean}
  */
 export function hasSave(ns, name) {
-  return localStorage.getItem(_key(ns, name)) !== null;
+    return localStorage.getItem(_key(ns, name)) !== null;
 }

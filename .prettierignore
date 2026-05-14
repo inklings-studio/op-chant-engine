@@ -1,0 +1,10 @@
+js/exsurge.min.js
+js/Tone.min.js
+js/tones.js
+js/saveSvgAsPng.js
+css/output.css
+node_modules/
+old/
+.claude/
+scripts/
+test-results/

@@ -11,33 +11,33 @@ export const BASE_FONT_PT = 16;
  * @throws {Error} If window.exsurge is not available.
  */
 export function createContext() {
-  if (typeof window.exsurge === 'undefined') {
-    throw new Error(
-      '[renderer.js] window.exsurge is not defined. ' +
-      'Ensure exsurge.min.js is loaded via <script> before this module runs.'
-    );
-  }
+    if (typeof window.exsurge === 'undefined') {
+        throw new Error(
+            '[renderer.js] window.exsurge is not defined. ' +
+                'Ensure exsurge.min.js is loaded via <script> before this module runs.'
+        );
+    }
 
-  const ctxt = new exsurge.ChantContext(exsurge.TextMeasuringStrategy.Canvas);
-  ctxt.condenseLineAmount = 1;
-  ctxt.setGlyphScaling(BASE_GLYPH_S);
-  ctxt.setFont("'Crimson Text', serif", BASE_FONT_PX);
-  ctxt.spaceBetweenSystems = 0;
-  ctxt.textStyles.dropCap.size = 64;
-  ctxt.textStyles.annotation.size = 12.8;
-  ctxt.minLyricWordSpacing *= 0.7;
-  ctxt.accidentalSpaceMultiplier = 1.5;
+    const ctxt = new exsurge.ChantContext(exsurge.TextMeasuringStrategy.Canvas);
+    ctxt.condenseLineAmount = 1;
+    ctxt.setGlyphScaling(BASE_GLYPH_S);
+    ctxt.setFont("'Crimson Text', serif", BASE_FONT_PX);
+    ctxt.spaceBetweenSystems = 0;
+    ctxt.textStyles.dropCap.size = 64;
+    ctxt.textStyles.annotation.size = 12.8;
+    ctxt.minLyricWordSpacing *= 0.7;
+    ctxt.accidentalSpaceMultiplier = 1.5;
 
-  ctxt.specialCharProperties['font-family'] = "'Versiculum'";
-  ctxt.specialCharProperties['font-variant'] = 'normal';
-  ctxt.specialCharProperties['font-weight'] = '400';
-  const defaultSpecialCharText = ctxt.specialCharText;
-  ctxt.specialCharText = function (char) {
-    return defaultSpecialCharText(char).toLowerCase();
-  };
-  ctxt.setRubricColor('#d00');
+    ctxt.specialCharProperties['font-family'] = "'Versiculum'";
+    ctxt.specialCharProperties['font-variant'] = 'normal';
+    ctxt.specialCharProperties['font-weight'] = '400';
+    const defaultSpecialCharText = ctxt.specialCharText;
+    ctxt.specialCharText = function (char) {
+        return defaultSpecialCharText(char).toLowerCase();
+    };
+    ctxt.setRubricColor('#d00');
 
-  return ctxt;
+    return ctxt;
 }
 
 /**
@@ -51,27 +51,27 @@ export function createContext() {
  * @returns {object} The ChantScore instance.
  */
 export function renderGabc(ctxt, gabc, container, widthPxOverride) {
-  const mappings = exsurge.Gabc.createMappingsFromSource(ctxt, gabc);
-  const largeInitial = !/^\s*initial-style\s*:\s*0\s*;/m.test(gabc);
-  const score = new exsurge.ChantScore(ctxt, mappings, largeInitial);
+    const mappings = exsurge.Gabc.createMappingsFromSource(ctxt, gabc);
+    const largeInitial = !/^\s*initial-style\s*:\s*0\s*;/m.test(gabc);
+    const score = new exsurge.ChantScore(ctxt, mappings, largeInitial);
 
-  if (largeInitial) {
-    const annotationMatch = gabc.match(/^annotation:\s*(.+?)\s*;/m);
-    if (annotationMatch) {
-      score.annotation = new exsurge.Annotations(ctxt, '%' + annotationMatch[1] + '%');
+    if (largeInitial) {
+        const annotationMatch = gabc.match(/^annotation:\s*(.+?)\s*;/m);
+        if (annotationMatch) {
+            score.annotation = new exsurge.Annotations(ctxt, '%' + annotationMatch[1] + '%');
+        }
     }
-  }
 
-  score.performLayoutAsync(ctxt, function () {
-    const width = widthPxOverride ?? container.clientWidth;
-    score.layoutChantLines(ctxt, width, function () {
-      const svg = score.createSvgNode(ctxt);
-      container.innerHTML = '';
-      container.appendChild(svg);
+    score.performLayoutAsync(ctxt, function () {
+        const width = widthPxOverride ?? container.clientWidth;
+        score.layoutChantLines(ctxt, width, function () {
+            const svg = score.createSvgNode(ctxt);
+            container.innerHTML = '';
+            container.appendChild(svg);
+        });
     });
-  });
 
-  return score;
+    return score;
 }
 
 /**
@@ -84,10 +84,10 @@ export function renderGabc(ctxt, gabc, container, widthPxOverride) {
  * @returns {SVGElement}
  */
 export function exportSvg(ctxt, score, widthPx = 7.5 * 96) {
-  if (!score) {
-    throw new Error('[renderer.js] exportSvg called before any score exists.');
-  }
-  score.performLayout(ctxt);
-  score.layoutChantLines(ctxt, widthPx);
-  return score.createSvgNode(ctxt);
+    if (!score) {
+        throw new Error('[renderer.js] exportSvg called before any score exists.');
+    }
+    score.performLayout(ctxt);
+    score.layoutChantLines(ctxt, widthPx);
+    return score.createSvgNode(ctxt);
 }

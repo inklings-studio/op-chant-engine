@@ -1,0 +1,23 @@
+{
+    "extends": ["stylelint-config-standard"],
+    "ignoreFiles": ["css/output.css", "node_modules/**"],
+    "rules": {
+        "at-rule-no-unknown": [
+            true,
+            {
+                "ignoreAtRules": [
+                    "tailwind",
+                    "apply",
+                    "variants",
+                    "responsive",
+                    "screen",
+                    "layer",
+                    "config"
+                ]
+            }
+        ],
+        "selector-class-pattern": null,
+        "selector-id-pattern": null,
+        "font-family-name-quotes": null
+    }
+}

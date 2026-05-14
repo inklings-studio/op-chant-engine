@@ -14,44 +14,54 @@
  *   role ∈ { 'tenor', 'intonation', 'acc', 'ep', 'fin', 'prep', 'flex', 'mediant' }
  *   'flex' and 'mediant' are barline sentinels: syl is '' and note is ',' / ':' respectively.
  */
-export function pointVerse(rawVerseText, toneObject, cadenceKey, isSolemn, syllabifier, isFirstVerse = true) {
-  const daggerIdx = rawVerseText.indexOf('†');
-  const flexRaw = daggerIdx !== -1 ? rawVerseText.slice(0, daggerIdx) : '';
-  const mainRaw = daggerIdx !== -1 ? rawVerseText.slice(daggerIdx + 1) : rawVerseText;
+export function pointVerse(
+    rawVerseText,
+    toneObject,
+    cadenceKey,
+    isSolemn,
+    syllabifier,
+    isFirstVerse = true
+) {
+    const daggerIdx = rawVerseText.indexOf('†');
+    const flexRaw = daggerIdx !== -1 ? rawVerseText.slice(0, daggerIdx) : '';
+    const mainRaw = daggerIdx !== -1 ? rawVerseText.slice(daggerIdx + 1) : rawVerseText;
 
-  const starIdx = mainRaw.indexOf('*');
-  if (starIdx === -1) throw new Error('pointVerse: verse is missing the * mediant marker');
-  const mediantRaw = mainRaw.slice(0, starIdx);
-  // Strip any extra * or † that may appear when a multi-line verse is grouped into one
-  // raw string (each display line carries its own mediant marker in the source text).
-  const termRaw = mainRaw.slice(starIdx + 1).replace(/[*†]/g, ' ').replace(/\s+/g, ' ');
+    const starIdx = mainRaw.indexOf('*');
+    if (starIdx === -1) throw new Error('pointVerse: verse is missing the * mediant marker');
+    const mediantRaw = mainRaw.slice(0, starIdx);
+    // Strip any extra * or † that may appear when a multi-line verse is grouped into one
+    // raw string (each display line carries its own mediant marker in the source text).
+    const termRaw = mainRaw
+        .slice(starIdx + 1)
+        .replace(/[*†]/g, ' ')
+        .replace(/\s+/g, ' ');
 
-  // Compute mediant tokens first so short-form selection can check phrase length.
-  const mediantTokens = syllabifier.syllabify(mediantRaw.trim());
-  const normalSection = isSolemn ? toneObject.solemn : toneObject.mediant;
-  const shortSection  = isSolemn ? toneObject.shortSolemn : toneObject.shortMediant;
-  const cadenceSection = (shortSection && mediantTokens.length <= 2) ? shortSection : normalSection;
+    // Compute mediant tokens first so short-form selection can check phrase length.
+    const mediantTokens = syllabifier.syllabify(mediantRaw.trim());
+    const normalSection = isSolemn ? toneObject.solemn : toneObject.mediant;
+    const shortSection = isSolemn ? toneObject.shortSolemn : toneObject.shortMediant;
+    const cadenceSection = shortSection && mediantTokens.length <= 2 ? shortSection : normalSection;
 
-  // Intonation is only sung on the first verse; subsequent verses start directly on the tenor.
-  const intonation = isFirstVerse ? cadenceSection.intonation : [];
-  const tenorNote = toneObject.tenor;
-  const termCadence = toneObject.terminations?.[cadenceKey] ?? toneObject.termination;
+    // Intonation is only sung on the first verse; subsequent verses start directly on the tenor.
+    const intonation = isFirstVerse ? cadenceSection.intonation : [];
+    const tenorNote = toneObject.tenor;
+    const termCadence = toneObject.terminations?.[cadenceKey] ?? toneObject.termination;
 
-  const result = [];
+    const result = [];
 
-  if (flexRaw.trim()) {
-    const tokens = syllabifier.syllabify(flexRaw.trim());
-    result.push(...alignChunk(tokens, toneObject.flex, tenorNote, []));
-    result.push({ syl: '', note: ',', role: 'flex' });
-  }
+    if (flexRaw.trim()) {
+        const tokens = syllabifier.syllabify(flexRaw.trim());
+        result.push(...alignChunk(tokens, toneObject.flex, tenorNote, []));
+        result.push({ syl: '', note: ',', role: 'flex' });
+    }
 
-  result.push(...alignChunk(mediantTokens, cadenceSection.cadence, tenorNote, intonation));
-  result.push({ syl: '', note: ':', role: 'mediant' });
+    result.push(...alignChunk(mediantTokens, cadenceSection.cadence, tenorNote, intonation));
+    result.push({ syl: '', note: ':', role: 'mediant' });
 
-  const termTokens = syllabifier.syllabify(termRaw.trim());
-  result.push(...alignChunk(termTokens, termCadence, tenorNote, []));
+    const termTokens = syllabifier.syllabify(termRaw.trim());
+    result.push(...alignChunk(termTokens, termCadence, tenorNote, []));
 
-  return result;
+    return result;
 }
 
 /**
@@ -74,49 +84,50 @@ export function pointVerse(rawVerseText, toneObject, cadenceKey, isSolemn, sylla
  * @returns {Array<{syl: string, note: string, role: string}>}
  */
 export function alignChunk(tokens, cadence, tenorNote, intonationNotes) {
-  const result = new Array(tokens.length).fill(null);
-  let ti = tokens.length - 1;
+    const result = new Array(tokens.length).fill(null);
+    let ti = tokens.length - 1;
 
-  for (let ci = cadence.length - 1; ci >= 0 && ti >= 0; ci--) {
-    const role = Object.keys(cadence[ci])[0];
-    const note = cadence[ci][role];
+    for (let ci = cadence.length - 1; ci >= 0 && ti >= 0; ci--) {
+        const role = Object.keys(cadence[ci])[0];
+        const note = cadence[ci][role];
 
-    if (role === 'fin') {
-      result[ti] = { syl: tokens[ti].syl, note, role };
-      ti--;
-    } else if (role === 'ep' || role === 'prep') {
-      // Skip this slot when the current token is stressed and an acc slot remains to the
-      // left in the cadence — the acc should claim this stressed syllable, not ep/prep.
-      const hasAccLeft = cadence.slice(0, ci).some(c => Object.keys(c)[0] === 'acc');
-      if (tokens[ti].isStressed && hasAccLeft) {
-        continue;
-      }
-      result[ti] = { syl: tokens[ti].syl, note, role };
-      ti--;
-    } else if (role === 'acc') {
-      // Scan leftward past unstressed syllables, assigning them to tenor.
-      while (ti >= 0 && !tokens[ti].isStressed) {
-        result[ti] = { syl: tokens[ti].syl, note: tenorNote, role: 'tenor' };
-        ti--;
-      }
-      if (ti >= 0) {
-        result[ti] = { syl: tokens[ti].syl, note, role: 'acc' };
-        ti--;
-      }
-      // No stressed syllable found: acc slot silently dropped.
+        if (role === 'fin') {
+            result[ti] = { syl: tokens[ti].syl, note, role };
+            ti--;
+        } else if (role === 'ep' || role === 'prep') {
+            // Skip this slot when the current token is stressed and an acc slot remains to the
+            // left in the cadence — the acc should claim this stressed syllable, not ep/prep.
+            const hasAccLeft = cadence.slice(0, ci).some((c) => Object.keys(c)[0] === 'acc');
+            if (tokens[ti].isStressed && hasAccLeft) {
+                continue;
+            }
+            result[ti] = { syl: tokens[ti].syl, note, role };
+            ti--;
+        } else if (role === 'acc') {
+            // Scan leftward past unstressed syllables, assigning them to tenor.
+            while (ti >= 0 && !tokens[ti].isStressed) {
+                result[ti] = { syl: tokens[ti].syl, note: tenorNote, role: 'tenor' };
+                ti--;
+            }
+            if (ti >= 0) {
+                result[ti] = { syl: tokens[ti].syl, note, role: 'acc' };
+                ti--;
+            }
+            // No stressed syllable found: acc slot silently dropped.
+        }
     }
-  }
 
-  // Fill remaining left positions: intonation for first N, tenor for the rest.
-  // Only apply intonation when at least one tenor note would survive after it.
-  const applyIntonation = intonationNotes.length > 0 && (ti + 1) > intonationNotes.length;
-  for (let i = 0; i <= ti; i++) {
-    result[i] = (applyIntonation && i < intonationNotes.length)
-      ? { syl: tokens[i].syl, note: intonationNotes[i], role: 'intonation' }
-      : { syl: tokens[i].syl, note: tenorNote, role: 'tenor' };
-  }
+    // Fill remaining left positions: intonation for first N, tenor for the rest.
+    // Only apply intonation when at least one tenor note would survive after it.
+    const applyIntonation = intonationNotes.length > 0 && ti + 1 > intonationNotes.length;
+    for (let i = 0; i <= ti; i++) {
+        result[i] =
+            applyIntonation && i < intonationNotes.length
+                ? { syl: tokens[i].syl, note: intonationNotes[i], role: 'intonation' }
+                : { syl: tokens[i].syl, note: tenorNote, role: 'tenor' };
+    }
 
-  return result;
+    return result;
 }
 
 /**
@@ -138,22 +149,22 @@ export function alignChunk(tokens, cadence, tenorNote, intonationNotes) {
  * @returns {string[]} role string per syllable position
  */
 export function deriveRolesFromNotes(userNotes, cadence) {
-  const roles = new Array(userNotes.length).fill('tenor');
-  let ti = userNotes.length - 1;
+    const roles = new Array(userNotes.length).fill('tenor');
+    let ti = userNotes.length - 1;
 
-  for (let ci = cadence.length - 1; ci >= 0 && ti >= 0; ci--) {
-    const role = Object.keys(cadence[ci])[0];
-    const expected = cadence[ci][role];
+    for (let ci = cadence.length - 1; ci >= 0 && ti >= 0; ci--) {
+        const role = Object.keys(cadence[ci])[0];
+        const expected = cadence[ci][role];
 
-    if (role === 'fin') {
-      roles[ti--] = 'fin';
-    } else if (role === 'ep' || role === 'prep') {
-      if (userNotes[ti] === expected) roles[ti--] = role;
-    } else if (role === 'acc') {
-      while (ti >= 0 && userNotes[ti] !== expected) ti--;
-      if (ti >= 0) roles[ti--] = 'acc';
+        if (role === 'fin') {
+            roles[ti--] = 'fin';
+        } else if (role === 'ep' || role === 'prep') {
+            if (userNotes[ti] === expected) roles[ti--] = role;
+        } else if (role === 'acc') {
+            while (ti >= 0 && userNotes[ti] !== expected) ti--;
+            if (ti >= 0) roles[ti--] = 'acc';
+        }
     }
-  }
 
-  return roles;
+    return roles;
 }

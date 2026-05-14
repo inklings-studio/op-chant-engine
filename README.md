@@ -5,13 +5,16 @@ Client-side tools for editing, pointing, and rendering Gregorian chant according
 ## Tools
 
 ### GABC Transcriber (`transcriber.html`)
+
 A manual IDE for composing and rendering GABC notation. Features a two-tab editor:
+
 - **Interlinear Tracker** — per-line melody inputs with a real-time alignment track, strophic inheritance across stanzas, and automatic Amen coda detection.
 - **Integrated GABC** — raw GABC editor with bi-directional sync to the tracker.
 
 SVG preview updates live via Exsurge. Supports pitch transposition and PNG/SVG export.
 
 ### Psalm Tone Tool (`psalms.html`)
+
 An algorithmic pointer that takes raw psalm text, syllabifies it using a language plugin, maps it to a Dominican tone template, and auto-generates GABC. Currently supports Slovak with the full set of Dominican tones (tones 1–8 with all terminations).
 
 ## Installation & Local Development
@@ -28,6 +31,7 @@ npx http-server . -a localhost -p 8080 --no-cache
 ```
 
 Then open:
+
 - `http://localhost:8080/transcriber.html`
 - `http://localhost:8080/psalms.html`
 
@@ -39,6 +43,21 @@ Then open:
 npm run test:unit    # Node built-in test runner — no server needed
 npm run test:smoke   # Playwright end-to-end tests — requires the http-server above
 ```
+
+## Linting & Formatting
+
+```bash
+npm run lint         # ESLint + HTMLHint + Stylelint (all targets)
+npm run lint:js      # ESLint on js/ and tests/
+npm run lint:html    # HTMLHint on *.html
+npm run lint:css     # Stylelint on css/shared.css, css/psalms.css, src/input.css
+npx prettier --check .   # check formatting
+npx prettier --write .   # auto-fix formatting
+```
+
+A pre-commit hook (via Husky + lint-staged) runs ESLint, HTMLHint, and Stylelint against
+staged files automatically, followed by a Prettier format check across the whole project.
+The hook is installed when you run `npm install` (via the `prepare` script).
 
 ## Contributing: Adding a New Language
 
@@ -55,22 +74,23 @@ const VOWELS = new Set([...'aeiouáéíóúůAEIOUÁÉÍÓÚŮ']);
 const UNSTRESSED_MONOSYLLABLES = new Set(['a', 'i', 'v', 'z', 'k', 'o', 'u', 'se', 'si']);
 
 export class CzechSyllabifier extends Syllabifier {
-  syllabifyWord(word) {
-    if (!word) return { hasNucleus: false, syllables: [] };
+    syllabifyWord(word) {
+        if (!word) return { hasNucleus: false, syllables: [] };
 
-    const syls = _split(word); // language-specific FSM returning string[]
-    const hasNucleus = [...word].some(c => VOWELS.has(c));
+        const syls = _split(word); // language-specific FSM returning string[]
+        const hasNucleus = [...word].some((c) => VOWELS.has(c));
 
-    return {
-      hasNucleus,
-      syllables: syls.map((syl, i) => ({
-        syl,
-        isStressed: syls.length === 1
-          ? !UNSTRESSED_MONOSYLLABLES.has(word.toLowerCase())
-          : i === 0 || (syls.length >= 4 && i % 2 === 0),
-      })),
-    };
-  }
+        return {
+            hasNucleus,
+            syllables: syls.map((syl, i) => ({
+                syl,
+                isStressed:
+                    syls.length === 1
+                        ? !UNSTRESSED_MONOSYLLABLES.has(word.toLowerCase())
+                        : i === 0 || (syls.length >= 4 && i % 2 === 0),
+            })),
+        };
+    }
 }
 ```
 
@@ -85,13 +105,11 @@ import { registerLanguage } from '../../common/language.js';
 import { CzechSyllabifier } from './syllabifier.js';
 
 registerLanguage({
-  code: 'cs',
-  label: 'Czech',
-  codaPattern: /^am[eé]n[.,;:!?]*$/i,
-  syllabifier: new CzechSyllabifier(),
-  psalms: [
-    { num: 22, label: 'Ž. 22' },
-  ],
+    code: 'cs',
+    label: 'Czech',
+    codaPattern: /^am[eé]n[.,;:!?]*$/i,
+    syllabifier: new CzechSyllabifier(),
+    psalms: [{ num: 22, label: 'Ž. 22' }],
 });
 ```
 
@@ -119,7 +137,7 @@ Follow the pattern in `tests/unit/sk-syllabifier.test.js`. Instantiate the class
 import { CzechSyllabifier } from '../../js/languages/cs/syllabifier.js';
 
 const cs = new CzechSyllabifier();
-const split = word => cs.syllabifyWord(word).syllables.map(s => s.syl);
+const split = (word) => cs.syllabifyWord(word).syllables.map((s) => s.syl);
 
 test('syllabifyWord: Praha', () => assert.deepEqual(split('Praha'), ['Pra', 'ha']));
 ```
@@ -130,3 +148,15 @@ test('syllabifyWord: Praha', () => assert.deepEqual(split('Praha'), ['Pra', 'ha'
 - **Tailwind CSS** (CLI build) — utility-first styling with the Dominican OP theme
 - **Exsurge** — third-party GABC → SVG rendering library (`js/exsurge.min.js`)
 - **Tone.js** — Web Audio synthesis for chant playback
+
+### Dev tooling
+
+| Tool                                                      | Purpose                                             |
+| --------------------------------------------------------- | --------------------------------------------------- |
+| [ESLint](https://eslint.org)                              | JS linting (`eslint:recommended` + Prettier compat) |
+| [HTMLHint](https://htmlhint.com)                          | HTML validation                                     |
+| [Stylelint](https://stylelint.io)                         | CSS linting (`stylelint-config-standard`)           |
+| [Prettier](https://prettier.io)                           | Code formatting (JS, HTML, CSS, JSON, YAML)         |
+| [Husky](https://typicode.github.io/husky/)                | Git hooks                                           |
+| [lint-staged](https://github.com/lint-staged/lint-staged) | Run linters on staged files only                    |
+| [Playwright](https://playwright.dev)                      | End-to-end smoke tests                              |

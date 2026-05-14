@@ -1,6 +1,7 @@
 Developer Commands & Guidelines: Dominican Chant Engine
 
 ## 1. Project Workflow & Rules
+
 - **Diff Approval:** Do NOT commit without showing me the diff first.
 - **Conventional Commits:** Commit often using standard prefixes (`feat:`, `fix:`, `refactor:`, `chore:`).
 - **Planning:** If a task is complex, plan before implementing. Respect the existing file structure and formatting.
@@ -12,14 +13,17 @@ Developer Commands & Guidelines: Dominican Chant Engine
     - **Rule:** General rule going forward
 
 ## 2. Before building anything, answer:
+
 - What happens if this crashes halfway through?
 - What external identifiers (models, APIs, versions) might I hardcode?
 - What are the system dependencies and how do I verify them at startup?
 
 ## 3. Tech Stack & Architecture
+
 The application lives at the repository root. The legacy v1 system has been archived to `old/` and is READ ONLY.
 
 ### Active Stack (Root Directory)
+
 - **Tech:** Vanilla ES6 Modules (`<script type="module">`), Tailwind CSS, standard HTML5.
 - **Rules:**
     - **Strict Vanilla ES6:** No module bundlers (Webpack/Vite), no React/Vue.
@@ -32,6 +36,7 @@ The application lives at the repository root. The legacy v1 system has been arch
     - `js/saveSvgAsPng.js` — SVG export helper
 
 ### Key Module Layout
+
 - `js/core/` — shared renderer and audio services
 - `js/common/` — shared utilities (compiler, parser, melody, language strategy, state, UI helpers)
 - `js/languages/<code>/` — language plugins (syllabifier + registration)
@@ -40,12 +45,15 @@ The application lives at the repository root. The legacy v1 system has been arch
 - `js/transcriber/` — GABC Transcriber entry point and controllers
 
 ### Legacy Archive (`old/` — READ ONLY)
+
 The old jQuery-based system lives here. Do not modify. Reference only if porting logic.
+
 - `old/transcriber.html.js` — legacy Transcription IDE logic
 - `old/util.js` — legacy Latin syllabification and Unicode helpers
 - `old/psalmtone.js` / `old/psalmtone.html.js` — legacy psalm tone pointing logic
 
 ## 4. Local Development & Verification
+
 - **Tailwind Build:** `npm run watch:css` (compiles `src/input.css` → `css/output.css`)
 - **Server:** Run a basic HTTP server from the project root to avoid CORS issues with Web Audio:
     ```bash
