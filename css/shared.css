@@ -590,6 +590,50 @@
     background: rgb(220 38 38 / 8%);
 }
 
+/* ── Mobile responsive ───────────────────────────────────────────────────── */
+
+/* Use dvh so the layout respects browser chrome (address bar) on mobile */
+@supports (height: 100dvh) {
+    @media (width <= 767px) {
+        body {
+            height: 100dvh !important;
+        }
+    }
+}
+
+/* Collapse 3-column header to 2-column on mobile (right export column is hidden) */
+@media (width <= 767px) {
+    .op-header {
+        grid-template-columns: auto 1fr !important;
+    }
+}
+
+/* Stack the two editor/preview panes on mobile using CSS grid overlay.
+   visibility:hidden preserves clientWidth so Exsurge renders at the correct width
+   even when the preview pane isn't visible yet. */
+@media (width <= 767px) {
+    main.mobile-two-pane {
+        display: grid !important;
+        grid-template-rows: 1fr;
+    }
+
+    main.mobile-two-pane > section {
+        grid-area: 1 / 1;
+        min-width: 0;
+        width: 100%;
+    }
+
+    main.mobile-two-pane > section.mobile-hidden {
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    /* Hide keyboard shortcut badges on small screens */
+    .op-kbd {
+        display: none !important;
+    }
+}
+
 /* The KBD styling from our previous step, refined for this palette */
 .op-kbd {
     display: inline-flex;

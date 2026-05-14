@@ -16,6 +16,7 @@ import {
 import { getState } from '../common/state.js';
 import '../languages/sk/index.js';
 import { initEditor, buildSaveData, restoreFromSave } from './editor.js';
+import { initMobilePane } from '../common/mobile-pane.js';
 import {
     formatPitch,
     formatPitchName,
@@ -98,6 +99,7 @@ function init() {
     });
 
     initEditor(state, onCompiled, { onStatus: setStatus });
+    initMobilePane();
 
     btnPlayFromStart?.addEventListener('click', () => {
         if ((_audioScore ?? score) && isAudioAvailable()) {
@@ -443,15 +445,9 @@ function _updateHeaderPitchDisplay() {
         headerPitchDisplay.innerHTML = '—';
         return;
     }
-    const { firstPitched, transpose, low, high } = d;
+    const { firstPitched, transpose } = d;
     const OFF = EXSURGE_TO_TONES_OFFSET;
-    headerPitchDisplay.innerHTML =
-        'Pitch: ' +
-        formatPitch(firstPitched.pitch.toInt() + transpose + OFF) +
-        '&ensp;·&ensp;Range: ' +
-        formatPitch(low + transpose + OFF) +
-        ' to ' +
-        formatPitch(high + transpose + OFF);
+    headerPitchDisplay.innerHTML = formatPitch(firstPitched.pitch.toInt() + transpose + OFF);
 }
 
 function startPlayback(startNote) {

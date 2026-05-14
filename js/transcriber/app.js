@@ -39,6 +39,7 @@ import '../languages/sk/index.js';
 import { getState } from '../common/state.js';
 import { initEditor, rebuildStanzas } from './editor.js';
 import { parseGabc } from '../common/gabc-parser.js';
+import { initMobilePane } from '../common/mobile-pane.js';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const DEFAULT_EXPORT_WIDTH = 7.5 * 96;
@@ -166,6 +167,8 @@ function init() {
     // Tab switching
     document.getElementById('tabEditorBtn').addEventListener('click', () => switchToTab('editor'));
     document.getElementById('tabGabcBtn').addEventListener('click', () => switchToTab('gabc'));
+
+    initMobilePane();
 
     _initDone = true;
 }
@@ -503,15 +506,9 @@ function _updateHeaderPitchDisplay() {
         headerPitchDisplay.innerHTML = '—';
         return;
     }
-    const { firstPitched, transpose, low, high } = d;
+    const { firstPitched, transpose } = d;
     const OFF = EXSURGE_TO_TONES_OFFSET;
-    headerPitchDisplay.innerHTML =
-        'Pitch: ' +
-        formatPitch(firstPitched.pitch.toInt() + transpose + OFF) +
-        '&ensp;·&ensp;Range: ' +
-        formatPitch(low + transpose + OFF) +
-        ' to ' +
-        formatPitch(high + transpose + OFF);
+    headerPitchDisplay.innerHTML = formatPitch(firstPitched.pitch.toInt() + transpose + OFF);
 }
 
 function startPlayback(startNote) {
