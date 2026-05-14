@@ -8,6 +8,8 @@ const psalms = [
         num: String(i + 1).padStart(3, '0'),
         label: `Ž. ${i + 1}`,
     })),
+    { num: 'benedictus', label: 'Benedictus' },
+    { num: 'magnificat', label: 'Magnificat' },
     { num: 'ch_dan3_26', label: 'Dan 3,26' },
     { num: 'ch_dan3_52', label: 'Dan 3,52' },
     { num: 'ch_dan3_57', label: 'Dan 3,57' },

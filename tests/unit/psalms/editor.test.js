@@ -286,28 +286,16 @@ test('psalm editor build: textarea contains * mediant marker after Build', () =>
     assert.ok(raw.includes('*'), 'textarea should retain * mediant marker');
 });
 
-test('psalm editor build: textarea split across multiple lines at section boundaries', () => {
+test('psalm editor build: textarea has one line per verse with inline section markers', () => {
     setup();
-    buildVerses([VERSE_1]);
+    buildVerses([VERSE_1, VERSE_2]);
     const raw = document.getElementById('editorRawText').value;
     const lines = raw.split('\n').filter(Boolean);
-    // VERSE_1 has no flex, so exactly 2 lines: mediant and termination
-    assert.equal(lines.length, 2, 'verse without flex should produce 2 lines (mediant + term)');
-});
-
-test('psalm editor build: multi-line verse input (split at *) is grouped into one verse', () => {
-    setup();
-    // Manually feed a verse split across two lines as a user would after seeing the marked text
-    const line1 = 'Hospodin je môj pastier*';
-    const line2 = 'a nič mi nechýba.';
-    buildVerses([line1, line2]); // treated as ONE verse by _groupVerses
-    const inputs = [...document.querySelectorAll('.editor-melody-input')];
-    // One verse with a mediant → two phrase-lines (mediant + termination) → two melody inputs
-    assert.equal(
-        inputs.length,
-        2,
-        'two lines forming one verse should produce two phrase-line inputs (mediant + term)'
-    );
+    // Each verse stays on one line; two verses → two lines
+    assert.equal(lines.length, 2, 'two verses should produce exactly two lines in the textarea');
+    // Inline * markers are preserved within each line
+    assert.ok(lines[0].includes('*'), 'verse 1 line should contain inline * marker');
+    assert.ok(lines[1].includes('*'), 'verse 2 line should contain inline * marker');
 });
 
 // ── Note preservation on identical rawLine ────────────────────────────────

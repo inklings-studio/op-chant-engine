@@ -375,65 +375,51 @@ function _doBuild(rawText, state) {
 // ─── Verse parsing & pointing ─────────────────────────────────────────────────
 
 /**
- * Groups raw input lines into verse strings.
- * A group closes when the accumulated text contains '*' and the last line ends
- * with terminal punctuation ([.?!]), or when 3 lines have been collected.
+ * Each non-empty line from the source text is one complete verse.
+ * Verses already contain inline † (flexa) and * (mediant) markers;
+ * pointVerse splits on those to produce 2- or 3-phrase verses.
  */
 function _groupVerses(lines) {
-    const verses = [];
-    let current = [];
-
-    for (const line of lines) {
-        current.push(line);
-        const joined = current.join('\n');
-        const isComplete = joined.includes('*') && /[.?!]\s*$/.test(line);
-        if (isComplete || current.length >= 3) {
-            verses.push(joined);
-            current = [];
-        }
-    }
-
-    if (current.length) verses.push(current.join('\n'));
-    return verses;
+    return lines.filter(Boolean);
 }
 
 /**
  * Reconstruct the verse text from the AST with | injected between syllables
- * of the same word, and section breaks (†, *) on separate lines.
+ * of the same word. Section breaks (†, *) are kept inline so each verse stays
+ * on a single line, matching the one-line-per-verse psalm file format.
  */
 function _buildMarkedLine(ast, wordMap) {
-    let lines = [''];
+    let result = '';
     let sylIdx = 0;
     let prevWordIdx = -1;
+    let afterMarker = false;
 
     for (const token of ast) {
         if (token.role === 'flex') {
-            lines[lines.length - 1] += '†';
-            lines.push('');
+            result += '† ';
+            afterMarker = true;
             prevWordIdx = -1;
             continue;
         }
         if (token.role === 'mediant') {
-            lines[lines.length - 1] += '*';
-            lines.push('');
+            result += '* ';
+            afterMarker = true;
             prevWordIdx = -1;
             continue;
         }
 
         const wIdx = wordMap[sylIdx] ?? sylIdx;
-        if (prevWordIdx !== -1) {
-            lines[lines.length - 1] += wIdx === prevWordIdx ? '|' : ' ';
+        if (!afterMarker && prevWordIdx !== -1) {
+            result += wIdx === prevWordIdx ? '|' : ' ';
         }
-        lines[lines.length - 1] += token.syl;
+        afterMarker = false;
+        result += token.syl;
 
         prevWordIdx = wIdx;
         sylIdx++;
     }
 
-    return lines
-        .map((l) => l.trim())
-        .filter(Boolean)
-        .join('\n');
+    return result.trim();
 }
 
 /**

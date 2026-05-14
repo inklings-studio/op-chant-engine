@@ -364,14 +364,9 @@ test('deriveRolesFromNotes: ep note absent → ep slot skipped silently', () => 
 
 // ── Multi-line verse: extra * in termination stripped ────────────────────────
 //
-// Psalm texts from breviar.sk mark each display line with its own * mediant
-// marker. _groupVerses folds two consecutive display lines into one raw verse
-// string, producing text like:
-//   "first half * second half\ncontinuation * rest of verse."
-// pointVerse splits on the FIRST *, so the second * ends up in termRaw.
-// Before the fix the Syllabifier saw * as a standalone non-letter token, treated
-// both leadPunct and trailPunct as '*', and prepended '** ' to the next word —
-// causing '****' to appear in the marked textarea and in the rendered score.
+// Each line in psalm files is now one complete verse (one-line-per-verse loading).
+// These tests guard against malformed input where a raw string contains more than
+// one * — pointVerse splits on the FIRST * and strips any extras from termRaw.
 
 test('pointVerse: extra * in term section is stripped — no * in any syllable syl', () => {
     // Simulates a two-line grouped verse (both lines carry their own * marker).
