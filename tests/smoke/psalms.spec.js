@@ -253,7 +253,7 @@ test('psalm selector: visible and populated for Slovak language', async ({ page 
 
 test('psalm selector: selecting psalm loads text into textarea', async ({ page }) => {
   await page.goto(URL);
-  await page.selectOption('#psalmSelect', '5');
+  await page.selectOption('#psalmSelect', '005');
   // Wait for the async fetch + build cycle
   await page.waitForSelector('#editorEditToggle:not(.hidden)');
   const raw = await page.inputValue('#editorRawText');
@@ -262,7 +262,7 @@ test('psalm selector: selecting psalm loads text into textarea', async ({ page }
 
 test('psalm selector: selecting psalm sets annotation to psalm label', async ({ page }) => {
   await page.goto(URL);
-  await page.selectOption('#psalmSelect', '5');
+  await page.selectOption('#psalmSelect', '005');
   await page.waitForSelector('#editorEditToggle:not(.hidden)');
   const annotation = await page.inputValue('#editorAnnotation');
   expect(annotation).toBe('Ž. 5');
@@ -273,7 +273,7 @@ test('psalm selector: selecting psalm renders preview', async ({ page }) => {
   page.on('pageerror', err => errors.push(err.message));
 
   await page.goto(URL);
-  await page.selectOption('#psalmSelect', '5');
+  await page.selectOption('#psalmSelect', '005');
   await page.waitForSelector('#editorEditToggle:not(.hidden)');
   await page.waitForTimeout(400); // render debounce
 
@@ -311,12 +311,12 @@ test('persistence: Save opens modal with title', async ({ page }) => {
 test('persistence: Save modal pre-fills name as psalm+tone key', async ({ page }) => {
   await page.goto(URL);
   await clearPsalmSaves(page);
-  await page.selectOption('#psalmSelect', '5');
+  await page.selectOption('#psalmSelect', '005');
   await page.waitForSelector('#editorEditToggle:not(.hidden)');
   const tone = await page.locator('#editorTone').inputValue();
   await page.click('#btnSave');
   const val = await page.locator('dialog[data-op-modal] input[type="text"]').inputValue();
-  expect(val).toMatch(/Ps5/);
+  expect(val).toMatch(/Ps005/);
   expect(val).toContain(tone);
   await page.keyboard.press('Escape');
 });
@@ -343,7 +343,7 @@ test('persistence: auto-load fires when switching back to a saved tone', async (
   await clearPsalmSaves(page);
 
   // Build with tone 8 and save
-  await page.selectOption('#psalmSelect', '5');
+  await page.selectOption('#psalmSelect', '005');
   await page.waitForSelector('#editorEditToggle:not(.hidden)');
   await page.selectOption('#editorTone', 'tone8');
   await page.waitForSelector('#editorEditToggle:not(.hidden)');

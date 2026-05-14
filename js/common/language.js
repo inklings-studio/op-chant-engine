@@ -20,7 +20,7 @@
  * @property {string}   code          - ISO 639-1 code: 'sk', 'cs', 'en', 'fr'
  * @property {string}   label         - Display name: 'Slovak', 'Czech', etc.
  * @property {RegExp}   [codaPattern] - Regex to detect a coda word (e.g. /^amen$/i)
- * @property {Array<{num: number, label: string}>} [psalms]
+ * @property {Array<{num: string, label: string}>} [psalms]
  *   Ordered list of available psalm texts for this language.
  * @property {Syllabifier} syllabifier - Language-specific syllabifier instance.
  */
