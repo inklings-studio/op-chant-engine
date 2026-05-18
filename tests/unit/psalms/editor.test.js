@@ -318,7 +318,7 @@ test('psalm selector: options include registered psalm entries', () => {
     // At least one psalm entry follows
     const psalmOpts = options.filter((o) => o.value !== '');
     assert.ok(psalmOpts.length > 0, 'psalm options should be present');
-    assert.equal(psalmOpts[0].value, '001', 'first psalm option value should be "001"');
+    assert.equal(psalmOpts[0].value, 'z_001', 'first psalm option value should be "z_001"');
     assert.equal(psalmOpts[0].textContent, 'Ž. 1');
 });
 
@@ -328,7 +328,7 @@ test('psalm selector: annotation field is updated on psalm select', async () => 
     globalThis.fetch = async () => ({ ok: true, text: async () => VERSE_1 });
 
     const sel = document.getElementById('psalmSelect');
-    sel.value = '005';
+    sel.value = 'z_005';
     await fire(sel, 'change');
 
     assert.equal(document.getElementById('editorAnnotation').value, 'Ž. 5');
@@ -339,7 +339,7 @@ test('psalm selector: textarea is populated and Build runs after psalm select', 
     globalThis.fetch = async () => ({ ok: true, text: async () => VERSE_1 });
 
     const sel = document.getElementById('psalmSelect');
-    sel.value = '005';
+    sel.value = 'z_005';
     await fire(sel, 'change');
 
     const raw = document.getElementById('editorRawText').value;
