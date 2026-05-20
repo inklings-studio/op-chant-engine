@@ -186,7 +186,7 @@ function onEditorInput() {
 function onCompiledGabc(gabcStr) {
     gabcEditor.value = gabcStr;
     _lastCompiledGabc = gabcStr;
-    if (_initDone) _isDirty = true;
+    if (_initDone && gabcStr.trim()) _isDirty = true;
     renderFromEditor();
 }
 
@@ -246,7 +246,10 @@ function renderFromEditor() {
     const gabc = gabcEditor.value.trim();
     if (!gabc) {
         chantPreview.innerHTML = '';
-        if (placeholder) placeholder.style.display = '';
+        if (placeholder) {
+            chantPreview.appendChild(placeholder);
+            placeholder.style.display = '';
+        }
         score = null;
         _syncPreviewControls();
         setStatus('');

@@ -242,7 +242,10 @@ function _doRender() {
     const gabc = _renderGabc.trim();
     if (!gabc) {
         chantPreview.innerHTML = '';
-        if (placeholder) placeholder.style.display = '';
+        if (placeholder) {
+            chantPreview.appendChild(placeholder);
+            placeholder.style.display = '';
+        }
         score = null;
         _syncPreviewControls();
         setStatus('');
