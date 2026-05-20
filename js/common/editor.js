@@ -35,6 +35,10 @@ export function renderTrack(trackEl, syllables, parsedNotes, wordMap) {
     for (const token of parsedNotes) {
         if (BARLINES.has(token)) {
             _flushGroup();
+            // Emit marker chip (* / †) if it precedes this barline in the syllables array.
+            if (syllables[sylIdx] === '*' || syllables[sylIdx] === '†') {
+                trackEl.appendChild(chip(syllables[sylIdx++], 'track-chip track-chip-marker'));
+            }
             trackEl.appendChild(chip(token === '::' ? '‖' : '|', 'track-chip track-chip-barline'));
         } else {
             const syl = syllables[sylIdx];
@@ -100,7 +104,8 @@ export function clearCursorHighlight(track) {
 
 export function updateInputOverflow(input, syllables, parsedNotes) {
     const noteCount = parsedNotes.filter((t) => !BARLINES.has(t)).length;
-    input.classList.toggle('editor-melody-input-overflow', noteCount > syllables.length);
+    const sylCount = syllables.filter((s) => s !== '*' && s !== '†').length;
+    input.classList.toggle('editor-melody-input-overflow', noteCount > sylCount);
 }
 
 /**

@@ -251,6 +251,12 @@
     padding: 0 3px;
 }
 
+.track-chip-marker {
+    color: #7c6a56;
+    font-style: italic;
+    padding: 0 3px;
+}
+
 .track-chip-cursor {
     background: #dbeafe;
     color: #1e3a8a;

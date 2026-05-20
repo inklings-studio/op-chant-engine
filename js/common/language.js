@@ -151,6 +151,17 @@ export class Syllabifier {
                 continue;
             }
 
+            // ── Marker tokens (* / †): emit as standalone with own wordIdx ──
+            if (raw === '*' || raw === '†') {
+                tokens.push({
+                    syl: raw,
+                    wordIdx: wordIdxCounter++,
+                    sylIdx: 0,
+                    isStressed: false,
+                });
+                continue;
+            }
+
             // ── Standard word ──
             const leadPunct = raw.match(/^[^\p{L}]*/u)?.[0] ?? '';
             const trailPunct = raw.match(/[^\p{L}]*$/u)?.[0] ?? '';

@@ -444,12 +444,21 @@ function _splitAstToLines(ast, wordMap) {
 
     let sylOffset = 0;
     return phrases.map((phrase) => {
+        const boundary = phrase[phrase.length - 1];
+        const marker = boundary?.role === 'mediant' ? '*' : boundary?.role === 'flex' ? '†' : null;
         const sylTokens = phrase.filter((t) => t.role !== 'flex' && t.role !== 'mediant');
         const syllables = sylTokens.map((t) => t.syl);
         const phraseWordMap = wordMap
-            ? wordMap.slice(sylOffset, sylOffset + syllables.length)
+            ? wordMap.slice(sylOffset, sylOffset + sylTokens.length)
             : null;
-        sylOffset += syllables.length;
+        // Add marker as a separate syllable entry with its own word index.
+        if (marker) {
+            syllables.push(marker);
+            if (phraseWordMap) {
+                phraseWordMap.push((phraseWordMap[phraseWordMap.length - 1] ?? 0) + 1);
+            }
+        }
+        sylOffset += sylTokens.length;
 
         const notes = phrase
             .map((t) => t.note)
@@ -697,9 +706,11 @@ function _reconstructRawLine(parsedStanza) {
             const { syllables, parsedNotes, wordMap } = line;
 
             // Join syllables into words using wordMap.
+            // Skip standalone marker entries (* / †) — they're re-appended via barline detection.
             const words = [];
             let curWordIdx = -1;
             syllables.forEach((syl, i) => {
+                if (syl === '*' || syl === '†') return;
                 const wIdx = wordMap?.[i] ?? i;
                 if (wIdx !== curWordIdx) {
                     words.push(syl);

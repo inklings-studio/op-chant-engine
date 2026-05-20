@@ -32,10 +32,11 @@ function buildLine(notes, syllables, wordMap) {
 
     for (const token of notes) {
         if (BARLINES.has(token)) {
-            if (token === '::') result += prevSep + DOUBLE_BAR;
-            else if (token === ':') result += prevSep + '*(:)';
-            else if (token === ',') result += prevSep + `(${token})`;
-            else result += prevSep + `(${token})`;
+            // Consume a marker syllable (* / †) that precedes this barline.
+            const marker =
+                syllables[sylIdx] === '*' || syllables[sylIdx] === '†' ? syllables[sylIdx++] : '';
+            const barStr = token === '::' ? DOUBLE_BAR : `(${token})`;
+            result += prevSep + (marker ? marker + barStr : barStr);
             prevSep = ' ';
         } else {
             const syl = sylIdx < syllables.length ? syllables[sylIdx] : '-';

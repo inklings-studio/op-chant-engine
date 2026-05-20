@@ -51,7 +51,13 @@ export function parseText(rawText, state, plugin) {
             const preserved = existingNotes[si]?.[li] ?? '';
             const isLastLine = li === linesToProcess.length - 1;
             const barline = isLastLine ? '::' : li % 2 === 0 ? ',' : ':';
-            const recto = syllables.map(() => 'f').join(' ') + ' ' + barline;
+            const recto =
+                syllables
+                    .filter((s) => s !== '*' && s !== '†')
+                    .map(() => 'f')
+                    .join(' ') +
+                ' ' +
+                barline;
             const notes = preserved || recto;
             return {
                 syllables,

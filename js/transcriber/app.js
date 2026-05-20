@@ -38,7 +38,7 @@ import '../languages/sk/index.js';
 import '../languages/la/index.js';
 
 import { getState } from '../common/state.js';
-import { initEditor, rebuildStanzas } from './editor.js';
+import { initEditor, rebuildStanzas, triggerCompile } from './editor.js';
 import { parseGabc } from '../common/gabc-parser.js';
 import { initMobilePane } from '../common/mobile-pane.js';
 
@@ -637,6 +637,7 @@ function onLoad() {
             state.strophicInheritance = data.strophic ?? false;
             state.stanzaNumbers = data.stanzaNumbers ?? false;
             rebuildStanzas(state);
+            triggerCompile(state);
             _isDirty = false;
             setStatus(`Loaded '${name}'.`);
         },

@@ -119,6 +119,11 @@ export function parseGabc(gabc) {
                     }
 
                     if (BARLINE_RE.test(noteText) || noteText === '::') {
+                        // Preserve marker text (* / †) that was attached to a barline token.
+                        if (sylText === '*' || sylText === '†') {
+                            wordMap.push(wordIdx++);
+                            syllables.push(sylText);
+                        }
                         noteParts.push(noteText === '::' ? '::' : noteText);
                         barlineSinceLast = true;
                         continue;
