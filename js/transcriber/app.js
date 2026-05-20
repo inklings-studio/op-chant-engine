@@ -35,6 +35,7 @@ import { listSaves, getSave, putSave, deleteSave } from '../common/storage.js';
 
 // Language plugins — self-register via side-effect import
 import '../languages/sk/index.js';
+import '../languages/la/index.js';
 
 import { getState } from '../common/state.js';
 import { initEditor, rebuildStanzas } from './editor.js';

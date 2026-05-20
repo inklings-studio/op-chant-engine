@@ -78,6 +78,16 @@ test('loadPsalm: includes the lang code in the URL path', async () => {
     assert.ok(capturedUrl.includes('/cs/'), 'URL should contain the lang code segment');
 });
 
+test('loadPsalm: builds correct URL for Latin psalm id "ps_001"', async () => {
+    let capturedUrl;
+    globalThis.fetch = async (url) => {
+        capturedUrl = url;
+        return { ok: true, text: async () => '' };
+    };
+    await loadPsalm('la', 'ps_001');
+    assert.equal(capturedUrl, 'js/languages/la/psalms/ps_001.txt');
+});
+
 test('loadPsalm: throws with descriptive message on 404', async () => {
     mockFetch('', false);
     await assert.rejects(

@@ -15,6 +15,7 @@ import {
 } from '../core/audio.js';
 import { getState } from '../common/state.js';
 import '../languages/sk/index.js';
+import '../languages/la/index.js';
 import { initEditor, buildSaveData, restoreFromSave } from './editor.js';
 import { initMobilePane } from '../common/mobile-pane.js';
 import {
