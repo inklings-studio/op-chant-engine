@@ -34,7 +34,7 @@ export function parseText(rawText, state, plugin) {
             const lastLine = rawLines[rawLines.length - 1];
             const words = lastLine.trim().split(/\s+/);
             const lastWord = words[words.length - 1];
-            if (plugin.codaPattern.test(lastWord)) {
+            if (plugin.codaPattern.test(lastWord.replace(/\|/g, ''))) {
                 rawLines.pop();
                 codaLine = lastWord;
                 if (words.length > 1) {
