@@ -74,6 +74,7 @@ export function parseGabc(gabc) {
         const m = header.match(re);
         return m ? m[1].trim() : null;
     };
+    const annotation = _hStr(/^annotation\s*:\s*(.+?)\s*;/m);
     const font = _hStr(/%font\s*:\s*([^;\s]+)\s*;/m);
     const fontSizePt = _hNum(/%fontsize\s*:\s*(\d+(?:\.\d+)?)\s*;/m);
     const pageWidthIn = _hNum(/%width\s*:\s*(\d+(?:\.\d+)?)\s*;/m);
@@ -178,5 +179,5 @@ export function parseGabc(gabc) {
         stanzas.push({ lines });
     });
 
-    return { clef, stanzas, coda, font, fontSizePt, pageWidthIn, pageHeightIn };
+    return { clef, annotation, stanzas, coda, font, fontSizePt, pageWidthIn, pageHeightIn };
 }

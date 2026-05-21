@@ -25,7 +25,7 @@ function _btn(label, cls) {
     return b;
 }
 
-function _buildList(container, saves, onLoad, onDelete) {
+function _buildList(container, saves, onLoad, onDelete, onNameClick) {
     container.innerHTML = '';
     if (!saves.length) {
         const p = document.createElement('p');
@@ -42,6 +42,10 @@ function _buildList(container, saves, onLoad, onDelete) {
         nameSpan.className = 'op-modal-list-item-name';
         nameSpan.textContent = name;
         nameSpan.title = name;
+        if (onNameClick) {
+            nameSpan.style.cursor = 'pointer';
+            nameSpan.addEventListener('click', () => onNameClick(name));
+        }
 
         const delBtn = _btn('×', 'op-modal-btn-danger');
         delBtn.title = 'Delete';
@@ -117,10 +121,21 @@ export function showSaveModal({ title, defaultName, saves, onSave, onDelete }) {
     let _saves = [...saves];
     const list = document.createElement('div');
     list.className = 'op-modal-list';
-    _buildList(list, _saves, null, (name) => {
-        onDelete(name);
-        _saves = _saves.filter((s) => s.name !== name);
-    });
+    _buildList(
+        list,
+        _saves,
+        null,
+        (name) => {
+            onDelete(name);
+            _saves = _saves.filter((s) => s.name !== name);
+        },
+        (name) => {
+            input.value = name;
+            _resetConfirm();
+            input.focus();
+            input.select();
+        }
+    );
     dlg.appendChild(list);
 
     // Overwrite-confirm state

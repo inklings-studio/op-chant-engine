@@ -519,6 +519,10 @@ function onDocumentKeydown(e) {
             startPlayback(getCurrentNote());
         }
     } else if (e.key === 'Escape') {
+        if (isInteractive && document.activeElement !== document.body) {
+            document.activeElement.blur();
+            return;
+        }
         if (mediaControls?.classList.contains('hidden')) return;
         e.preventDefault();
         clearCurrentNote();

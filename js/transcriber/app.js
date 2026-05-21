@@ -206,6 +206,7 @@ function switchToTab(tab) {
         const parsed = parseGabc(gabcEditor.value.trim());
         const state = getState();
         state.clef = parsed.clef;
+        state.annotation = parsed.annotation ?? '';
         state.stanzas = parsed.stanzas;
         state.coda = parsed.coda;
         state.font = parsed.font;
@@ -302,6 +303,10 @@ function onDocumentKeydown(e) {
             startPlayback(getCurrentNote()); // null = from start if not paused mid-song
         }
     } else if (e.key === 'Escape') {
+        if (isInteractive && document.activeElement !== document.body) {
+            document.activeElement.blur();
+            return;
+        }
         if (mediaControls?.classList.contains('hidden')) return;
         e.preventDefault();
         clearCurrentNote();
@@ -627,6 +632,7 @@ function onLoad() {
             const parsed = parseGabc(data.gabc ?? '');
             const state = getState();
             state.clef = parsed.clef;
+            state.annotation = parsed.annotation ?? '';
             state.stanzas = parsed.stanzas;
             state.coda = parsed.coda;
             state.font = parsed.font;

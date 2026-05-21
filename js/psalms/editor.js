@@ -758,8 +758,10 @@ export function restoreFromSave(state, data) {
     state.language = data.language ?? state.language;
     state.largeInitial = data.largeInitial ?? state.largeInitial;
     state.clef = parsed.clef;
+    state.annotation = parsed.annotation ?? state.annotation;
     _langSel.value = state.language;
     _largeInitChk.checked = state.largeInitial;
+    _annotationInput.value = state.annotation;
 
     // 3. Reconstruct raw verse text (with †/* markers) from the parsed GABC stanzas.
     const rawLines = parsed.stanzas.map((s) => _reconstructRawLine(s));
