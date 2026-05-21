@@ -665,7 +665,9 @@ function onExportPng(e) {
     e.preventDefault();
     if (!score) return setStatus('Nothing to export.', 'warn');
     try {
-        const svgNode = exportSvg(ctxt, score, DEFAULT_EXPORT_WIDTH);
+        const state = getState();
+        const exportWidthPx = state.pageWidthIn ? state.pageWidthIn * 96 : DEFAULT_EXPORT_WIDTH;
+        const svgNode = exportSvg(ctxt, score, exportWidthPx);
         saveSvgAsPng(svgNode, getFilename('png'), {
             scale: DEFAULT_DPI / 96,
             backgroundColor: '#fff',
