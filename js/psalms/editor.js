@@ -1,7 +1,7 @@
 import { listLanguages, getLanguage } from '../common/language.js';
 import { compileGabc, compileGabc1 } from '../common/compiler.js';
 import { parseGabc } from '../common/gabc-parser.js';
-import { BARLINES, tokenizeMelody } from '../common/melody.js';
+import { BARLINES, MARKERS, tokenizeMelody } from '../common/melody.js';
 import { pointVerse, deriveRolesFromNotes } from './pointer.js';
 import { loadPsalm } from './loader.js';
 import { compileBreviaryHtml } from './formatter.js';
@@ -710,7 +710,7 @@ function _reconstructRawLine(parsedStanza) {
             const words = [];
             let curWordIdx = -1;
             syllables.forEach((syl, i) => {
-                if (syl === '*' || syl === '†') return;
+                if (MARKERS.has(syl)) return;
                 const wIdx = wordMap?.[i] ?? i;
                 if (wIdx !== curWordIdx) {
                     words.push(syl);

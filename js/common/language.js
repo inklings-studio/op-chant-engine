@@ -1,3 +1,5 @@
+import { MARKERS } from './melody.js';
+
 /**
  * @typedef {Object} SyllableToken
  * @property {string} syl      - The syllable text
@@ -152,7 +154,7 @@ export class Syllabifier {
             }
 
             // ── Marker tokens (* / †): emit as standalone with own wordIdx ──
-            if (raw === '*' || raw === '†') {
+            if (MARKERS.has(raw)) {
                 tokens.push({
                     syl: raw,
                     wordIdx: wordIdxCounter++,

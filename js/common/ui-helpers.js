@@ -25,7 +25,7 @@ function _btn(label, cls) {
     return b;
 }
 
-function _buildList(container, saves, onLoad, onDelete, onNameClick) {
+function _buildList(container, saves, { onLoad, onDelete, onNameClick } = {}) {
     container.innerHTML = '';
     if (!saves.length) {
         const p = document.createElement('p');
@@ -121,21 +121,18 @@ export function showSaveModal({ title, defaultName, saves, onSave, onDelete }) {
     let _saves = [...saves];
     const list = document.createElement('div');
     list.className = 'op-modal-list';
-    _buildList(
-        list,
-        _saves,
-        null,
-        (name) => {
+    _buildList(list, _saves, {
+        onDelete: (name) => {
             onDelete(name);
             _saves = _saves.filter((s) => s.name !== name);
         },
-        (name) => {
+        onNameClick: (name) => {
             input.value = name;
             _resetConfirm();
             input.focus();
             input.select();
-        }
-    );
+        },
+    });
     dlg.appendChild(list);
 
     // Overwrite-confirm state
@@ -216,18 +213,16 @@ export function showLoadModal({ title, saves, onLoad, onDelete }) {
     const list = document.createElement('div');
     list.className = 'op-modal-list';
     list.style.cssText = 'margin-top:0; border-top:none; padding-top:0;';
-    _buildList(
-        list,
-        _saves,
-        (name) => {
+    _buildList(list, _saves, {
+        onLoad: (name) => {
             onLoad(name);
             dlg.close();
         },
-        (name) => {
+        onDelete: (name) => {
             onDelete(name);
             _saves = _saves.filter((s) => s.name !== name);
-        }
-    );
+        },
+    });
     dlg.appendChild(list);
 
     const cancelRow = document.createElement('div');

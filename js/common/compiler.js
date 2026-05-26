@@ -1,4 +1,4 @@
-import { BARLINES } from './melody.js';
+import { BARLINES, MARKERS } from './melody.js';
 
 export { tokenizeMelody } from './melody.js';
 
@@ -32,9 +32,7 @@ function buildLine(notes, syllables, wordMap) {
 
     for (const token of notes) {
         if (BARLINES.has(token)) {
-            // Consume a marker syllable (* / †) that precedes this barline.
-            const marker =
-                syllables[sylIdx] === '*' || syllables[sylIdx] === '†' ? syllables[sylIdx++] : '';
+            const marker = MARKERS.has(syllables[sylIdx]) ? syllables[sylIdx++] : '';
             const barStr = token === '::' ? DOUBLE_BAR : `(${token})`;
             result += prevSep + (marker ? marker + barStr : barStr);
             prevSep = ' ';

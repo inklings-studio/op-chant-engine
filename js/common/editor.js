@@ -1,4 +1,4 @@
-import { BARLINES, tokenizeMelody } from './melody.js';
+import { BARLINES, MARKERS, tokenizeMelody } from './melody.js';
 
 function chip(text, cls) {
     const span = document.createElement('span');
@@ -35,8 +35,7 @@ export function renderTrack(trackEl, syllables, parsedNotes, wordMap) {
     for (const token of parsedNotes) {
         if (BARLINES.has(token)) {
             _flushGroup();
-            // Emit marker chip (* / †) if it precedes this barline in the syllables array.
-            if (syllables[sylIdx] === '*' || syllables[sylIdx] === '†') {
+            if (MARKERS.has(syllables[sylIdx])) {
                 trackEl.appendChild(chip(syllables[sylIdx++], 'track-chip track-chip-marker'));
             }
             trackEl.appendChild(chip(token === '::' ? '‖' : '|', 'track-chip track-chip-barline'));
@@ -104,7 +103,7 @@ export function clearCursorHighlight(track) {
 
 export function updateInputOverflow(input, syllables, parsedNotes) {
     const noteCount = parsedNotes.filter((t) => !BARLINES.has(t)).length;
-    const sylCount = syllables.filter((s) => s !== '*' && s !== '†').length;
+    const sylCount = syllables.filter((s) => !MARKERS.has(s)).length;
     input.classList.toggle('editor-melody-input-overflow', noteCount > sylCount);
 }
 

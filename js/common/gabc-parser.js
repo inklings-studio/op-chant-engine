@@ -1,3 +1,5 @@
+import { MARKERS } from './melody.js';
+
 const CLEF_RE = /^[cf]b?[1-4]$/;
 
 /**
@@ -121,7 +123,7 @@ export function parseGabc(gabc) {
 
                     if (BARLINE_RE.test(noteText) || noteText === '::') {
                         // Preserve marker text (* / †) that was attached to a barline token.
-                        if (sylText === '*' || sylText === '†') {
+                        if (MARKERS.has(sylText)) {
                             wordMap.push(wordIdx++);
                             syllables.push(sylText);
                         }

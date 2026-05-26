@@ -6,7 +6,7 @@
  * @param {object} state        - live state object from state.js (mutated in place)
  * @param {import('./language.js').LanguagePlugin} plugin
  */
-import { tokenizeMelody } from './melody.js';
+import { MARKERS, tokenizeMelody } from './melody.js';
 
 export function parseText(rawText, state, plugin) {
     // Snapshot existing notes by [stanzaIdx][lineIdx] so they survive a rebuild.
@@ -51,13 +51,8 @@ export function parseText(rawText, state, plugin) {
             const preserved = existingNotes[si]?.[li] ?? '';
             const isLastLine = li === linesToProcess.length - 1;
             const barline = isLastLine ? '::' : li % 2 === 0 ? ',' : ':';
-            const recto =
-                syllables
-                    .filter((s) => s !== '*' && s !== '†')
-                    .map(() => 'f')
-                    .join(' ') +
-                ' ' +
-                barline;
+            const noteCount = syllables.reduce((n, s) => n + (MARKERS.has(s) ? 0 : 1), 0);
+            const recto = 'f '.repeat(noteCount).trimEnd() + ' ' + barline;
             const notes = preserved || recto;
             return {
                 syllables,
